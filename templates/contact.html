@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+
+
+<p align="center" style="padding:50px 0px">
+	Bug reports, feature requests or general questions can be sent to us via tripsvizsite@gmail.com <br>
+	You can also use the forum on <a href="https://gwips.ucc.ie/Forum/">Gwips-Viz</a><br>
+	Alternatively you can fill in the contact form below.
+<div align="center">
+	<form action="" method="post">
+		<input type="text" placeholder="Name" name="name" value="{{request.form.name }}"><br>
+		<input type="text" placeholder="E-mail address" name="email" value="{{request.form.email }}"><br>
+		<input type="text" placeholder="Subject" name="subject" value="{{request.form.subject }}"><br>
+		<textarea type="text" placeholder="Message" name="message"  style="height:200px;width:230px;font-size:15px;" value="{{request.form.message }}"></textarea><br>
+		<input class="btn btn-default" type="submit" value="Send">
+	</form>
+</div>
+
+</p>
+
+<script>
+</script>
+
+
+{% endblock %}

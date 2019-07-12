@@ -1,0 +1,108 @@
+div #studies
+{
+		text-align:center;
+		display: inline-block;
+		padding: 20px 0px;
+		border:1px solid #dbdbdb;
+		border-radius:20px;
+		width : 97%;
+}
+
+
+
+div #seq_types
+{
+		float: left;
+		text-align:center;
+		display: inline-block;
+		border:1px solid #dbdbdb;
+		padding:10px 0px;
+		border-radius:20px;
+		width : 97%;
+}
+
+div #files
+{
+		display: inline-block;
+		border:1px solid #dbdbdb;
+		padding:50px 0px;
+		border-radius:20px;
+		width : 97%;
+
+}
+
+
+label.checkbox_label {
+		padding: 10px 9px;
+		text-align: center;
+		font-weight: bold;
+		font-size: 14px;
+		color: black;
+		background-color: #ffffff;
+		border: 3px solid #77abff;
+		border-radius: 16px;
+}
+
+
+div #sidebar
+{
+		border:0px solid #dbdbdb;
+		border-radius:20px;
+		height : 300px;
+		width : 96%;
+}
+
+div #riboseq_file_list_1
+{
+		display: inline-block;
+		float: left;
+		border:1px solid #dbdbdb;
+		padding:10px 30px;
+		border-radius:20px;
+		height : 350px;
+		width : 47%;
+		position: relative;
+}
+
+div #riboseq_file_list_2
+{
+		display: inline-block;
+		float: left;
+		border:1px solid #dbdbdb;
+		padding:10px 30px;
+		border-radius:20px;
+		height : 350px;
+		width : 44%;
+		position: relative;
+}
+
+
+div #rnaseq_file_list_1
+{
+		display: inline-block;
+		float: left;
+		border:1px solid #dbdbdb;
+		padding:10px 30px;
+		border-radius:20px;
+		height : 350px;
+		width : 47%;
+		position: relative;
+}
+
+div #rnaseq_file_list_2
+{
+		display: inline-block;
+		float: left;
+		border:1px solid #dbdbdb;
+		padding:10px 30px;
+		border-radius:20px;
+		height : 350px;
+		width : 44%;
+		position: relative;
+}
+
+
+
+ul {
+		text-align: center;
+}

@@ -1,0 +1,466 @@
+{% extends "layout.html" %}
+{% block content %}
+<html>
+<body>
+
+<style>
+
+td {
+
+	text-align: center;
+}
+
+table, th, td {
+		 width: 100%;
+		 table-layout:fixed;
+	}
+
+	.center {
+	    text-align:center;
+	    font-size:20px;
+	    margin: auto;
+	    width: 60%;
+	    padding: 10px;}
+
+	.title {
+	    text-align:center;
+	    font-size:30px;
+	    margin: auto;
+	    width: 60%;
+	    text-decoration: underline;
+	    padding: 10px;}
+
+	.acc_headers {
+			background-color:#77abff;
+			color: white;
+			letter-spacing: 0px;
+			border: 1px solid #9a9a9a;
+			text-shadow:
+			-1px -1px 0 #7d7d7d,
+			1px -1px 0 #7d7d7d,
+			-1px 1px 0 #7d7d7d,
+			1px 1px 0 #7d7d7d;
+			}
+
+	#accordion h2{
+	    background-color:#77abff;
+	    background-image: none;
+	    font-size:22px;
+	    }
+
+
+</style>
+
+
+<div id="accordion" class="top_header">
+<h3  class="acc_headers" align="left">Upload new file</h3>
+<div>
+	<table style="border: 10px black">
+		<tr><th>Organism</th><th>Assembly</th><th>Study name</th><th>File to upload</th><th>File type</th><th></th></tr>
+		<tr>
+				<form action = "https://trips.ucc.ie/uploadquery" method = "POST" enctype = "multipart/form-data">
+				<td align="center">
+					<select name="organism" id="organism_dropdown">
+						<option value="item0">--Select an Organism--</option>
+					</select>
+				</td>
+				<td align="center">
+					<select name="assembly" id="size">
+						<option value="">-- Select a transcriptome -- </option>
+					</select>
+				</td>
+				<td align="center">
+					<input type=text value=Foldername name=foldername>
+				</td>
+				<td align="center">
+					<input name = "file" type = "file" multiple/>
+				</td>
+				<td align="left">
+					<input type="radio" id="riboseq" value="riboseq" name="filetype" checked></input>Ribo-Seq<br>
+					<input type="radio" id="rnaseq" value="rnaseq" name="filetype" unchecked></input>mRNA-Seq<br>
+					<input type="radio" id="other" value="other" name="filetype" unchecked></input><input type=text value="Other" name=seq_type placeholder="Enter name of other sequence type">
+				</td>
+				<td align="center">
+					<input value="Upload file" type = "submit"/>
+				</td>
+			</form>
+		</tr>
+	</table>
+</div>
+
+
+<h3 class="acc_headers" align="left"> My studies</h3>
+<div>
+<table id="study_table">
+<tr><th>Studyname</th><th>Organism</th><th>Assembly</th><th>Access list</th><th>Delete</th></tr>
+</table>
+<div align="center">
+	<button align="center" type="button"  id="update_study_button"><b>Update</b></button>
+</div>
+</div>
+
+<h3 class="acc_headers" align="left"> My files</h3>
+<div>
+<table id="file_table">
+<tr><th>Filename</th><th>Studyname</th><th>Delete</th></tr>
+</table>
+<div align="center">
+	<button align="center" type="button"  id="delete_button"><b>Delete selected files</b></button>
+</div>
+</div>
+
+
+<h3 class="acc_headers" >Sequence rules</h3>
+<div align="center">
+<table id="seq_table">
+<tr><th>Sequence type</th><th>Colour by frame</th></tr>
+
+
+</table>
+<div align="center">
+	<button align="center" type="button"  id="update_seq_button"><b>Update sequence rules</b></button>
+</div>
+</div>
+
+
+<h3 class="acc_headers" align="left"> Upload new transcriptome</h3>
+<div>
+<table style="border: 10px black">
+	<tr><th>Organism name</th><th>Assembly name</th><th>Annotation sqlite file</th>  <th>Default tran</th>  <th></th></tr>
+	<tr>
+	<form action = "/uploadtranscriptome" method = "POST" enctype = "multipart/form-data">
+
+		<td align="center">
+			<input type=text value=organism name=organism placeholder="Enter organism name">
+		</td>
+		
+		<td align="center">
+			<input type=text value=assembly name=assembly placeholder="Enter transcriptome assembly name">
+		</td>
+
+		<td align="center">
+			<input name = "anno_file" type = "file" multiple/>
+		</td>
+
+		<td align="center">
+			<input type=text value=default_tran name=default_tran placeholder="Enter default transcript">
+		</td>
+
+		<td align="center">
+			<input value="Upload file" type = "submit"/>
+		</td>
+		
+	</form>
+	</tr>
+</table>
+</div>
+
+<h3 class="acc_headers" align="left"> My transcriptomes</h3>
+<div>
+<table id="transcriptome_table">
+<tr><th>Organism</th><th>Assembly</th><th>Delete</th></tr>
+</table>
+<div align="center">
+<button align="center" type="button"  id="update_transcriptomes_button"><b>Update</b></button>
+</div>
+</div>
+
+
+</div>
+	<script type="text/javascript">
+	$( function() {
+	    $( "#accordion").accordion({
+	        collapsible: true,
+	        active:false,
+	        heightStyle: "content"
+	            });
+	    } );
+
+
+var file_dict = {{  file_dict|safe  }}
+
+for (var filename in file_dict) {
+	file_table = document.getElementById('file_table');
+	var tr = document.createElement("tr");
+
+	var filename_td = document.createElement("td");
+	var txt = document.createTextNode(filename);
+	filename_td.appendChild(txt);
+
+	var study_td = document.createElement("td");
+	var txt = document.createTextNode(file_dict[filename][0]);
+	study_td.appendChild(txt);
+
+	var delete_td = document.createElement("td");
+	var checkbox = document.createElement('input');
+	checkbox.type = "checkbox";
+	checkbox.name = "delete_"+file_dict[filename][1];
+	checkbox.value = "delete_"+file_dict[filename][1];
+	checkbox.id = "delete_"+file_dict[filename][1];
+	delete_td.appendChild(checkbox);
+
+	tr.appendChild(filename_td);
+	tr.appendChild(study_td);
+	tr.appendChild(delete_td);
+	file_table.appendChild(tr);
+}
+
+
+
+//seq_dict holds the names of any custom seq types, and there rules
+var seq_dict = {{  seq_dict|safe  }}
+
+for (var seq_name in seq_dict) {
+	seq_table = document.getElementById('seq_table');
+	var tr = document.createElement("tr");
+	var seqname_td = document.createElement("td");
+	var txt = document.createTextNode(seq_name);
+	seqname_td.appendChild(txt);
+
+	//var fbd_td = document.createElement("td");
+	//var txt = document.createTextNode(seq_dict[seq_name][0]);
+	//fbd_td.appendChild(txt);
+
+	var fbd_td = document.createElement("td");
+	var checkbox = document.createElement('input');
+	checkbox.type = "checkbox";
+	checkbox.name = seq_name+"fbd";
+	checkbox.value = seq_name+"fbd";
+	checkbox.id = seq_name+"fbd";
+	fbd_td.appendChild(checkbox);
+	if (seq_dict[seq_name][0] == 1) {
+		checkbox.checked = "checked";
+	};
+
+	tr.appendChild(seqname_td);
+	tr.appendChild(fbd_td);
+	seq_table.appendChild(tr);
+}
+
+
+
+var study_dict = {{  study_dict|safe  }}
+
+for (var study_id in study_dict) {
+	study_table = document.getElementById('study_table');
+	var tr = document.createElement("tr");
+
+	var study_td = document.createElement("td");
+	var txt = document.createTextNode(study_dict[study_id][0]);
+	study_td.appendChild(txt);
+
+	var org_td = document.createElement("td");
+	var txt = document.createTextNode(study_dict[study_id][1]);
+	org_td.appendChild(txt);
+
+	var assembly_td = document.createElement("td");
+	var txt = document.createTextNode(study_dict[study_id][2]);
+	assembly_td.appendChild(txt);
+
+	var access_td = document.createElement("input");
+	access_td.setAttribute('type', 'text');
+	access_td.setAttribute('value', study_dict[study_id][3]);
+	access_td.setAttribute('id', 'access_'+study_id);
+
+	var delete_td = document.createElement("td");
+	var checkbox = document.createElement('input');
+	checkbox.type = "checkbox";
+	checkbox.name = "delete_"+study_id;
+	checkbox.value = "delete_"+study_id;
+	checkbox.id = "delete_"+study_id;
+	delete_td.appendChild(checkbox);
+
+	tr.appendChild(study_td);
+	tr.appendChild(org_td);
+	tr.appendChild(assembly_td);
+	tr.appendChild(access_td);
+	tr.appendChild(delete_td);
+	study_table.appendChild(tr);
+}
+
+
+
+
+
+
+var transcriptome_dict = {{  transcriptome_dict|safe  }}
+
+for (var organism_id in transcriptome_dict) {
+	transcriptome_table = document.getElementById('transcriptome_table');
+	var tr = document.createElement("tr");
+	
+	var org_td = document.createElement("td");
+	var txt = document.createTextNode(transcriptome_dict[organism_id][0]);
+	org_td.appendChild(txt);
+	
+	var assembly_td = document.createElement("td");
+	var txt = document.createTextNode(transcriptome_dict[organism_id][1]);
+	assembly_td.appendChild(txt);
+	
+	var delete_td = document.createElement("td");
+	var checkbox = document.createElement('input');
+	checkbox.type = "checkbox";
+	checkbox.name = "delete_"+organism_id;
+	checkbox.value = "delete_"+organism_id;
+	checkbox.id = "delete_"+organism_id;
+	delete_td.appendChild(checkbox);
+	
+	tr.appendChild(org_td);
+	tr.appendChild(assembly_td);
+	tr.appendChild(delete_td);
+	transcriptome_table.appendChild(tr);
+	}
+
+	var organism_dict = {{ organism_dict|safe }};
+	for (var org in organism_dict) {
+		org_dropdown = document.getElementById('organism_dropdown');
+		org_dropdown.options[org_dropdown.options.length] = new Option(org, org);
+		for (var assembly in organism_dict[org]){
+			console.log("Assembly is "+organism_dict[org][assembly])
+		}
+	}
+
+		$(document).ready(function () {
+			$("#organism_dropdown").change(function () {
+				var val = $(this).val();
+				if (val in organism_dict) {
+					var opt_string = "";
+					for (var assembly in organism_dict[val])    {
+						opt_string += "<option value="+organism_dict[val][assembly]+">"+organism_dict[val][assembly]+"</option>"
+					}
+					$("#size").html(opt_string);
+				}
+			});
+		});
+
+
+function showNotificationBar(message, duration, bgColor, txtColor, height) {
+	/*set default values*/
+	duration = typeof duration !== 'undefined' ? duration : 1500;
+	bgColor = typeof bgColor !== 'undefined' ? bgColor : "#F4E0E1";
+	txtColor = typeof txtColor !== 'undefined' ? txtColor : "#A42732";
+	height = typeof height !== 'undefined' ? height : 40;
+	/*create the notification bar div if it doesn't exist*/
+	if ($('#notification-bar').size() == 0) {
+		var HTMLmessage = "<div class='notification-message' style='text-align:center; line-height: " + height + "px;'> " + message + " </div>";
+		$('body').prepend("<div id='notification-bar' style='display:none; width:100%; height:" + height + "px; background-color: " + bgColor + "; position: fixed; z-index: 100; color: " + txtColor + ";border-bottom: 1px solid " + txtColor + ";'>" + HTMLmessage + "</div>");
+	}
+	/*animate the bar*/
+	$('#notification-bar').slideDown(function() {
+		setTimeout(function() {
+			$('#notification-bar').slideUp(function() {});
+		}, duration);
+	});
+}
+
+
+var local = "{{ local|safe }}";
+var del_url = "/deletequery"
+var del_study_url = "/deletestudyquery"
+var del_transcriptome_url = "/deletetranscriptomequery"
+var seq_url = "/seqrulesquery"
+
+document.getElementById("update_study_button").onclick = (function() {
+	console.log("JJJavascript calling delete study query");
+	$("#loading-div-background").show();
+	$("#container").hide();
+	var qu = {};
+	for (var study_id in study_dict) {
+		var studycheck = $('input:checkbox[name="delete_'+study_id+'"]:checked').val();
+		var access_list = document.getElementById('access_'+study_id).value
+		console.log("ACCESS LIST IS "+access_list)
+		// python fails if studycheck is an empty string, so added 'del_'
+		qu[study_id] = ["del_"+studycheck,access_list]
+		};
+	$.ajax({
+			type: "POST",
+			async:true,
+			contentType: "application/json; charset=utf-8",
+			url: del_study_url,
+			data: JSON.stringify(qu),
+			dataType: "html",
+			success: function (data) {
+				console.log("Study updated successfully"+data)
+				showNotificationBar(data,5000);
+		}
+		})
+		});
+
+
+document.getElementById("update_transcriptomes_button").onclick = (function() {
+	console.log("JJJavascript calling delete transcriptome query");
+	$("#loading-div-background").show();
+	$("#container").hide();
+	var qu = {};
+	for (var transcriptome_id in transcriptome_dict) {
+		var transcriptomecheck = $('input:checkbox[name="delete_'+transcriptome_id+'"]:checked').val();
+		// python fails if studycheck is an empty string, so added 'del_'
+		qu[transcriptome_id] = ["del_"+transcriptomecheck]
+		};
+	$.ajax({
+		type: "POST",
+		async:true,
+		contentType: "application/json; charset=utf-8",
+		url: del_transcriptome_url,
+		data: JSON.stringify(qu),
+		dataType: "html",
+		success: function (data) {
+			console.log("Transcriptomes updated successfully"+data)
+			showNotificationBar(data,5000);
+			}
+		})
+		});
+
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+document.getElementById("delete_button").onclick = (function() {
+	$("#loading-div-background").show();
+	$("#container").hide();
+	var qu = {};
+	for (var filename in file_dict) {
+		var filecheck = $('input:checkbox[name="delete_'+file_dict[filename][1]+'"]:checked').val();
+		qu[filename] = filecheck};
+	$.ajax({
+			type: "POST",
+			async:true,
+			contentType: "application/json; charset=utf-8",
+			url: del_url,
+			data: JSON.stringify(qu),
+			dataType: "html",})
+		});
+
+
+document.getElementById("update_seq_button").onclick = (function() {
+	$("#loading-div-background").show();
+	$("#container").hide();
+	var qu = {};
+	for (var seq_name in seq_dict) {
+		qu[seq_name] = 0;
+	};
+	for (var seq_name in seq_dict) {
+		if (document.getElementById(seq_name+'fbd').checked) {
+			fbd_check = 'True';
+		}
+		else {
+			fbd_check = 'False';
+		}
+		qu[seq_name] = [fbd_check];
+	};
+	$.ajax({
+			type: "POST",
+			async:true,
+			contentType: "application/json; charset=utf-8",
+			url: seq_url,
+			data: JSON.stringify(qu),
+			dataType: "html",
+			success: function(){
+				showNotificationBar("Sequence rules updated successfully",5000);
+				}
+				
+				
+				})
+		});
+	</script>
+
+</body>
+</html>
+{% endblock %}

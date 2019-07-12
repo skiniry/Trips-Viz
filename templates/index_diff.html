@@ -1,0 +1,594 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<head>
+<link rel= "stylesheet" href= "{{ url_for('static', filename='css/diff_translation.css') }}">
+<script src="https://cdn.pydata.org/bokeh/release/bokeh-0.12.14.min.js"></script>
+<script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.14.min.js"></script>
+</head>
+
+
+
+<div id="general_settings">
+		<p><font size="5" text-align="center"><b><u>General Settings</u></b></br></font></p>
+		<table align="center">
+		<tr><td><b>Plot type: </b><input type="radio" class = "plot_radio Z-score" id="z_score" value="z_score" name="plottype" checked>Z-score</input><input type="radio" class="plot_radio ribo_rna" id="ribo_rna" value="ribo_rna" name="plottype" unchecked> Correlation </input></td></tr>
+		<tr><td><b>Minimum no. of reads: </b><input type="text" id="minread" name="minread" value="1" ></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_minreads">(Whats this?) </a></td></tr>
+		<tr><td><b>Min z-score (+/-): </b><input type="text" id="minzscore" name="minzscore" value="4" ></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_minz">(Whats this?) </a></td></tr>
+		<tr><td><b>Region: </b>
+		<input class="all" type="radio" value="all" name="region" checked>All</input>
+		<input class="cds" type="radio" value="cds" name="region" checked>CDS</input>
+		<input class="fiveprime" type="radio" value="fiveprime" name="region" unchecked>5'</input>
+		<input class="threeprime" type="radio" value="threeprime" name="region" unchecked>3'</input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_region">(Whats this?) </a></td></tr>
+		<tr><td><b>Normalise by mapped reads: </b><input type='checkbox' value='mapped_reads_norm' name='mapped_reads_norm' checked></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_norm">(Whats this?) </a></td></tr>
+		<tr><td><b>Allow ambiguously mapped reads: </b><input id="ambiguous" class="ambig_check" type="checkbox" name="ambiguous" value="ambiguous" unchecked></input> <td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_ambig">(Whats this?) </a></td> </tr></td>
+		{% if current_user.name == "master" %}
+			<tr><td> <input type='checkbox' value='store_de_results' name='store_de_results' unchecked> Store results</input> </td></tr>
+			<tr><td> <input type="text" id="cond_desc" name="cond_desc" value=""></input></td></tr>
+		{% endif %}
+		<tr><td><b>Gene List: </b> <input type="text" id="gene_list" name="gene_list" value=""></input></td></tr>
+		<tr><td><b>Minimum coverage: </b> <input type="text" id="min_cov" name="min_cov" value="0"></input></td></tr>
+		</table>
+</div>
+
+
+<div id="riboseq_file_list_1" class="center">
+		<p><font size="5" ><b><u>Ribo-Seq files Condition 1</u></b></br></font></p>
+		<ul text-align="center" id="ribo_file_list_1"></ul>
+		<ul margin: "10px 20px 30px 40px" class="checkbox-grid" data-role="listview" data-inset="true" id="ulist"  title="nodes list" data-inset="true">
+		</ul>
+		<br/>
+		<div><button class="button centerbutton" type="button" value="Clear List" onclick="removeAll_riboseq1()">Clear list</button></div>
+		<br/>
+</div>
+
+
+<div id="riboseq_file_list_2">
+		<p><font size="5" text-align="center"><b><u>Ribo-Seq files Condition 2</u></b></br></font></p>
+		<ul id="ribo_file_list_2"></ul>
+		<ul class="checkbox-grid" data-role="listview" data-inset="true" id="ulist"  title="nodes list" data-inset="true">
+		</ul>
+		<br/>
+		<div><button class="button centerbutton" type="button" value="Clear List" onclick="removeAll_riboseq2()">Clear list</button></div>
+		<br/>
+</div>
+
+
+<div id="rnaseq_file_list_1">
+		<p><font size="5" text-align="center"><b><u>RNA-Seq files Condition 1</u></b></br></font></p>
+		<ul id="rna_file_list_1"></ul>
+		<ul class="checkbox-grid" data-role="listview" data-inset="true" id="ulist"  title="nodes list" data-inset="true">
+		</ul>
+		<br/>
+		<div><button class="button centerbutton" type="button" value="Clear List" onclick="removeAll_rnaseq1()">Clear list</button></div>
+		<br/>
+</div>
+
+
+<div id="rnaseq_file_list_2">
+		<p><font size="5" text-align="center"><b><u>RNA-Seq files Condition 2</u></b></br></font></p>
+		<ul id="rna_file_list_2"></ul>
+		<ul class="checkbox-grid" data-role="listview" data-inset="true" id="ulist"  title="nodes list" data-inset="true">
+		</ul>
+		<br/>
+		<div><button class="button centerbutton" type="button" value="Clear List" onclick="removeAll_rnaseq2()">Clear list</button></div>
+		<br/>
+</div>
+
+
+<div id="seq_types">
+<p><font size="5" align="center"><b><u>Seq types</u></b></font></p>
+</br>
+</div>
+
+
+
+<div id="studies">
+<p><font size="5" align="center"><b><u>Studies</u></b></font></p>
+</br>
+<button  class="study_button" type="button" onclick='view_study_info()'><b>View study info</b></button>
+		<table align="center">
+		<tr><td><button id="btnAdd" value="Add to Cond 1" onclick="addribo1()">Add to Ribo-Seq files 1</button></td>
+		<td><button id="btnAdd" value="Add To Cond 2" onclick="addribo2()">Add to Ribo-Seq files 2</button></td></tr>
+		<tr><td><button id="btnAdd" value="Add to Cond 1" onclick="addrna1()">Add to RNA-Seq files 1</button></td>
+		<td><button id="btnAdd" value="Add To Cond 2" onclick="addrna2()">Add to RNA-Seq files 2</button></td></tr>
+		</table>
+		</br></br>
+		<table align="center" name="studytable" id="studytable" class="studytable">
+		<tr id="tablerow1">
+		</tr>
+		<tr id="tablerow2">
+		</tr>
+		<tr id="tablerow3">
+		</tr>
+		<tr id="tablerow4">
+		</tr>
+		<tr id="tablerow5">
+		</tr>
+		<tr id="tablerow6">
+		</tr>
+		<tr id="tablerow7">
+		</tr>
+		<tr id="tablerow8">
+		</tr>
+		<tr id="tablerow9">
+		</tr>
+		<tr id="tablerow10">
+		</tr>
+		<tr id="tablerow11">
+		</tr>
+		<tr id="tablerow12">
+		</tr>
+		</table>
+		</br></br>
+</div>
+
+
+
+<div id="files">
+		</br>
+		<p><font size="5" align="center"><b><u>Files</u></b></br></font></p>
+</div>
+
+<div id="view_plot" class="wrapper"><button class="button" type="button"  id="diffquery"><b>View Plot</b></button></div>
+
+<div id="loading-div-background">
+	<div id="loading-div" class="ui-corner-all" >
+		<img style="height:64px;margin:10px;"      src="{{ url_for('static', filename = 'css/images/282.GIF') }}" width="110" height="85" alt="Loading..."/>
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/sofia.css') }}">
+		<h3 id="loading_header" style="color:gray;font-weight:normal;">Loading....</h3>
+	</div>
+</div>
+
+<div id="container"></div>
+
+<div id = "study_dialog" title = "Study info">
+<table></table>
+</div>
+
+<script type="text/javascript"   src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script type="text/javascript">
+
+
+// If the user presses the enter key call the #query function (generates the plot)
+$(document).keypress(function(e){
+	if (e.which == 13){
+		$("#diffquery").click();
+		}
+	});
+
+var master_file_dict = {};
+var local = "{{ local|safe }}";
+var html_args = {{ html_args|safe }};
+var defaulttran = "{{ default_tran|safe }}";
+var transcriptome = "{{  transcriptome|safe }}";
+rownum = 1
+rowcount = -1
+
+var seq_types = {{  seq_types|safe  }};
+for (var i in seq_types) {
+	//if the seq type is riboseq make it checked by default
+	if (seq_types[i] == "riboseq") {
+		checked = "checked"
+	}
+	else {
+		checked = "unchecked"
+	};
+
+	// if seq type is riboseq or rnaseq set a proper display name, else just use seq_type
+	if (seq_types[i] == "riboseq") {
+		display_name = "Ribo-Seq"
+	}
+	else if (seq_types[i] == "rnaseq") {
+		display_name = "mRNA-Seq"
+	}
+	else {
+		display_name = seq_types[i]
+	}
+
+	var radio_seq_types = "<input "+checked+" type='radio' class='seq_type_radio all_checks' id='"+seq_types[i]+"' name='seq_type' value="+seq_types[i]+" /></b>   </input><label for='"+seq_types[i]+"' id='label"+seq_types[i]+"' class='radio_label' >"+display_name+"</label>";
+	var seq_types_div = document.getElementById('seq_types');
+	seq_types_div.innerHTML += radio_seq_types;
+}
+
+
+
+var studies_dict = {{  studies_dict|safe  }};
+var studyinfo_dict = {{  studyinfo_dict|safe  }};
+for (var key in studies_dict)  {
+		rowcount += 1;
+		if (rowcount == 8) {
+				rowcount = 0
+				rownum += 1
+				};
+		var radio_study = "<input type='radio' checked class='study_radio all_checks' id='study"+key+"' name='content_type' value=study"+key+" /></b></input><label for='study"+key+"' id='label"+key+"' class='radio_label' >"+studies_dict[key]["study_name"]+"</label>";
+		addRow(rownum, radio_study)
+		for (i in seq_types) {
+			var seq_type = seq_types[i]
+			var files_div = document.getElementById('files');
+			var new_show_div = document.createElement(studies_dict[key]["study_name"]);
+			//console.log("Seq type is "+seq_type)
+			new_show_div.className = 'show';
+			new_show_div.id = seq_type+"study"+key;
+			tablehtml = "<table  class='file_table' id="+key+seq_type+" align='center'></table>";
+			new_show_div.innerHTML = tablehtml;
+			files_div.appendChild(new_show_div);
+		}
+		};
+
+
+// accepted files structure, key is file_type,values are file_id's (which are themselves keys) which point to a dictionary with the following: {"study_id":row[1],"file_name":row[2],"file_description":row[3],"file_type":row[4]}
+var accepted_files = {{ accepted_files|safe }};
+var seq_study_dict = {};
+
+for (var filetype in accepted_files) {
+		for (var study_id in accepted_files[filetype]) {
+				i=0
+				var file_names = [];
+				for (var file_id in accepted_files[filetype][study_id]) {
+					file_name = accepted_files[filetype][study_id][file_id]["file_name"]
+					file_names.push([file_name, file_id])
+					}
+				file_names = file_names.sort(function(a, b) {
+					return a[0].localeCompare(b[0]);
+				})
+				
+				var sorted_file_list = [];
+				for (var z in file_names) {
+					var tup = file_names[z];
+					sorted_file_list.push(tup[1]);
+					}
+				
+				for (var file_id in sorted_file_list) {
+						file_id = sorted_file_list[file_id]
+						//console.log("file_id", file_id);
+						file_name = accepted_files[filetype][study_id][file_id]["file_name"];
+						file_description = accepted_files[filetype][study_id][file_id]["file_description"];
+
+						if (!(filetype in seq_study_dict)) {
+							seq_study_dict[filetype] = [];
+						};
+						if (accepted_files[filetype][study_id].length != 0) {
+							if (!(study_id in seq_study_dict[filetype])) {
+								seq_study_dict[filetype].push(study_id);
+						}
+					};
+
+
+						var table = document.getElementById(study_id+filetype);
+						var tr = document.createElement("tr");
+						var td = document.createElement("td");
+						td.innerHTML = ("<td><input id='radio"+file_name+file_id+"' type='radio' class='study_radio file_"+file_id+" "+filetype+"_file "+filetype+"_study"+study_id+"'  name='ribostudy' value="+file_id+","+file_name+" data-file_name="+file_name+" unchecked></input>    <label for='radio"+file_name+file_id+"' class='radio_label'></label> <label for='radio"+file_name+file_id+"' ><b>"+file_name+"</b>:"+file_description+"</label></td>");
+						if (i != 1){
+								table.appendChild(td);
+								i+= 1;
+								}
+						else if (i == 1){
+								table.appendChild(td);
+								table.appendChild(tr);
+								i = 0
+								}
+						}
+						}
+						};
+
+if (local == "True") {
+		var url = "/diffquery"
+		}
+else {
+		var url = "/diffquery"
+		}
+
+function removeAll_riboseq1(){
+		master_file_dict["riboseq1"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+		var files_div = document.getElementById('riboseq_file_list_1');
+		files_div.innerHTML = "<p><font size='5' text-align='center'><b><u>Riboseq files Condition 1   </u></b></br></font></p>\
+		<ul id='ribo_file_list_1'></ul>\
+		<ul class='checkbox-grid' data-role='listview' data-inset='true' id='ulist'  title='nodes list' data-inset='true'>                        \
+		</ul>\
+		<br/>\
+		<div><button class='button centerbutton' type='button' value='Clear List' onclick='removeAll_riboseq1()'>Clear list</button></div>\
+		<br/>";
+		}
+
+function removeAll_riboseq2(){
+		master_file_dict["riboseq2"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+		var files_div = document.getElementById('riboseq_file_list_2');
+		files_div.innerHTML = "<p><font size='5' text-align='center'><b><u>Riboseq files Condition 2   </u></b></br></font></p>\
+		<ul id='ribo_file_list_2'></ul>\
+		<ul class='checkbox-grid' data-role='listview' data-inset='true' id='ulist'  title='nodes list' data-inset='true'>                        \
+		</ul>\
+		<br/>\
+		<div><button class='button centerbutton' type='button' value='Clear List' onclick='removeAll_riboseq2()'>Clear list</button></div>\
+		<br/>";
+		}
+
+function removeAll_rnaseq1(){
+		master_file_dict["rnaseq1"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+		var files_div = document.getElementById('rnaseq_file_list_1');
+		files_div.innerHTML = "<p><font size='5' text-align='center'><b><u>RNA-Seq files Condition 1   </u></b></br></font></p>\
+		<ul id='rna_file_list_1'></ul>\
+		<ul class='checkbox-grid' data-role='listview' data-inset='true' id='ulist'  title='nodes list' data-inset='true'>                        \
+		</ul>\
+		<br/>\
+		<div><button class='button centerbutton' type='button' value='Clear List' onclick='removeAll_rnaseq1()'>Clear list</button></div>\
+		<br/>";
+		}
+
+function removeAll_rnaseq2(){
+		master_file_dict["rnaseq2"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+		var files_div = document.getElementById('rnaseq_file_list_2');
+		files_div.innerHTML = "<p><font size='5' text-align='center'><b><u>RNA-Seq files Condition 2   </u></b></br></font></p>\
+		<ul id='rna_file_list_2'></ul>\
+		<ul class='checkbox-grid' data-role='listview' data-inset='true' id='ulist'  title='nodes list' data-inset='true'>                        \
+		</ul>\
+		<br/>\
+		<div><button class='button centerbutton' type='button' value='Clear List' onclick='removeAll_rnaseq2()'>Clear list</button></div>\
+		<br/>";
+		}
+
+
+var listnum = 0;
+var master_file_dict = {};
+master_file_dict["riboseq1"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+master_file_dict["riboseq2"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+master_file_dict["rnaseq1"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+master_file_dict["rnaseq2"] = {"file_ids":[],"file_names":[], "file_descriptions":[]};
+
+
+function addribo1(){
+		var fileinput = (document.querySelector('input[name=ribostudy]:checked').value);
+		var file_id = fileinput.split(",")[0]
+		var file_name = fileinput.split(",")[1]
+		var li = document.createElement("LI");
+		var study_id = (document.querySelector('input[name=content_type]:checked').value).replace("study","");
+		// fetch currently selected seq Type
+		var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+		li.innerHTML = [accepted_files[seq_type][study_id][file_id]["file_description"]];
+		document.getElementById("ribo_file_list_1").appendChild(li);
+		master_file_dict["riboseq1"]["file_ids"].push(file_id);
+		master_file_dict["riboseq1"]["file_names"].push(file_name);
+		};
+
+function addribo2(){
+		var fileinput = (document.querySelector('input[name=ribostudy]:checked').value)
+		var file_id = fileinput.split(",")[0]
+		var file_name = fileinput.split(",")[1]
+		var li = document.createElement("LI");
+		var study_id = (document.querySelector('input[name=content_type]:checked').value).replace("study","");
+		li.innerHTML = [accepted_files["riboseq"][study_id][file_id]["file_description"]];
+		document.getElementById("ribo_file_list_2").appendChild(li);
+		master_file_dict["riboseq2"]["file_ids"].push(file_id);
+		master_file_dict["riboseq2"]["file_names"].push(file_name);
+		};
+
+function addrna1(){
+		var fileinput = (document.querySelector('input[name=ribostudy]:checked').value)
+		var file_id = fileinput.split(",")[0]
+		var file_name = fileinput.split(",")[1]
+		var li = document.createElement("LI");
+		var study_id = (document.querySelector('input[name=content_type]:checked').value).replace("study","");
+		li.innerHTML = [accepted_files["rnaseq"][study_id][file_id]["file_description"]];
+		document.getElementById("rna_file_list_1").appendChild(li);
+		master_file_dict["rnaseq1"]["file_ids"].push(file_id);
+		master_file_dict["rnaseq1"]["file_names"].push(file_name);
+		};
+
+function addrna2(){
+		var fileinput = (document.querySelector('input[name=ribostudy]:checked').value)
+		var file_id = fileinput.split(",")[0]
+		var file_name = fileinput.split(",")[1]
+		var li = document.createElement("LI");
+		var study_id = (document.querySelector('input[name=content_type]:checked').value).replace("study","");
+		li.innerHTML = [accepted_files["rnaseq"][study_id][file_id]["file_description"]];
+		document.getElementById("rna_file_list_2").appendChild(li);
+		master_file_dict["rnaseq2"]["file_ids"].push(file_id);
+		master_file_dict["rnaseq2"]["file_names"].push(file_name);
+		};
+
+
+$("#loading-div-background").css({ opacity: 0.7 });
+
+$("#diffquery").click(function() {
+	$("#loading-div-background").show();
+	$("#container").hide();
+	var plottype = document.querySelector('input[name=plottype]:checked').value;
+	var transcript = $('input:text[name=transcript]').val();
+	var minreads = $('input:text[name=minread]').val();
+	var minzscore = $('input:text[name=minzscore]').val();
+	var ribocoverage = $('input:checkbox[name=coverage]:checked').val();
+	var ambiguous = $('input:checkbox[name=ambiguous]:checked').val();
+	var mapped_reads_norm = $('input:checkbox[name=mapped_reads_norm]:checked').val();
+	var organism = "{{  organism|safe  }}";
+	var region = document.querySelector('input[name=region]:checked').value;
+	var riboseq1 = document.getElementById("ribo_file_list_1");
+	var riboseq2 = document.getElementById("ribo_file_list_2");
+	var rnaseq1 = document.getElementById("rna_file_list_1");
+	var rnaseq2 = document.getElementById("rna_file_list_2");
+	var total_files = 0
+	
+	var store_de_results = $('input:checkbox[name=store_de_results]:checked').val();
+	if (typeof store_de_results == 'undefined'){
+		store_de_results = "";
+		}
+	var cond_desc = $('input:text[name=cond_desc]').val();
+	if (cond_desc == null){
+		cond_desc = ""
+		}
+	var gene_list = $('input:text[name=gene_list]').val();
+	if (gene_list == null){
+		gene_list = ""
+		}
+	var min_cov = $('input:text[name=min_cov]').val();
+	if (min_cov == null){
+		min_cov = ""
+		}
+	
+	for (key in master_file_dict) {
+			console.log("KEY"+key);
+			for (file_id in master_file_dict[key]["file_ids"]) {
+				console.log("value"+filename)
+				total_files += 1
+				}
+			}
+	
+	if (total_files == 1) {
+		loading_header.innerText = "Loading data from "+total_files+" file";}
+	else {
+		loading_header.innerText = "Loading data from "+total_files+" files";}
+	
+	var qu = {"master_file_dict":master_file_dict, "organism":organism, "minzscore":minzscore, "minreads":minreads, "region":region,"transcriptome":transcriptome,
+				"html_args":html_args,"mapped_reads_norm":mapped_reads_norm,"store_de_results":store_de_results,"cond_desc":cond_desc,"gene_list":gene_list,
+				"ambiguous":ambiguous,"min_cov":min_cov,"plottype":plottype}
+
+	$.ajax({
+		type: "POST",
+		async:true,
+		contentType: "application/json; charset=utf-8",
+		url: url,
+		data: JSON.stringify(qu),
+		success: function (data) {
+		 var graph = $("#container");
+		 graph.html(data);
+		 $("#loading-div-background").hide();
+		 $("#container").show();
+	 },
+	 dataType: "html"
+ });
+});
+
+if (html_args["minreads"] != "None" ) {
+		document.getElementById('minread').value = html_args["minreads"];
+		}
+
+if (html_args["min_cov"] != "None" ) {
+	document.getElementById('min_cov').value = html_args["min_cov"];	
+	}
+
+if (html_args["minzscore"] != "None" ) {
+		document.getElementById('minzscore').value = html_args["minzscore"];
+		}
+
+if (html_args["ambig"] == "T") {
+	$('.ambig_check').attr('checked', true);
+	}
+else {
+	$('.ambig_check').attr('checked', false);
+	}
+
+if (html_args["region"] == "all") {
+		$('.all').attr('checked', true);
+		}
+
+if (html_args["region"] == "cds") {
+		$('.cds').attr('checked', true);
+		}
+
+if (html_args["region"] == "fiveprime") {
+		$('.fiveprime').attr('checked', true);
+		}
+
+if (html_args["region"] == "threeprime") {
+		$('.threeprime').attr('checked', true);
+		}
+
+//if plottype in html args, plot type is selected here
+if (html_args["plottype"] != "None") {
+	if (html_args["plottype"] == "z_score") {
+		$('.z_score').attr('checked', true);
+		}
+	else if (html_args["plottype"] == "ribo_rna") {
+		$('.ribo_rna').attr('checked', true);
+		}
+	};
+	
+//if gene list in html args pass it here
+if (html_args["gene_list"] != "None") {
+	document.getElementById('gene_list').value = html_args["gene_list"];
+	}
+	
+
+// if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
+if (html_args["riboseq_files_1"] != "None") {
+		for (i in html_args["riboseq_files_1"]) {
+				var fileinput = html_args["riboseq_files_1"][i];
+				var filename = html_args["riboseq_labels_1"][i];
+				var li = document.createElement("LI");
+				li.innerHTML = [filename];
+				document.getElementById("ribo_file_list_1").appendChild(li);
+				master_file_dict["riboseq1"]["file_ids"].push(fileinput);
+				master_file_dict["riboseq1"]["file_names"].push(filename);
+						}
+				};
+
+
+// if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
+if (html_args["riboseq_files_2"] != "None") {
+		for (i in html_args["riboseq_files_2"]) {
+				var fileinput = html_args["riboseq_files_2"][i];
+				var filename = html_args["riboseq_labels_2"][i];
+				var li = document.createElement("LI");
+				li.innerHTML = [filename];
+				document.getElementById("ribo_file_list_2").appendChild(li);
+				master_file_dict["riboseq2"]["file_ids"].push(fileinput);
+				master_file_dict["riboseq2"]["file_names"].push(filename);
+				}
+		};
+
+
+// if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
+if (html_args["rnaseq_files_1"] != "None") {
+		for (i in html_args["rnaseq_files_1"]) {
+				var fileinput = html_args["rnaseq_files_1"][i];
+				var filename = html_args["rnaseq_labels_1"][i];
+				var li = document.createElement("LI");
+				li.innerHTML = [filename];
+				document.getElementById("rna_file_list_1").appendChild(li);
+				master_file_dict["rnaseq1"]["file_ids"].push(fileinput);
+				master_file_dict["rnaseq1"]["file_names"].push(filename);
+				}
+		};
+
+
+
+// if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
+if (html_args["rnaseq_files_2"] != "None") {
+		for (i in html_args["rnaseq_files_2"]) {
+				var fileinput = html_args["rnaseq_files_2"][i];
+				var filename = html_args["rnaseq_labels_2"][i];
+				var li = document.createElement("LI");
+				li.innerHTML = [filename];
+				document.getElementById("rna_file_list_2").appendChild(li);
+				master_file_dict["rnaseq2"]["file_ids"].push(fileinput);
+				master_file_dict["rnaseq2"]["file_names"].push(filename);
+				}
+		};
+
+if (html_args["riboseq_files_1"] != "None" || html_args["riboseq_files_2"] != "None" || html_args["rnaseq_files_1"] != "None" || html_args["rnaseq_files_2"] != "None") {
+		$("#diffquery").click();
+		};
+
+
+//Update the options box on page load and load files in file box
+$(document).ready(function(){
+	var n = document.querySelector('input[name="content_type"]:checked').value;
+	var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+	for (var study_id in studies_dict) {
+		$("#label"+study_id+"").css({ opacity: 0.2 });
+	}
+	for (file_type in seq_study_dict) {
+		if (file_type == seq_type) {
+			for (var sub_study_id in seq_study_dict[file_type]) {
+				$("#label"+seq_study_dict[file_type][sub_study_id]+"").css({ opacity: 1 });
+			}
+		}
+	}
+
+	var selector = "#"+seq_type+ n; //Create a selector based on the id
+	$(".show").hide(); //Hide all the checkbox containers
+	$(selector).show(); //Show only the related container
+})
+
+</script>
+
+{% endblock %}

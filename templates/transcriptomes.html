@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+div #riboseq
+{
+    font-size: 25px;
+    position: absolute;
+    top: 20%;
+    left: 42%;
+    text-align: center;
+    }
+
+/* used to style links under riboseq/rnaseq sections: unvisited link */
+a.tran:link {
+    font-size: 21px;
+    text-decoration: none;
+    color: #666666;
+    }
+
+/* visited link */
+a.tran:visited {
+    font-size: 21px;
+    text-decoration: none;
+    color: #666666;
+    }
+
+/* mouse over link */
+a.tran:hover {
+    font-size: 21px;
+    text-decoration: none;
+    color: #77abff;
+    }
+
+
+</style>
+
+
+
+
+<div id="riboseq">
+<b><u>Choose a transcriptome</u></b>
+<br>
+</div>
+
+
+<script type="text/javascript">
+
+var trans = "{{  transcriptomes|safe  }}";
+
+window.onload = function() {    
+    
+    var newDiv = document.createElement('div');
+    document.getElementById('riboseq').appendChild(newDiv);
+    var splittrans = trans.split(","); 
+    
+    for (var i in splittrans) {
+            newDiv.innerHTML += "<a class='tran' href="+splittrans[i]+">"+splittrans[i]+"</a></br>";
+    }
+    
+    }
+
+
+
+
+
+</script>
+
+
+{% endblock %}

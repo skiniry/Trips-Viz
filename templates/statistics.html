@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+.center {
+    text-align:center;
+    font-size:30px;
+    margin: auto;
+    width: 60%;
+    padding: 10px;}
+
+#news {
+	font-size: 25px;
+	align: center;
+	top: 50%;
+	left: 42%;
+	text-align: center;
+	}
+
+#table_news {
+	margin: 0 auto;
+	font-size: 18px;
+	text-decoration: none;
+	text-align:left;
+	color: #666666;
+	padding-top: 25px;
+	};
+</style>
+
+<div class="center">
+<br>
+<p> There are currently <b>{{riboseq_files}}</b> Ribo-Seq files and <b>{{rnaseq_files}}</b> RNA-Seq files from <b>{{no_studies}}</b> studies across <b>{{no_organisms}}</b> organisms in Trips-viz. </p>
+<br>
+</div>
+
+<div id="org_breakdown_graph">
+<br><br><br>
+{{  org_breakdown_graph|safe  }}
+{{  year_plot|safe  }}
+</div>
+
+<div id="news">
+<b><u>Updates/bug fixes</b></u>
+<table id ="table_news"> 
+</table>
+</div>
+
+<div align="center" id="IRC">
+<br><br>
+<p> Trips-Viz is supported by the Irish Research Council </p>
+<img align="center" width="15%" src="/static/IRC.png"></img>
+</div>
+
+<script>
+var no_organisms = '{{  no_organisms|safe  }}';
+var news_string = "{{ news_string|safe  }}";
+var table_news = document.getElementById('table_news');
+table_news.innerHTML = news_string;
+
+</script>
+
+
+{% endblock %}

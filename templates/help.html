@@ -1,0 +1,716 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+.center {
+		text-align:center;
+		font-size:20px;
+		margin: auto;
+		width: 60%;
+		padding: 10px;}
+
+.title {
+		text-align:center;
+		font-size:30px;
+		margin: auto;
+		width: 60%;
+		text-decoration: underline;
+		padding: 10px;}
+
+.acc_headers {
+		background-color:#77abff;
+		color: white;
+		letter-spacing: 0px;
+		border: 1px solid #9a9a9a;
+		text-shadow:
+		-1px -1px 0 #7d7d7d,
+		1px -1px 0 #7d7d7d,
+		-1px 1px 0 #7d7d7d,
+		1px 1px 0 #7d7d7d;
+		}
+
+#accordion h2{
+		background-color:#77abff;
+		background-image: none;
+		font-size:22px;
+		}
+</style>
+
+
+
+<div id="accordion" class="top_header">
+
+
+<h3 id="parent_general_info" class="acc_headers" >General Information/Frequently Asked Questions</h3>
+<div id="accordion_faq">
+	<h3 id="child_tripsviz">Why is it called Trips-viz?</h3>
+	<div id="why_trips">
+		<p class="center">
+		Trips-viz is a (poor) acronym standing for <b>TR</b>anscriptome wide <b>I</b>nformation on <b>P</b>rotein <b>S</b>ynthesis <b>VIZ</b>ualized. This is mainly to match the naming of our sister site
+		<a href="http://gwips.ucc.ie">gwips-viz</a> which provides <b>G</b>enome <b>W</b>ide <b>I</b>nformation on <b>P</b>rotein <b>S</b>ynthesis.
+		</p>
+	</div>
+
+	<h3 id="child_account" >Do I need an account to use Trips-viz?</h3>
+	<div id="need_account">
+		<p class="center">
+		No. All features of Trips-viz can be used without an account. An account is only needed if you wish to change specific aspects of plots such as the background colour. An account is also needed
+		to upload your own data, or to view private data uploaded by someone else.
+		</p>
+	</div>
+
+	<h3 id="child_share" >How do I share plots?</h3>
+	<div id="how_share">
+		<p class="center">
+		For every plot generated on Trips-viz a unique id is also generated and displayed in the plots title. A link can be generated using this unique id in the format trips.ucc.ie/short/unique_code. Sending
+		this link to someone will recreate the plot on their browser using the same files/settings/organism used to create the plot, for example <a href="http://trips.ucc.ie/short/28S">http://trips.ucc.ie/short/28S</a>.
+		For convenience, a button will appear the plot which will be labelled "Direct link to this plot". Right clicking on the button and clicking "copy link location" allows you to easily
+		send the full link to others. One caveat here is if you have an account on Trips-viz and modified your settings so that plots have colours different from the default colours, these custom colours will not be preserved.
+		</p>
+	</div>
+
+	<h3 id="child_upload" >Can I upload my own data?</h3>
+	<div id="upload_desc">
+		<p class="center">
+		Yes. To upload you need an account, then visit the upload link at the top of the page. This is split into 3 sections called "Upload new file", "My studies"
+		and "My files". The "Upload new file" section allows you to choose an organism, an assembly, a study name, and a sequence type. Once those are chosen you can click the
+		"Browse" button to choose a file to upload and then press the "Submit" button to upload the file. After the file has been uploaded you'll see the study appear in the
+		 "My studies" section, where the organism, study name and assembly will be listed. There will also be a text box referred to as "Access list" where you can give other
+		 Trips-Viz users access to your data. To do this, enter a list of usernames in the text box and press the "Update" button at the bottom of the page.
+		 <br><br>
+		 The "My files" section will also be populated after uploading a file. This will list the file name, the study name and a checkbox for each file. To delete files click the 
+		 checkboxes of the files you want to delete and press the "Delete files" button at the bottom of the page.
+		 Note that any files uploaded to Trips-Viz need to be in a specific format (sqlite) and have the extension .sqlite. In order to create a file in that format you  need to use
+		 the "bam_to_sqlite.py" script, which can be gotten from the downloads page. You will also need to download a file called "transcriptomic_to_genomic.sqlite" and 
+		 "organism_name.sqlite" which can be downloaded from the same page. Then run the python 2 script as follows:
+		 python bam_to_sqlite.py <path_to_bam_file> <path_to_transcriptomic_to_genomic.sqlite> <path_to_organism.sqlite> 
+		 This will produce a .sqlite file which you can upload to Trips-Viz. Note: BAM file has to be sorted, if not a valid sqlite file will still be produced, but the 
+		 designation of "ambiguous" vs "not ambiguous" to reads will be incorrect, this can be done using the samtools sort command with the -n flag.
+		</p>
+	</div>
+
+	<h3 id="child_pipeline" > How is the Ribo-Seq/mRNA-Seq data processed?</h3>
+	<div id="how_processed">
+		<p class="center">
+		Publicly available Ribo-Seq/mRNA-Seq data is downloaded from the  <a href="https://www.ncbi.nlm.nih.gov/sra">ncbi sequence read archive</a>. After which it is converted to fastq format and adapter is removed using <a href="http://cutadapt.readthedocs.io/en/stable/guide.html">cutadapt</a>. Reads below 25 nucleotides in length after adapter removal are discarded.
+		Reads are alinged to rRNA sequences using <a href = "http://bowtie-bio.sourceforge.net/index.shtml">bowtie</a>.
+		Reads that map to rRNA are discarded while remaining reads are aligned to the transcriptome using <a href = "http://bowtie-bio.sourceforge.net/index.shtml">bowtie</a>.
+		The resulting BAM file is parsed with a python script. Each mapped read is checked to see how many genomic positions it maps to, if only one
+		the read is classed as unambiguous, if more than one it is classed as ambiguous. An offset is also determined for every read by choosing the
+		highest peak near the start codon using the counts from the metagene profile.
+		</p>
+	</div>
+
+	<h3 id="child_custom" > Can I upload sequencing types other than Ribo-Seq/mRNA-seq?</h3>
+	<div id="how_custom_data">
+		<p class="center">
+		Yes. This can potentially be done with any sequencing data that can be aligned to a transcriptome, but you will need to be somewhat familiar with python.The basic steps 
+		involve parsing a text file and placing the information in SQLite format. An example of a python script that can do this is provided on the downlods page which you can view
+		by selecting "Scripts" under the group dropdown box and then "tsv_to_sqlite.py" in the file dropdown box. This can be easily modified to parse a csv file. The output will 
+		be in .sqlite format which you can then upload to Trips-Viz.
+		</p>
+	</div>
+		
+	<h3 id="child_custom" > Can I use a custom transcriptome?</h3>
+	<div id="how_custom_data">
+		<p class="center">
+		Yes. If you have a transcriptomic fasta file and a gtf file you can upload your own transcriptome to Trips-Viz. This can be done by first downloading the 
+		scripts entitled "create_annotation_sqlite.py" and "create_transcriptomic_to_genomic_sqlite.py" from the downloads page (select the "Scripts" group). 
+		Run the "create_annotation_sqlite.py" script as follows: <br><br>
+			python create_annotation_sqlite.py &lt;organism_name> &lt;gtf_file_path> &lt;fasta_file_path> &lt;pseudo_utr_len>
+		where pseudo_utr_len is an integer which can be used to add a flanking region to all transcripts, which can be useful if UTR's are not annotated, set to
+		0 if UTR's are already annotated. This will produce a file named &lt;organism_name>.sqlite then run the script "create_transcriptomic_to_genomic_sqlite.py" as follows:
+			python create_transcriptomic_to_genomic_sqlite.py &lt;gtf_file_path> &lt;pseudo_utr_len> <br><br>
+		This will produce a file called "transcriptomic_to_genomic.sqlite" (this is needed for the bam_to_sqlite.py script). To upload your transcriptome go to the 
+		uploads page, select the "Upload new transcriptome" tab. Fill in the required fields and upload the .sqlite file that was prouduced by the create_annotation_sqlite.py script.
+		A message will come up after a some time indicating a successful upload. Navigating back to the home page should show the newly uploaded organism 
+		(this will only be visible by you), files can then be uploaded for that organism just like any other organism on Trips-Viz. 
+		Previously uploaded transcriptomes can be deleted from the uploads page under the "My transcriptomes" tab. <br><br>
+		
+		Note the variables with labels such as "search_term_before_transcript" in the create_annotation_sqlite.py and create_transcriptomic_to_genomic_sqlite.py scripts may need to be
+		changed. This is because gtf files are not standardised so the scripts need to have the terms that appear immediately before and after the transcript and gene ids in the gtf file. 
+		Here is an example of a line in a gtf file and what the corresponding variables should be set to:<br>
+			
+			gtf line:<br>
+				chr1	HAVANA	transcript	11869	14409	.	+	.	gene_id "ENSG00000223972.5"; transcript_id "ENST00000456328.2"; gene_type "transcribed_unprocessed_pseudogene"; gene_status "KNOWN"; gene_name "DDX11L1"; transcript_type "processed_transcript"; transcript_status "KNOWN"; transcript_name "DDX11L1-002"; level 2; transcript_support_level "1"; tag "basic"; havana_gene "OTTHUMG00000000961.2"; havana_transcript "OTTHUMT00000362751.1";<br><br>
+				
+			variables:	<br>
+				search_term_before_transcript = 'transcript_id "'<br>
+				search_term_after_transcript = '.'<br>
+				search_term_before_gene_1 = 'gene_name "'<br>
+				search_term_after_gene = '";'<br>
+		</p>
+	</div>
+</div>
+
+
+<h3 id="parent_single_gene" class="acc_headers">Single gene/transcript plot</h3>
+<div id="accordion_single">
+	<h3 id="child_single_plotdesc">Plot description</h3>
+	<div id="plot_description">
+		<p class="center">
+		The purpose of this plot is to allow you to see the ribosome profiling and rnaseq reads that align to an individual gene or transcript.
+		The ribosome profiling reads will be colour coded according to which frame the a-site is found in. If the triplet periodicity of the reads contributing
+		to the graph is strong then this plot should give a clear picture of which frame is being translated.
+		<br><br>
+		The page is split into three parts, at the top of the page you have general settings. Here you can choose settings like, the maximum triplet periodicity
+		score for each read, the gene you want to view, the minimum and maximum allowed readlengths and many other settings. To get a more detailed description
+		on any one of these settings simply click the link next to it labelled "(What's this?)", or you can view the explanations further down this page.
+		<br><br>
+		At the middle of the page you can select a sequence type. Then click on
+		one of the studies in the studies box. This will bring up a list of relavent files associated with that study in the "Files" section below. Next to each
+		file will be a circle. If the circle is filled in this means that reads from that file will be included in the graph. To turn on or off an individual file
+		simply click the circle next to the file name or the file name itself. As some studies can have many files associated with them, there are buttons in the
+		studies box that act as shortcuts.
+		<br><br>
+		There are 2 buttons in the "Studies" section to turn on/off all files currently in the "Files" section, and another 2 buttons in the "Seq type" section to turn on/off all files from
+		the selected sequence type. There is also a button in the studies box to "View study info". When pressed this will bring up a pop up which will display information
+		relevant to the selected study such as a link to the paper and a link to the raw data.
+		At the bottom of the page there are two buttons the first is "View on Gwips", which when clicked will display the current gene on <a href="http://gwips.ucc.ie">Gwips-Viz</a>
+		(note this only works if you've created a plot in Trips-Viz first) the second is the "View Plot" button which when pressed will display a loading screen for a short while after
+		which a plot and another button will appear below the "View Plot" button. This new button will be labelled "Direct link to this plot", by right clicking on this button and copying
+		the link you can send the plot to another person (for more information see
+		<a target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_general_info&child_acc=child_share">How do I share plots? </a>).
+		<br><br>
+		<img width="95%" src="/static/single_gene_transcript_screenshot.png"></img>
+		<br><br>
+		The main window for the plot will have a read count on the y-axis and the position in nucleotides along the x-axis. Above the main window will be the name of the gene you
+		are viewing followed by a short code in brackets (this can be used to re-create the plot your viewing). By default only the ribo-seq data will be shown, which is colour coded
+		according to the frame it aligns to. Just below the main window the orf architecture for this transcript will be shown. The three frames are colour coded red, green and blue.
+		Start codons are denoted by short white lines, stop codons are denoted by longer grey lines. To the right of the main window is the interactive legend. Elements in the main
+		window can be turned on/off by clicking the coloured boxes in the legend. Below the orf architecture lies the tools, clicking on the magnifying glass icon will allow you to draw
+		a bounding box in the main window to zoom into a specific area. Clicking on the four arrows icon will allow you to click and drag anywhere in the main window to move the data.
+		Finally clicking on the home icon will allow you to undo any affect of the move/zoom tool and reset the view to it's original settings.
+		<br><br>
+		</p>
+	</div>
+
+	<h3 id="child_ambig"> Allow ambiguously mapped reads</h3>
+	<div id="Allow ambiguously mapped reads">
+		<p class="center">
+		Checking this box means that both ambiguously mapped reads and unambiguously mapped reads will be displayed.
+		A read is considered ambiguous if it maps to more than one genomic position.
+		</p>
+	</div>
+
+	<h3 id="child_line">Line Graph</h3>
+	<div id="Line Graph">
+		<p class="center">
+		If this is checked then the data will be displayed, as a line graph instead of as individual peaks. This
+		makes no difference to the actual data displayed it is purely an aestethic choice. However, the line graph is less memory intensive
+		and can result in a smoother experience, especially when zooming. 
+		</p>
+	</div>
+
+	<h3 id="child_seq_element_hili">Highlight sequence list</h3>
+	<div id="Seq hili">
+		<p class="center">
+		This text box allows you to input a comma seperated list of nucleotide sequences which will be highligted in the open reading frame architecture of the
+	 	resulting plot. By default these will appear as short black lines but their colour can be changed in the settings. These can be turned on/off by clicking 
+	 	the "Highlighted sequences" button to the right of the plot. 
+	 	Note: the following IUPAC codes are also recognised:			
+			R: A/G
+			Y: C/U
+			S: G/C
+			W: A/U
+			K: G/U
+			M: A/C
+			B: C/G/U
+			D: A/G/U
+			H: A/C/U
+			V: A/C/G
+			N: A/C/G/U
+	 	</p>
+	</div>
+
+	<h3 id="child_ribocov" >Riboseq coverage</h3>
+	<div id="Riboseq coverage">
+		<p class="center">
+		If checked, every position of every read contributes to the data displayed on the plot, if unchecked only the inferred a-site of the read
+		contributes to the plot.
+		<br>
+		<img width="95%" src="/static/read_coverage.png"></img>
+		<br>
+		For more information on how a-site is inferred for trips see.
+		</p>
+	</div>
+
+
+	<h3 id="child_max_read_score" >Max Triplet Periodicity Score</h3>
+	<div id="Max Read Score">
+		<p class="center">
+		This is a simple metric to include/exclude readlengths from a particular file depending on how good the triplet periodicity is.
+		For each readlength a score is calculated from it's triplet periodicity plot using the formula 1-(count of the second highest peak/count of the highest peak)
+		, thus read lengths with very good triplet periodicity will be close to 1, while readlengths with poor triplet periodicity
+		will be close to 0.
+
+		<br><br>
+		<img width="95%" src="/static/read_scores_explained.png"></img>
+		<br><br>
+
+		Any readlengths from any files with a read score below what is entered in this field will not be
+		displayed, thus entering a value close to 1 will result in better triplet periodicity but less data.
+		</p>
+		<!-- <center><img src="{{ url_for('static', filename='read_scores_explained.png') }}" alt="read_scores_explained" style="width:654px;height:350px;"></center> -->
+	</div>
+
+	<h3 id="child_gene" >Gene/Transcript</h3>
+	<div id="Gene/Transcript">
+		<p class="center">
+		The gene or transcript to be plotted. If given a gene with multiple transcripts then a list will be displayed
+		of all transcripts associated with that gene. Transcript ids are based on gencode annotations, refseq will not be
+		recognised.
+		</p>
+	</div>
+
+	<h3 id="child_single_minread">Min Read</h3>
+	<div id="Min Read">
+		<p class="center">
+		The minimum read length to be displayed on the graph. Any reads below this length will be ignored.
+		</p>
+	</div>
+
+	<h3 id="child_single_maxread">Max Read</h3>
+	<div id="Max Read">
+		<p class="center">
+		The maximum read length to be displayed on the graph. Any reads above this length will be ignored.
+		</p>
+	</div>
+
+	<h3 id="child_offset_dir">Offset Direction</h3>
+	<div id="Offset Direction">
+		<p class="center">
+		Infer the a-site of each ribosome protected fragment from either the 5' or 3' end of each read. 
+		</p>
+	</div>
+
+	<h3 id="child_nucseq">Nucleotide sequence</h3>
+	<div id="Nucleotide sequence">
+		<p class="center">
+		If this box is checked the nucleotide sequence of the transcript will be displayed below the main plot. Depending on the length of the transcript this can add a significant amount of time
+		to the plot generation. 
+		</p>
+	</div>
+</div>
+
+
+<h3 id="parent_comparison" class="acc_headers">Single gene/transcript comparison plot</h3>
+<div id="accordion_comp">
+	<h3 id="child_comp_plotdesc" >Plot description</h3>
+	<div id="plot_description">
+		<p class="center">
+			The purpose of this plot is to view data from multiple datasets (or groups of datasets) for a single gene simultaneously. This is useful in the case were there are
+			Ribo-seq datasets generated under treatment and control conditions or as part of a time series and you would like to view what the difference looks like  for a
+			particular gene/transcript.
+
+			At the top of the page is the General settings section. This provides the user with options to change the transcript to be plotted, the minimum and maximum readlengths,
+			or whether to include ambiguously mapped reads. Below General settings lies two boxes, one labelled Studies the other labelled File list. The Studies box contains a
+			button labelled Add, a coloured square, and a list of studies that have been aligned to the currently selected organism/transcriptome assembly.
+
+			<br><br> Only files listed in the
+			File list box will be plotted in the graph.
+
+			In order to add files to the file list box, a user must click on one of the studies. This will populate the Ribo-Seq files and RNA-Seq files boxes below the Studies box
+			with a list of files relevant to that study. Clicking on one of these files and then pressing the Add button in the Studies box will place that file into the File list.
+			As long as the colour in the coloured box remains unchanged, multiple files can be added to the same group in the File list box by continually selecting different files
+			and pressing the Add button after each selection. If the user does change the colour in the coloured box (a pop up appears when clicking on the coloured box) all
+			subsequently added files will be added to the File list under the same group.
+			<figure style="text-align:center;padding:20px 0px;">
+			<img align="center" width="25%" src="/static/file_list.png"></img>
+			<figcaption style="font-size:12px;color:gray;">This figure shows two groups have been added to the file list, one coloured red and one coloured green.<br>
+				 Each group has two files associated with it.</figcaption>
+			</figure>
+			There is no limit to the number of files that can be added to each group or the total
+			number of groups.  Clicking the View plot button at the bottom of the page will create a plot below the View plot button. Each group of files in the File list will be
+			plotted on a single line with its corresponding colour. By default the legend will show the filename of the first file in the group, but this can be changed by clicking
+			on the label in the File list box and typing in a custom label.
+			<figure style="text-align:center;padding:20px 0px;">
+			<img align="center" width="65%" src="/static/comparison_plot.png"></img>
+			<figcaption style="font-size:12px;color:gray;">This figure shows the human gene TXNIP. Two groups are plotted one in red, one in green.<br>
+				The group plotted in red has two files associated with it (SRR3306583 and SRR3306584), the group plotted in green also has two files associated with it (SRR3306588 and
+				SRR3306589).<br> All four files are from Park et al. 2016.</figcaption>
+			</figure>
+		</p>
+	</div>
+
+	<h3 id="child_comp_gene" >Gene/Transcript</h3>
+	<div id="Gene/Transcript">
+		<p class="center">
+		The gene or transcript to be plotted. If giving a gene with multiple transcripts then a list will be displayed
+		of all transcripts associated with that gene. Transcript ids are based on gencode annotations, refseq will not be
+		recognised.
+		</p>
+	</div>
+
+	<h3 id="child_comp_minread">Min Read</h3>
+	<div id="Min Read">
+		<p class="center">
+		The minimum read length to be displayed on the graph. Any reads below this length will be ignored.
+		</p>
+	</div>
+
+	<h3 id="child_comp_maxread">Max Read</h3>
+	<div id="Max Read">
+		<p class="center">
+		The maximum read length to be displayed on the graph. Any reads above this length will be ignored.
+		</p>
+	</div>
+
+	<h3 id="child_comp_hili">Highlight start/Highlight stop</h3>
+	<div id="hili">
+		<p class="center">
+		These values can be used to highlight a specific region of a transcript.
+		Filling in a value for highlight start and highlight stop will colour in that region of the plot.
+		</p>
+	</div>
+
+	<h3 id="child_comp_ambig">Allow ambiguous reads</h3>
+	<div id="norm">
+		<p class="center">
+		Checking this box means that both ambiguously mapped reads and unambiguously mapped reads will be displayed.
+		A read is considered ambiguous if it maps to more than one genomic position.
+		</p>
+	</div>
+
+	<h3 id="child_comp_norm">Normalization by mapped reads</h3>
+	<div id="norm">
+		<p class="center">
+		When looking at the difference between two groups of files there may be a large difference in the number of mapped reads in each group.
+		Checking this option aims to mitigate the effect of mapped reads differences by determining the factor difference
+		between the groups and then decreasing the counts of the higher groups by that factor. For example if there is one dataset in condition 1
+		with 1,000,000 mapped reads and one dataset in condition 2 with 500,000 mapped reads, the count for every position in condition 1 would be divided by 2. 
+		</p>
+	</div>
+</div>
+
+
+<h3 id="parent_metainfo" class="acc_headers" id="metainfo_header">Metainformation plots</h3>
+<div id="accordion_metainfo">
+	<h3 id="child_metainfo_plotdesc" >Plot description</h3>
+	<div id="plot_description">
+		<p class="center">
+		The purpose of these plots is to allow you to gain insight into specific features of a particular dataset, such as wether or not it has good triplet periodicity.
+		The top left section of the page allows you to choose a plot type by clicking on it. Some plots have settings that you can change, if these are applicable to this
+		plot the settings will appear in the options section in the top right of the page.
+		<br><br>
+		At the middle of the page is the "Studies" section and "Seq types" section. To choose which files are contributing to the plot, first click on a sequence type and then on on of the
+		studies in the "Studies" section. This will bring up a list of relavent files in the "Files" section below. Next to each
+		file will be a circle. If the circle is filled in this means that reads from that file will be included in the graph. To turn on or off an individual file
+		simply click the circle next to the file name or the file name itself. As some studies can have many files associated with them, there are buttons in the
+		studies box that act as shortcuts. There are 4 buttons to turn on/off all riboseq/rnaseq files, and another 4 buttons to turn on/off all riboseq/rnaseq files
+		in the selected study. There is also a button in the studies box to "View study info", when pressed this will bring up a pop up which will display information
+		relevant to the selected study such as a link to the paper and a link to the raw data. Once you have selected all the relevant files you wish to include in the
+		plot click the "View Plot" button below the riboseq/rnaseq boxes or press the enter button on your keyboard. The different plots are explained under seperate
+		headings below.
+		</p>
+	</div>
+
+	<h3 id="child_readlen_dist" >Readlength distribution</h3>
+	<div id="readlength_distribution">
+		<p class="center">
+		This plot shows different read lengths on the x-axis and their counts on the y-axis. All mapped reads in a file contribute to this plot (wether they map ambiguously or not).
+		This plot can be used to help determine if a file contains genuine riboseq reads or not. In general we would expect the readlength distribution to have a relatively narrow peak
+		centered around ~30 nucleotides for genuine riboseq data.
+		</p>
+	</div>
+
+	<h3 id="child_nuc_comp" >Nucleotide composition</h3>
+	<div id="nucleotide_composition">
+		<p class="center">
+		This plot shows the nucleotide composition across all selected reads in a given range. The minimum and maximum readlengths allowed to contribute to this plot can be controlled in the
+		settings for this plot. Other settings you can change for this plot are the ability to inlcude mapped/unmapped reads. Wether the nucleotides are taken from the 5' end or 3' end of all
+		reads, and wether the absolute counts are shown or percentages at each position. This plot can be used to assess if there is an unusually high number of nucleotides at a certain position
+		in the read. For example if you see a high percentage of A's at the 3' end of unmapped reads it may indicate that polyA tails were not correctly removed from these reads, or a high
+		percentage of T at the first position may indicate a problem with untemplated addition.
+		
+		In frame or out of frame (relative to the CDS) reads can also be selected. Unlike the "All mapped reads" or "All unmapped reads" options these are not precomputed. This means they will
+		take longer to return a plot, it also means any sequence mismatches such as untemplated additions or untrimmed adapter will not be apparent. This may be useful to assess if nuclease bias
+		has an affect on triplet periodicity. 
+		</p>
+	</div>
+
+	<h3 id="child_trip_periodicity" >Triplet periodicity</h3>
+	<div id="triplet_periodicity">
+		<p class="center">
+		This plot shows the triplet periodicity across a given range of readlengths. The user may decide the minimum and maximum readlengths in the settings for this plot. Each readlength
+		will have three bars associated with it corresponding to one of three frames the reads align to. A particular read length is considered to have strong triplet periodicity if the count
+		in one of the frames is much higher than the other two frames. The legend in the top right will also show a score based on all readlengths in this particular plot. This is done by
+		using the formula: 1-(count of the second highest peak/count of the highest peak), if more than one readlength is shown the highest peaks and second highest peaks of each readlength is summed
+		and then the formula is applied. This will result in readlengths with strong periodicity receiving a score close to 1, while readlengths with weak periodicity receive a score close to 0.
+		The better the triplet periodicity for a given study the clearer it will be which frame is being translated when viewing reads from this dataset on the single transcript plot.
+		</p>
+	</div>
+
+	<h3 id="child_readsbreakdown" >Reads breakdown</h3>
+	<div id="reads_breakdown">
+		<p class="center">
+		This plot shows a breakdown of reads into multiple categories for each file. Categories are as follows <br><br> "cutadapt removed": the number of reads removed by cutadapt because they
+		were too short after trimming.
+		<br><br>  "rRNA mapped": Number of reads removed because they mapped to ribosomal rRNA.
+		<br><br> "Unmapped": Number of reads which could not be mapped to the transcriptome.
+		<br><br>  "Ambiguous": the number of reads which mapped to more than one genomic location (see "How is the Ribo-Seq/mRNA-Seq data processed?"). <br><br>  "Mapped noncoding": Number of reads 
+		mapped to regions not annotated as coding.
+		<br><br>  "Mapped coding": Number of reads mapped to annotated coding regions.
+
+		<br><br><br> The reasons for using this plot would be to assess problems with the mapping, for instance if the majority
+		of reads were unmapped and the number of reads removed by cutadapt was very low it may indicate a problem with adapter removal. It could also be used to assess wether a file was genuinely
+		riboseq or not as we would expect a higher proportion of reads to align the the coding than noncoding regions compared to rnaseq data.
+		</p>
+	</div>
+
+	<h3 id="child_metagene" >Metagene</h3>
+	<div id="heatmap">
+		<p class="center">
+		This plot shows counts on the y-axis and a position relative to some sequence feature on the x-axis, this can be the annotated start or stop codon, or a custom sequence.
+		All reads from any gene that lie near the chosen position will be plotted, this can be  based off the 5' end of reads, 3' end of reads, or the inferred A-site.
+		Genuine Ribo-Seq data should have a much higher density of reads 3' of the start codon than 5' of the start codon (and vice versa for the stop codon).<br>
+		
+		<br>The following settings can be changed in this plot:<br><br>
+		
+			<b>Include 5' ends/Include 3' ends:</b> Choose which end of the read the counts are based on, only one option can be chosen at a time.<br> 
+			<b>Apply offsets:</b> If checked the offsets used to infer the A-site will be applied to the read counts.<br>
+			<b>Aggregate:</b> If checked, the counts from all selected files will be grouped together, if unchecked files will be plotted with different colours seperately. A maximum of 6 files can be selected if not aggregating.<br>
+			<b>Normalise:</b> If checked, counts will be normalised based on the number of mapped reads in each file. This is based on a factor difference between the file with 
+						lowest number of mapped reads and all other files. For example if plotting three files A,B and C which have 100,200,300 mapped reads respectively. The counts
+						from file A would be unchanged (as it has the lowest number of mapped reads), all counts from file B woudld be multiplied by a factor of 0.5 (100/200 = 0.5) and all counts from File C would be multiplied
+						by a factor of 0.33  (100/300 = 0.33).<br>
+			<b>Min/Max readlen:</b> Readlengths outside this range will not contribute to the plot.<br><br>
+			<b>Custom sequence list:</b>   Rather than centering the plot around annotated start or stop codons multiple custom sequences (seperated via comma) can be entered in this box.
+									The search limits below restrict where the custom sequences should be searched for, this can be across the whole gene, the 5' leader, the annotated
+									coding region (CDS) or the 3' trailer. This can be further restricted by the boxes below to include or exclude sections of the chosen region.
+									For example to recreate the stop codon plot, UAG,UAA,UGA would be entered into the custom sequence list, CDS should be chosen as the region and 
+									"Include last" option should be checked with the number of nucleotides set to 3.<br><br>
+									
+									Custom sequence search is done on the fly so will take longer than the annotated start/stop codon plots which are pre-computed. <br>
+									
+									Note: the following IUPAC codes are also recognised in the custom sequence search:<br><br>
+										R: A/G<br>
+										Y: C/U<br>
+										S: G/C<br>
+										W: A/U<br>
+										K: G/U<br>
+										M: A/C<br>
+										B: C/G/U<br>
+										D: A/G/U<br>
+										H: A/C/U<br>
+										V: A/C/G<br>
+										N: A/C/G/U<br>
+		</p>
+	</div>
+
+	<h3 id="child_heatmap" >Heatmap</h3>
+	<div id="metagene">
+		<p class="center">
+		This plot shows different readlengths on the y-axis and a position relative to start/stop codon on the x-axis. The data itself represents count data of reads (based on 5'/3' end of reads depending on
+		start codon. Genuine Ribo-Seq data should have a much higher density of reads 3' of the start codon than 5' of the start codon (and vice versa for the stop codon).
+		Other settings the user can choose are the colour palette of the heatmap, the minimum and maximum readlengths and minimum/maximum position relative to the start/stop codon, wether to reverse the colour
+		scale, wether to use log values on the scale, and wether to use a fixed value for maximum scale value (useful if comparing different files and you don't want the scale to change).
+		</p>
+	</div>
+
+	<h3 id="child_rep_comp" >Replicate comparison</h3>
+	<div id="replicate_comparison">
+		<p class="center">
+		This plot simply maps the counts for every transcript from two different files. This is useful for assessing technical/biological replicates. Ideally there should be a good correllation between
+		replicates, showing a tight linear relationship between the two files. If this is not the case it could indicate an issue with one of the files.
+		</p>
+	</div>
+
+	<h3 id="child_dinuc" >Dinucleotide bias</h3>
+	<div id="dinucleotide_bias">
+		<p class="center">
+		This plot shows the counts of each dinucleotide across all reads in the selected files. If there is a particular dinucleotide much higher than the others it could indicate a bias
+		for that file.
+		</p>
+	</div>
+
+	<h3 id="child_unmapped_reads" >Most frequent unmapped reads</h3>
+	<div id="most_frequent_unmapped_reads">
+		<p class="center">
+		This shows a sorted table of the top 100 most frequently unmapped reads in the files selected. Each read shows the number of times it appeared in the file and
+		a link to the <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastSearch">blast</a> resource, where the read will be automatically filled into
+		the search box. This table can be useful to detect contamination in samples, for example if there was a high number of unmapped reads in a particular human sample
+		and some of the most frequent unmapped reads gave hits to mycoplasma genomes you could investigate if the samples have been conataminated.
+		</p>
+	</div>
+
+
+	<h3 id="child_count_table" >Count table</h3>
+	<div id="count_table">
+		<p class="center">
+			This is used to get Ribo-Seq or RNA-Seq counts for every gene. Counts can be taken from just Ribo-Seq files or just RNA-Seq files, or both. For performance reasons
+			only the top 1000 genes are shown, but clicking the link just above and to the left of the table allows you to download all rows in csv format. <br>
+			The "View Plot" link in the table will bring you to the Single gene/transcript plot page of Trips-Viz and plot the data from the selected files.
+			By default the 1000 genes will be sorted by highest count first (or highest translation efficiency if both Ribo-Seq and RNA-Seq files are chosen), but clicking on the
+			headers in the table can change the sorting order. All values shown are raw counts.
+		</p>
+	</div>
+
+
+
+	<!-- <h3 id="child_mrna_dist" >mRNA distribution</h3>
+	<div id="mrna_distribution">
+		<p class="center">
+		This plot shows a bar chart for each selected file, showing the breakdown of where reads tend to align on coding transcripts. Reads are seperated into 5 categories:
+		5' leader, start codon, CDS, stop codon, and 3' trailer. This can be used to determine if a file has genuine riboseq reads as we would expect a higher proportion to
+		align to CDS and start codons than rnaseq files.
+		</p>
+	</div>
+
+	<h3 id="child_mrna_dist_vs_readlen" >mRNA distribution versus readlength</h3>
+	<div id="mrna_distribution_vs_readlen">
+		<p class="center">
+		Like the mRNA distribution plot this shows the breakdown of reads across an mRNA but also shows the read lengths on the x-axis. This can be useful to investigate explore
+		the relationship between read lengths and where reads tend to align to in the mRNA.
+		</p>
+	</div> -->
+</div>
+
+
+	<h3 id="parent_diff" class="acc_headers">Differential translation</h3>
+	<div id="accordion_diff" class="h">
+	<h3 id="child_diff_plotdesc">Plot description</h3>
+	<div id="plot_description">
+		<p class="center">
+		This plot uses the Z-score approach as described in <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4383229/" target="_blank_">Andreev et al. 2015.</a> to determine which 
+		transcripts are up/down regulated. The z-score here represents how many standard deviations from the mean a particular transcript is. However as we expect more variance in 
+		lowly expressed transcripts, than highly expressed ones, so transcripts are first placed into groups of similiar expression levels. The mean and standard deviation of
+		each group is then calculated which in turn can be used to calculate the z-score of each transcript. Z-scores can be either positive or negative (which represents up/down regulation).
+
+		To create one of these plots choose the settings at the top of the page (see the below headings for more info or click the "what's this" link next to them for more info). Then you need
+		to place your files of interest in the boxes labelled "Ribo-Seq files Condition 1","Ribo-Seq files Condition 2", "mRNA-Seq files Condition 1","mRNA-Seq files Condition 2".
+		<br><br> To do this choose a sequence type below the boxes. Then click on a study in the studies box. A list of files will appear in the Files section below the Studies box.
+		Click on one of these files and then press one of the buttons in the studies box labelled "Add to (Ribo-Seq/mRNA-Seq) files (1/2)". The file will then appear in the relevant box.
+		At least two groups need to have files in them, either both Ribo-Seq groups, or both mRNA-Seq groups. All four groups can also have files in them in which case the fold change
+		will be based on translation efficiency (Ribo-Seq/mRNA-Seq). If there is more than one file in a group then they will be treated in a pairwise manner, i.e the first file
+		Condition 1 will be compared to the first file in Condition 2, the second file in Condition 1 will be compared to the second file in Condition 2, etc. The resulting z-score plot will 
+		then be based on the average fold change and average expression from each pair. The z-scores for each pair can also be viewed by downloading the csv file. 
+		
+		Once you've selected your desired files press the view plot button at the bottom of the page. This will create a plot where the fold-change of the files is represented on the 
+		y-axis and the expression (here expression is determined by the geometric mean of the counts in all files) on the x-axis. The yellow lines on the graph indicate wether the fold 
+		change is above or below the chosen z-score. Transcripts that fall above the upper yellow line are above the z-score and are coloured green (upregulated), while transcripts that
+		fall below the lower yellow line are below the z-score*(-1) and are coloured red (downregulated). Clicking on any one of the points will open a seperate tab showing the comparison
+		plot for that transcript with the conditions coloured green/red.
+
+		Note: In human and mouse only one principal isoform is used for each gene as determined by <a href="http://appris.bioinfo.cnio.es/#/">appris</a>.
+		<br><br>
+
+		<figure style="text-align:center;padding:20px 0px;">
+		<img align="center" width="75%" src="/static/differential.png"></img>
+		<figcaption style="font-size:12px;color:gray;">An example of the differential plot. This figure was produced using Control Ribo-Seq/mRNA-Seq files in condition 1 and Arsenite
+		Ribo-Seq/mRNA-Seq files in condition 2 from Andreev et al. 2015.</figcaption>
+		</figure>
+		<br><br>
+
+		In order to see which transcript is associated with a given point on the plot just hover over the point. This will show a pop up with information such as transcript, gene, 
+		minimum expression and fold change. Clicking on one of these points will open another tab showing the comparison plot page on Trips-viz, which shows the plot for the transcript 
+		you clicked and the files contributing to the plot colour coded red/green.
+		</p>
+	</div>
+
+	<!-- <h3 id="child_diff_ambig" >Allow ambiguously mapped reads</h3>
+	<div id="Allow ambiguously mapped reads">
+		<p class="center">
+		Checking this box means that both ambiguously mapped reads and unambiguously mapped reads will be displayed.
+		In genomic alignments an ambiguously mapped read is one that aligns to more than one position in the genome.
+		Due to technical reasons ambiguously mapped reads here refers to reads that map to more than one gene, so not
+		having this checked when looking at an overlapping gene will result in no data for the overlapping region even
+		if the reads only map to one genomic position. Reads that map to multiple transcripts from the same gene will
+		still be classed as unambiguous.</p>
+	</div> -->
+
+	<h3 id="child_minz" >Minimum Z-score</h3>
+	<div id="Allow ambiguously mapped reads">
+		<p class="center">
+		This allows you to set the minimum Z-score required before a transcript is considered significantly up/downregulated.
+		Z-score represents the number of standard deviations a particular transcript is from the mean. So for example given
+		a minimum z-score of 4, only transcripts 4 standard deviations above or below the mean would be considered significantly
+		up/down regulated. The default is 4 but this is quite strict. Corresponding p-value from a given z-score can be checked
+		<a href="http://www.socscistatistics.com/pvalues/normaldistribution.aspx">here</a> (choose two tailed test). 
+		</p>
+	</div>
+
+	<h3 id="child_region" >Region</h3>
+	<div id="Allow ambiguously mapped reads">
+		<p class="center">
+		This determines which region the counts for a particular transcript will be taken from.
+		</p>
+	</div>
+
+	<h3 id="child_norm" >Normalize by mapped reads</h3>
+	<div id="Allow ambiguously mapped reads">
+		<p class="center">
+		In some cases you may wish to compare datasets with a very different number of mapped reads. Ticking this box 
+		finds the difference between the groups based on the number of unambiguously mapped reads. The counts for one of the groups will then be 
+		reduced to mitigate the difference. For example if there is one dataset in condition 1 with 1,000,000 mapped reads and 
+		one dataset in condition 2 with 500,000 mapped reads, the count for every transcript in condition 1 would be divided
+		by 2.
+		</p>
+	</div>
+
+	<h3 id="child_minreads" >Minimum reads</h3>
+	<div id="Allow ambiguously mapped reads">
+		<p class="center">
+		Any transcripts with less than this number of reads in any group will be ignored.
+		</p>
+	</div>
+	</div>
+</div>
+
+
+<script type="text/javascript">
+$( function() {
+		$( "#accordion").accordion({
+				collapsible: true,
+				active:false,
+				heightStyle: "content"
+						});
+		$( "#accordion_faq").accordion({
+				collapsible: true,
+				active: false,
+				heightStyle: "content"
+						});
+		$( "#accordion_single").accordion({
+				collapsible: true,
+				active: false,
+				heightStyle: "content"
+						});
+		$( "#accordion_comp").accordion({
+				collapsible: true,
+				active: false,
+				heightStyle: "content"
+						});
+		$( "#accordion_metainfo").accordion({
+				collapsible: true,
+				active: false,
+				heightStyle: "content"
+						});
+		$( "#accordion_diff").accordion({
+				collapsible: true,
+				active: false,
+				heightStyle: "content"
+						});
+		} );
+
+
+
+var parent_acc = "{{ parent_acc|safe }}";
+var child_acc = "{{ child_acc|safe }}";
+
+$(document).ready(function () {
+		if (parent_acc != "None") {
+				document.getElementById(parent_acc).click();
+				};
+		if (child_acc != "None") {
+				document.getElementById(child_acc).click();
+				$('html, body').animate({scrollBottom: $("#"+child_acc).offset().bottom}, 200);
+				};
+				});
+</script>
+
+
+
+</body>
+</html>
+
+{% endblock %}

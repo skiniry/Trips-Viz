@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+{% block content %}
+
+
+<head>
+<link rel= "stylesheet" href= "{{ url_for('static', filename='css/common.css') }}">
+</head>
+
+
+<div id="accordion">
+
+
+<h3>General settings</h3>
+<div>
+<!-- <b> Advanced mode: </b> <input type="checkbox" name="advanced" value="advanced" unchecked></input> <br> -->
+<b> Background colour: </b> <input id="back_col" name="back_col" value={{ background_colour }} ></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the background colour for almost all plots on Trips-viz. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p>
+<br>
+
+<b>Title Size: </b> <input id="title_size" name="title_size" value={{ title_size }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the size of the plot titles)</p><br>
+
+<b>Subheading Size: </b> <input id="subheading_size" name="subheading_size" value={{ subheading_size }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the size of the subheadings, where transcript id and length are displayed)</p><br>
+
+<b>Axis Label Size: </b> <input id="axis_label_size" name="axis_label_size" value={{ axis_label_size }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the size of the axis labels)</p><br>
+
+<b>Tick Marker Size: </b> <input id="marker_size" name="marker_size" value={{ marker_size }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the size of the numbers on the x and y axis)</p><br>
+
+<b>Legend Size: </b> <input id="legend_size" name="legend_size" value={{ legend_size }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the size of the labels on plots with interactive legends)</p><br>
+
+<b>CDS Markers Width: </b> <input id="cds_marker_width" name="cds_marker_width" value={{ cds_marker_width }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the width of the CDS markers on the single transcript and comparison plots)</p><br>
+
+<b>CDS Markers Colour: </b> <input id="cds_marker_colour" name="cds_marker_colour" value={{ cds_marker_colour }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the colour of the CDS markers on the single transcript and comparison plots)</p><br>
+</div>
+
+
+<h3>Single gene/transcript plot</h3>
+<div>
+<b>UAG Colour: </b> <input id="uag_col" name="uag_col" value={{ uag_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the UAG stop codons in the open reading frame architecture. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>UAA Colour: </b> <input id="uaa_col" name="uaa_col" value={{ uaa_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the UAA stop codons in the open reading frame architecture. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>UGA Colour: </b> <input id="uga_col" name="uga_col" value={{ uga_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the UGA stop codons in the open reading frame architecture. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Riboseq line width: </b> <input id="ribo_linewidth" name="ribo_linewidth" value={{ ribo_linewidth }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This controls the width of the red, green and blue ribo-seq lines.)</p><br>
+</div>
+
+<h3>Single gene/transcript comparison plot</h3>
+<div>
+<b>UAG Colour: </b> <input id="comp_uag_col" name="comp_uag_col" value={{ comp_uag_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the UAG stop codons in the open reading frame architecture. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>UAA Colour: </b> <input id="comp_uaa_col" name="comp_uaa_col" value={{ comp_uaa_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the UAA stop codons in the open reading frame architecture. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>UGA Colour: </b> <input id="comp_uga_col" name="comp_uga_col" value={{ comp_uga_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the UGA stop codons in the open reading frame architecture. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+</div>
+
+
+
+<h3>Metainformation settings</h3>
+<div>
+<b>Readlength distribution bar colour: </b> <input id="rl_bar_col" name="rl_bar_col" value={{ readlength_colour }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the bars in the read length distribution plot. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Metagene fiveprime bar colour: </b> <input id="mg_fiveprime_col" name="mg_fiveprime_col" value={{ metagene_fiveprime_colour }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the bars in the metagene profiles for the fiveprime ends. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Metagene threeprime bar colour: </b> <input id="mg_threeprime_col" name="mg_threeprime_col" value={{ metagene_threeprime_colour }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the bars in the metagene profiles for the threeprime ends. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Nucleotide composition A colour: </b> <input id="nuc_comp_a_col" name="nuc_comp_a_col" value={{ nuc_comp_a_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the line for the A nucleotide in the nucleotide composition plots. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Nucleotide composition T colour: </b> <input id="nuc_comp_t_col" name="nuc_comp_t_col" value={{ nuc_comp_t_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the line for the T nucleotide in the nucleotide composition plots. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Nucleotide composition G colour: </b> <input id="nuc_comp_g_col" name="nuc_comp_g_col" value={{ nuc_comp_g_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the line for the G nucleotide in the nucleotide composition plots. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+<b>Nucleotide composition C colour: </b> <input id="nuc_comp_c_col" name="nuc_comp_c_col" value={{ nuc_comp_c_col }}></input><p style="color:grey;text-align:left;font-size:12px;display: inline-block">    (This sets the colour of the line for the C nucleotide in the nucleotide composition plots. Can be set to colour names such as white, black, grey or hex values such as #d6d6d6)</p><br>
+</div>
+
+
+
+<h3>Change password</h3>
+<div align="center">
+<input type="password" placeholder="Enter new password" name="new_password" id="new_password" value=""><br>
+<input type="password" placeholder="Re-type new Password" name="new_password2" id="new_password2" value=""><br>
+<input type="password" placeholder="Current Password" name="curr_password" id="curr_password" value=""><br>
+</div>
+
+
+
+
+</div>
+
+
+
+<div class="wrapper"><button class="button" type="button"  id="settingsquery"><b>Update settings</b></button></div>
+
+<div id="container"></div>
+
+<script type="text/javascript"   src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script type="text/javascript">
+$( function() {
+		$( "#accordion" ).accordion();
+		} );
+
+// If the user presses the enter key call the #query function (generates the plot)
+$(document).keypress(function(e){
+		if (e.which == 13){
+				console.log("calling javascript settings query");
+				$("#settingsquery").click();
+				}
+		});
+
+// If local mode is true change the url called by query
+var local = "{{ local|safe }}";
+
+if (local == "True") {
+		var url = "/settingsquery"
+		}
+else {
+		var url = "/settingsquery"
+}
+
+console.log("URL ", url);
+
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+$("#settingsquery").click(function() {
+		console.log("JJJavascript calling settings query");
+		$("#loading-div-background").show();
+		$("#container").hide();
+
+		var background_colour = $('input:text[name=back_col]').val();
+		var title_size = $('input:text[name=title_size]').val();
+		var subheading_size = $('input:text[name=subheading_size]').val();
+		var axis_label_size = $('input:text[name=axis_label_size]').val();
+		var marker_size = $('input:text[name=marker_size]').val();
+		var legend_size = $('input:text[name=legend_size]').val();
+		var ribo_linewidth = $('input:text[name=ribo_linewidth]').val();
+
+		var cds_marker_width = $('input:text[name=cds_marker_width]').val();
+		var cds_marker_colour = $('input:text[name=cds_marker_colour]').val();
+
+		var readlength_colour = $('input:text[name=rl_bar_col]').val();
+		var metagene_fiveprime_colour = $('input:text[name=mg_fiveprime_col]').val();
+		var metagene_threeprime_colour = $('input:text[name=mg_threeprime_col]').val();
+
+		var nuc_comp_a_col = $('input:text[name=nuc_comp_a_col]').val();
+		var nuc_comp_t_col = $('input:text[name=nuc_comp_t_col]').val();
+		var nuc_comp_g_col = $('input:text[name=nuc_comp_g_col]').val();
+		var nuc_comp_c_col = $('input:text[name=nuc_comp_c_col]').val();
+
+		var uag_col = $('input:text[name=uag_col]').val();
+		var uga_col = $('input:text[name=uga_col]').val();
+		var uaa_col = $('input:text[name=uaa_col]').val();
+
+		var comp_uag_col = $('input:text[name=comp_uag_col]').val();
+		var comp_uga_col = $('input:text[name=comp_uga_col]').val();
+		var comp_uaa_col = $('input:text[name=comp_uaa_col]').val();
+
+		var advanced = $('input:checkbox[name=advanced]:checked').val();
+
+
+		var new_password = document.getElementById('new_password').value
+		var new_password2 = document.getElementById('new_password2').value
+		var curr_password = document.getElementById('curr_password').value
+
+
+		var qu = {"background_colour":background_colour,
+							"title_size":title_size,
+							"subheading_size":subheading_size,
+							"axis_label_size":axis_label_size,
+							"marker_size":marker_size,
+							"legend_size":legend_size,
+							"ribo_linewidth":ribo_linewidth,
+							"readlength_colour":readlength_colour,
+							"metagene_fiveprime_colour":metagene_fiveprime_colour,
+							"metagene_threeprime_colour":metagene_threeprime_colour,
+							"nuc_comp_a_col":nuc_comp_a_col,
+							"nuc_comp_t_col":nuc_comp_t_col,
+							"nuc_comp_g_col":nuc_comp_g_col,
+							"nuc_comp_c_col":nuc_comp_c_col,
+							"uag_col":uag_col,
+							"uga_col":uga_col,
+							"uaa_col":uaa_col,
+							"comp_uag_col":comp_uag_col,
+							"comp_uga_col":comp_uga_col,
+							"comp_uaa_col":comp_uaa_col,
+							"advanced":advanced,
+							"new_password":new_password,
+							"new_password2":new_password2,
+							"curr_password":curr_password,
+							"cds_marker_width":cds_marker_width,
+							"cds_marker_colour":cds_marker_colour};
+
+
+
+		$.ajax({
+				type: "POST",
+				async:true,
+				contentType: "application/json; charset=utf-8",
+				url: url,
+				data: JSON.stringify(qu),
+				dataType: "html",
+				success: function (data) {
+						if (data.slice(0, 11) == "TRANSCRIPTS"){
+								var splitdata = data.split(":");
+								populate_jquery_dialog(splitdata);
+								$( "#dialog-2" ).dialog( "open" );
+								}
+
+						else{
+								var graph = $("#container");
+								graph.html(data);
+								$("#loading-div-background").hide();
+								$("#container").show();}
+
+						}});
+						});
+
+
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block content %}
+
+
+<html>
+<head>
+<title>Trips-Viz - login page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="static/bootstrap.min.css" rel="stylesheet" media="screen">
+</head>
+<body>
+<div class="container" align="center">
+<h1>Sign up for a Trips-Viz account</h1>
+<br>
+<form action="" method="post">
+<input type="text" placeholder="E-mail address" name="username" value="{{request.form.username }}"><br>
+<input type="password" placeholder="Password" name="password" value="{{request.form.password }}"><br>
+<input type="password" placeholder="Re-type password" name="password2" value="{{request.form.password }}"><br>
+{{ recaptcha }}
+<input class="btn btn-default" type="submit" value="Login">
+</form>
+{% if error %}
+<p class="error"><strong>Error:</strong> {{ error }}
+{% endif %}
+</div>
+</body>
+</html>
+
+
+
+{% endblock %}

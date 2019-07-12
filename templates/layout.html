@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Trips-Viz</title>
+	<meta charset="utf-8"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
+	<script src="{{ url_for('static', filename='js/jquery-1.9.1.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/html2canvas.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/jscolor.js') }}"></script>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/sofia.css') }}">
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.css"/>
+	<script type="text/javascript" src="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js"></script>
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-115765268-1"></script>
+	<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'UA-115765268-1');
+	</script>
+	<strong>
+	 <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+	 <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+	 <link rel="stylesheet" href="{{ url_for('static', filename='css/lean-slider.css') }}">
+	 <link rel="stylesheet" href="{{ url_for('static', filename='css/sample-styles.css') }}">
+ </strong>
+</head>
+<body>
+
+
+<header>
+		<h1 class="logo" style="font-family: 'Georgia'"><span style="color: #77abff">T</span>rips-<span style="color: #77abff">V</span>iz</h1>
+				<strong><nav>
+						<ul class="menu" style="display:inline; padding: 0px 50px;">
+								<li><a href="{{ url_for('homepage') }}"><span>Home</span></a></li>
+								<li><a href="{{ url_for('helppage') }}"><span>Help</span></a></li>
+								<li><a href="{{ url_for('contactus') }}"><span>Contact Us</span></a></li>
+								<li><a href="{{ url_for('downloadspage') }}"><span>Downloads</span></a></li>
+
+								{% if current_user.is_authenticated %}
+										<li><a href="{{ url_for('uploadspage') }}"><span>Uploads</span></a></li>
+										<li><a href="{{ url_for('settingspage') }}"><span>Settings</span></a></li>
+										<li><a href="{{ url_for('logout') }}"><span>Logout</span></a></li>
+										
+								{% endif %}
+								{% if not current_user.is_authenticated %}
+										<li><a href="{{ url_for('login') }}"><span>Sign In</span></a></li>
+										<li><a href="{{ url_for('create') }}"><span>Sign Up</span></a></li>
+								{% endif %}
+								{% if current_user.name == "master" %}
+										<li><a href="{{ url_for('saved') }}"><span>My ORFs</span></a></li>
+								{% endif %}
+								{% if current_user.name == "114224403@umail.ucc.ie" %}
+									<li><a href="{{ url_for('saved') }}"><span>My ORFs</span></a></li>
+								{% endif %}
+								{% if current_user.name == "audreymannion@gmail.com" %}
+									<li><a href="{{ url_for('saved') }}"><span>My ORFs</span></a></li>
+								{% endif %}
+						</ul>
+				</nav></strong>
+</header>
+
+<div>
+		{% with messages = get_flashed_messages() %}
+				{% if messages %}
+						{% for message in messages %}
+								<div class="alert alert-info alert-dismissible" role="alert">
+										<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+										<!-- <strong>Title</strong> --> {{ message }}
+								</div>
+						{% endfor %}
+				{% endif %}
+		{% endwith %}
+</div>
+
+
+<div class="container">
+		{% block content %}
+
+		{% endblock %}
+</div>
+
+
+
+</body>
+
+
+</html>

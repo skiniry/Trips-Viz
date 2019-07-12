@@ -1,0 +1,611 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<script>
+var gwips_clade = '{{  gwips_clade|safe  }}';
+var gwips_org = '{{  gwips_org|safe  }}';
+var gwips_db = '{{  gwips_db|safe  }}';
+var gwips_info = {{  gwips_info|safe  }};
+</script>
+
+<head>
+<link rel= "stylesheet" href= "{{ url_for('static', filename='css/common.css') }}">
+<link rel= "stylesheet" href= "{{ url_for('static', filename='css/triplet_periodicity.css') }}">
+</head>
+
+<div id="page_heading">
+<p><font size="5"><b><u>General Settings</u></b></font></p>
+</div>
+
+<div id="spacer">   </div>
+<div id="dummy1" class="dummy">
+</div>
+
+
+
+<div id="sidebar">
+		<br/>
+		<input type="checkbox" style="opacity:0;" name="noisered" value="noisered" unchecked></input>
+		<br/>
+		<b>Gene/Transcript: </b></tran> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_gene">(Whats this?) </a><br>
+		<input id="tran" name="transcript" ></input>
+		<br/>
+		<div id="adv_section1">
+		<b>Min triplet periodicity score: </b> <a class="whatsthis" target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_max_read_score">(Whats this?) </a><br>
+		<input id="readscore" name="readscore" value="0" ></input><br>
+		<div style="display:none">
+		<b>Secondary score: </b> <a class="whatsthis" target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_max_read_score">(Whats this?) </a><br>
+		<input id="secondary_readscore" name="secondary_readscore" value="1" ></input>
+		<br/>
+		</div>
+		<br/>
+		<b>Min Read: </b></tran> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_single_minread">(Whats this?) </a><br>
+		<input id="minread" name="minread" value="25" ></input>
+		<br/>
+		<b>Max Read: </b></tran> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_single_maxread">(Whats this?) </a><br>
+		<input id="maxread" name="maxread" value="150" ></input>
+		<br/>
+		<b>Highlight sequences list: </b></tran> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_seq_element_hili">(Whats this?) </a><br>
+		<input id="seqhili" name="seqhili" value="" ></input>
+		<br/>
+		<b>Offset Direction: </b> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_offset_dir">(Whats this?) </a><br>
+		<input type="radio" class = "prime_radio fiveprime" id="fiveprime" value="fiveprime" name="primetype" checked></input>
+		<label for='fiveprime' class='check_label'>5'</label>
+		<input type="radio" class="prime_radio threeprime" id="threeprime" value="threeprime" name="primetype" unchecked></input>
+		<label for='threeprime' class='check_label'>3'</label>
+		</div>
+</div>
+
+
+<div id="transcripts">
+		</br></br></br></br>
+		<input class="hidden_check line_graph" id="line_graph" type="checkbox" name="namelite" value="lite1" checked></input><label for='line_graph' class='checkbox_label'></label> <label for='line_graph' class='padded_label'>Line Graph</label><a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_line">(Whats this?) </a>
+		</br></br>
+		<input class="hidden_check ambig_check" id="ambig_check" type="checkbox" name="ambiguous" value="ambiguous" unchecked></input><label for='ambig_check' class='checkbox_label'></label> <label for='ambig_check' class='padded_label'>Allow ambiguously mapped reads</label> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_ambig">(Whats this?) </a>
+		</br></br>
+		<input class="hidden_check pcr_check" id="pcr_check" type="checkbox" name="pcr" value="pcr" unchecked></input><label for='pcr_check' class='checkbox_label'></label> <label for='pcr_check' class='padded_label'>Allow PCR duplicates</label> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_pcr">(Whats this?) </a>
+		</br></br>
+	<div id="adv_section2">
+		<input class="hidden_check cov_check" id="cov_check" type="checkbox" name="coverage" value="coverage" id="coverageid" unchecked></input> <label for='cov_check' class='checkbox_label'></label> <label for='cov_check' class='padded_label'>Ribo-Seq coverage</label><a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_ribocov">(Whats this?) </a>
+		</br></br>
+		<input class="hidden_check nuc_check" id="nuc_check"  type="checkbox" name="nucseq" value="nucseq" id="nucseqid" unchecked></input> <label for='nuc_check' class='checkbox_label'></label> <label for='nuc_check' class='padded_label'>Display nucleotide sequence</label> <a class="whatsthis" target="_blank_"  target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_nucseq">(Whats this?) </a>
+		</br></br>
+		<input class="hidden_check mismatch_check" id="mismatch_check"  type="checkbox" name="mismatchseq" value="mismatchseq" id="mismatchseqid" unchecked></input> <label for='mismatch_check' class='checkbox_label'></label> <label for='mismatch_check' class='padded_label'>Display mismatches</label> <a class="whatsthis" target="_blank_"  target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_nucseq">(Whats this?) </a>
+	</div>
+</div>
+
+
+<div id = "dialog-2" title = "Choose a transcript...">
+</div>
+
+
+<div id = "study_dialog" title = "Study info">
+<table></table>
+</div>
+
+
+
+<div id="seq_types">
+<p><font size="5" align="center"><b><u>Seq types</u></b></font></p>
+
+<table align="center">
+<!--<input type="button" onClick=uncheck_all_riboseq() value="Riboseq: Uncheck All Studies    " class="button" />-->
+<tr id="1">
+<td><button class="button all_checks" type="button" onclick='uncheck_all()'><b>Uncheck All Files With Selected Seq-type</b></button></td>
+<td><button class="button all_checks" type="button" onclick='check_all()'><b>Check All Files with Selected Seq-type</b></button></td>
+</tr>
+</table>
+</br>
+</div>
+
+
+<div id="studies">
+<p><font size="5" align="center"><b><u>Studies</u></b></font></p>
+
+</br>
+
+
+<button  class="study_button" type="button" onclick='view_study_info()'><b>View study info</b></button>
+
+
+<table align="center">
+<tr id="2">
+<td><button class="button all_checks" type="button" onclick="uncheck_study()" ><b>Uncheck All files in Files box</b> </button></td>
+<td><button class="button all_checks" type="button" onclick="check_study()" ><b>Check All files in Files box</b></button></td>
+
+</tr>
+</table>
+
+</br></br>
+
+<table align="center" name="studytable" id="studytable" class="studytable">
+<tr id="tablerow1">
+</tr>
+<tr id="tablerow2">
+</tr>
+<tr id="tablerow3">
+</tr>
+<tr id="tablerow4">
+</tr>
+<tr id="tablerow5">
+</tr>
+<tr id="tablerow6">
+</tr>
+<tr id="tablerow7">
+</tr>
+<tr id="tablerow8">
+</tr>
+<tr id="tablerow9">
+</tr>
+<tr id="tablerow10">
+</tr>
+<tr id="tablerow11">
+</tr>
+<tr id="tablerow12">
+</tr>
+</table>
+</br></br>
+</div>
+
+
+<div id="files">
+</br>
+<p><font size="5" align="center"><b><u>Files</u></b></br></font></p>
+</div>
+
+
+
+<div id="buttons"></div>
+
+
+<div id="gwips">
+<a href="http://gwips.ucc.ie" id="gwips_link" target="_blank" >
+<button class="button centerbutton" type="submit"><b>View on GWIPS-Viz</b></button>
+</a>
+</div>
+
+<div id="view_plot" class="wrapper"><button class="button" type="button" onclick="changebuttonlink(gwips_info)"  id="query"><b>View Plot</b></button></div>
+
+<div id="loading-div-background">
+	<div id="loading-div" class="ui-corner-all" >
+		<img style="height:64px;margin:10px;"      src="{{ url_for('static', filename = 'css/images/282.GIF') }}" width="110" height="85" alt="Loading..."/>
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/sofia.css') }}">
+		<h3 id="loading_header" style="color:gray;font-weight:normal;">Loading....</h3>
+	</div>
+</div>
+
+<div id="container"></div>
+
+<script type="text/javascript"   src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script type="text/javascript">
+
+
+
+// When the page is completely loaded call the update_colours function
+$(document).ready(function(){
+	update_colours()
+})
+
+
+var user_transcript = "{{ user_transcript|safe }}";
+var user_readscore = "{{ user_readscore|safe }}";
+var user_minread = "{{ user_minread|safe }}";
+var user_maxread = "{{ user_maxread|safe }}";
+var user_hili_starts = {{ user_hili_starts|safe }};
+var user_hili_stops = {{ user_hili_stops|safe }};
+var user_dir = "{{ user_dir|safe }}";
+var user_line_graph = "{{ user_line_graph|safe }}";
+var user_ambig = "{{ user_ambig|safe }}";
+var user_cov = "{{ user_cov|safe }}";
+var user_nuc = "{{ user_nuc|safe }}";
+var user_short = "{{ user_short|safe }}";
+var user_files = {{ user_files|safe }};
+var user_ribo_studies = {{ user_ribo_studies|safe }};
+var user_rna_studies = {{ user_rna_studies|safe }};
+var user_crd = "{{ user_crd|safe }}";
+var defaulttran = "{{ default_tran|safe }}";
+
+
+rownum = 1
+rowcount = -1
+
+
+
+var seq_types = {{  seq_types|safe  }};
+for (var i in seq_types) {
+	//console.log("SEQ TYPES "+seq_types[i])
+	//if the seq type is riboseq make it checked by default
+	if (seq_types[i] == "riboseq") {
+		checked = "checked"
+	}
+	else {
+		checked = "unchecked"
+	};
+
+	// if seq type is riboseq or rnaseq set a proper display name, else just use seq_type
+	if (seq_types[i] == "riboseq") {
+		display_name = "Ribo-Seq"
+	}
+	else if (seq_types[i] == "rnaseq") {
+		display_name = "mRNA-Seq"
+	}
+	else {
+		display_name = seq_types[i]
+	}
+
+	var radio_seq_types = "<input "+checked+" type='radio' class='seq_type_radio all_checks' id='"+seq_types[i]+"' name='seq_type' value="+seq_types[i]+" /></b>   </input><label for='"+seq_types[i]+"' id='label"+seq_types[i]+"' class='radio_label' >"+display_name+"</label>";
+	var seq_types_div = document.getElementById('seq_types');
+	seq_types_div.innerHTML += radio_seq_types;
+}
+
+
+
+var studies_dict = {{  studies_dict|safe  }};
+var studyinfo_dict = {{  studyinfo_dict|safe  }};
+for (var key in studies_dict)  {
+		rowcount += 1;
+		if (rowcount == 8) {
+				rowcount = 0
+				rownum += 1
+				};
+		var radio_study = "<input type='radio' checked class='study_radio all_checks' id='study"+key+"' name='content_type' value=study"+key+" /></b></input><label for='study"+key+"' id='label"+key+"' class='radio_label' >"+studies_dict[key]["study_name"]+"</label>";
+		//console.log("LABEL ID IS label"+key);
+		addRow(rownum, radio_study)
+		for (i in seq_types) {
+			var seq_type = seq_types[i]
+			var files_div = document.getElementById('files');
+			var new_show_div = document.createElement(studies_dict[key]["study_name"]);
+			//console.log("Seq type is "+seq_type)
+			new_show_div.className = 'show';
+			new_show_div.id = seq_type+"study"+key;
+			tablehtml = "<table  class='file_table' id="+key+seq_type+" align='center'></table>";
+			new_show_div.innerHTML = tablehtml;
+			files_div.appendChild(new_show_div);
+		}
+		};
+
+// accepted files structure, key is file_type,values are file_id's (which are themselves keys) which point to a dictionary with the following: {"study_id":row[1],"file_name":row[2],"file_description":row[3],"file_type":row[4]}
+var accepted_files = {{ accepted_files|safe }};
+
+
+// keys in this are seq types with values being a list of study id's that have at least one file of that seq type
+// this is used to hide studies that don't have any files of the selected seq type.
+var seq_study_dict = {};
+
+
+// populate the ribostudies and rnastudies div with file names and descriptions.
+for (var filetype in accepted_files) {
+		//console.log("filetype ", filetype);
+		for (var study_id in accepted_files[filetype]) {
+				//console.log("Study id: ",study_id);
+				i=0
+				var file_names = [];
+				for (var file_id in accepted_files[filetype][study_id]) {
+					file_name = accepted_files[filetype][study_id][file_id]["file_name"]
+					file_names.push([file_name, file_id])
+					}
+				console.log("File names", file_names);
+				file_names = file_names.sort(function(a, b) {
+					return a[0].localeCompare(b[0]);
+				})
+				
+				var sorted_file_list = [];
+				for (var z in file_names) {
+					var tup = file_names[z];
+					sorted_file_list.push(tup[1]);
+					}
+				console.log("sorted file_list", sorted_file_list);
+				for (var file_id in sorted_file_list) {
+						file_id = sorted_file_list[file_id]
+						file_name = accepted_files[filetype][study_id][file_id]["file_name"];
+						file_description = accepted_files[filetype][study_id][file_id]["file_description"];
+						if (!(filetype in seq_study_dict)) {
+							seq_study_dict[filetype] = [];
+						};
+						//console.log("FILE ID LIST IS "+accepted_files[filetype][study_id])
+						if (accepted_files[filetype][study_id].length != 0) {
+							if (!(study_id in seq_study_dict[filetype])) {
+								//console.log("PUSHING STUDY ID"+study_id);
+								seq_study_dict[filetype].push(study_id);
+								//console.log("Seq study dict now "+seq_study_dict[filetype])
+						}
+					};
+
+
+						var table = document.getElementById(study_id+filetype);
+						var tr = document.createElement("tr");
+						var td = document.createElement("td");
+						// riboseq is checked by default all others not
+						if (filetype == "riboseq") {
+								td.innerHTML = ("<td><input id='"+file_name+file_id+"_check' type='checkbox' class='hidden_check file_"+file_id+" all_checks "+filetype+"_file "+filetype+"_study"+study_id+"'  name="+file_id+" value=inputfile checked></input>    <label for='"+file_name+file_id+"_check' class='filetable_label'></label> <label for='"+file_name+file_id+"_check' class='padded_label'><b>"+file_name+"</b>:"+file_description+"</label></td>");
+								}
+						else {
+								td.innerHTML = ("<td><input id='"+file_name+file_id+"_check' type='checkbox' class='hidden_check file_"+file_id+" all_checks "+filetype+"_file "+filetype+"_study"+study_id+"'  name="+file_id+" value=inputfile unchecked></input>    <label for='"+file_name+file_id+"_check' class='filetable_label'></label> <label for='"+file_name+file_id+"_check' class='padded_label'><b>"+file_name+"</b>:"+file_description+"</label></td>");
+								}
+						//tr.appendChild();
+
+						if (i != 2){
+								table.appendChild(td);
+								i+= 1;
+												}
+						else if (i == 2){
+								table.appendChild(td);
+								table.appendChild(tr);
+								i = 0
+								}
+
+																						}
+														}
+								};
+
+
+
+
+// If the user presses the enter key call the #query function (generates the plot)
+$(document).keypress(function(e){
+		if (e.which == 13){
+				remove_user_short();
+				}
+		});
+
+// This is called by pressing enter or view plot, it's function is to remove any short code passed by the user as a html argument. The reason for this is
+// if someone clicks on a short link there willl be a 'short_code=xxxx' in the html_arguments. If they then change a value and view the plot again the script
+// will see the short code in the html arguments and assume this short_code applies to the new graph and so the short code will not change. By routing the
+// view plot and enter buttons through this function first we can strip the html_args of the short_code argument and thus force the script to create a new one.
+function remove_user_short() {
+		changebuttonlink(gwips_info)
+		user_short = "None";
+		//alert("The function called 'function_one' has been called.");
+		$("#query").click();
+		}
+
+// If local mode is true change the url called by query
+var local = "{{ local|safe }}";
+if (local == "True") {
+		var url = "/query"
+		}
+else {
+		var url = "/query"
+}
+
+
+// hide advanced sections from user if they have not turned on the advanced setting
+var advanced = "{{ advanced|safe }}";
+if (advanced == "False") {
+		var adv_section1 = document.getElementById('adv_section1');
+		adv_section1.style.display = 'none';
+		var adv_section2 = document.getElementById('adv_section2');
+		adv_section2.style.display = 'none';
+		}
+
+
+// This is called when the user passes a gene, shows a popup with multiple transcripts
+$("#loading-div-background").css({ opacity: 0.7 });
+$(function() {
+		$( "#dialog-2" ).dialog({
+				autoOpen: false,
+				modal: true,
+				minWidth: 800,
+				buttons: {
+						Submit: function() {//var transcript = document.getElementById("transcript_sel").value();
+																var transcript = document.querySelector('input[name=transcript_sel]:checked').value;
+																document.getElementById('tran').value = transcript;
+																$(this).dialog("close");
+																$("#query").click();
+																}
+						},
+				title: "Choose a transcript. . .",
+				position: {
+						my: "center",
+						at: "center"
+								}
+				});
+				$( "#query4" ).click(function() {
+						$( "#dialog-2" ).dialog("open");
+						});
+				});
+
+
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+$("#query").click(function() {
+	$("#loading-div-background").show();
+	$("#container").hide();
+	var primetype = document.querySelector('input[name=primetype]:checked').value;
+	var transcript = $('input:text[name=transcript]').val();
+	var varlite = $('input:checkbox[name=namelite]:checked').val();
+	var minread = $('input:text[name=minread]').val();
+	var maxread = $('input:text[name=maxread]').val();
+	var seqhili = $('input:text[name=seqhili]').val();
+	var minfiles = 0    //$('input:text[name=minfiles]').val();
+	var ribocoverage = $('input:checkbox[name=coverage]:checked').val();
+	var nucseq = $('input:checkbox[name=nucseq]:checked').val();
+	var mismatches = $('input:checkbox[name=mismatchseq]:checked').val();
+	var preprocess = $('input:checkbox[name=preprocess]:checked').val();
+	var color_readlen_dist = $('input:checkbox[name=readlen_dist]:checked').val();
+	var noisered = $('input:checkbox[name=noisered]:checked').val();
+	var ambiguous = $('input:checkbox[name=ambiguous]:checked').val();
+	var pcr = $('input:checkbox[name=pcr]:checked').val();
+	var readscore = $('input:text[name=readscore]').val();
+	var secondary_readscore = $('input:text[name=secondary_readscore]').val();
+	var organism = "{{  organism|safe  }}";
+	var transcriptome = "{{  transcriptome|safe  }}";
+	var qu = {"minfiles":minfiles,"transcript":transcript, "varlite": varlite, "minread":minread, "maxread":maxread,"noisered":noisered,  "ribocoverage": ribocoverage,
+			"ambiguous": ambiguous,"pcr":pcr,"organism":organism,"transcriptome":transcriptome,"readscore":readscore, "primetype":primetype,"preprocess":preprocess,
+			"nucseq":nucseq, "user_hili_starts":user_hili_starts, "user_hili_stops":user_hili_stops,"color_readlen_dist":color_readlen_dist,
+			"user_short":user_short,"advanced":advanced,"seqhili":seqhili, "secondary_readscore":secondary_readscore,"mismatches":mismatches};
+	var file_list = [];
+	for (var filetype in accepted_files) {
+			for (var study_id in accepted_files[filetype]) {
+					for (var file_id in accepted_files[filetype][study_id]) {
+							var newelement=$('input:checkbox[name='+file_id+']:checked').val();
+							if (newelement == 'inputfile'){
+									file_list.push(file_id);
+																						};
+																																	 }
+																											}
+																				};
+	qu["file_list"] = file_list
+	if (file_list.length == 1) {
+		loading_header.innerText = "Loading data from "+file_list.length+" file";}
+	else {
+		loading_header.innerText = "Loading data from "+file_list.length+" files";}
+	$.ajax({
+		type: "POST",
+		async:true,
+		contentType: "application/json; charset=utf-8",
+		url: url,
+		data: JSON.stringify(qu),
+		dataType: "html",
+		success: function (data) {
+		if (data.slice(0, 11) == "TRANSCRIPTS"){
+				var splitdata = data.split(":");
+				populate_jquery_dialog(splitdata);
+				$( "#dialog-2" ).dialog( "open" );
+				}
+
+		else{
+				var graph = $("#container");
+				graph.html(data);
+				$("#loading-div-background").hide();
+				$("#container").show();
+				$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);}
+				document.getElementById('container').scrollIntoView();
+	 }});
+});
+
+
+// if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
+if (user_files.length != 0 || user_ribo_studies.length != 0 || user_rna_studies.length != 0) {
+
+
+		for (i in seq_types) {
+			var seq_type = seq_types[i];
+			$('input.'+seq_type+'_file').prop('checked',false);
+
+		}
+
+		if (user_files.length != 0) {
+				for (i in user_files) {
+						$('input.file_'+user_files[i]+'').prop('checked',true);
+						}};
+
+		if (user_ribo_studies.length != 0) {
+				for (i in user_ribo_studies) {
+						//console.log("USER RIBO STUDIES "+user_ribo_studies[i]);
+						$('input.riboseq_study'+user_ribo_studies[i]+'').prop('checked',true);
+						}};
+
+		if (user_rna_studies.length != 0) {
+				for (i in user_rna_studies) {
+						$('input.rnaseq_study'+user_rna_studies[i]+'').prop('checked',true);
+						}};
+		}
+
+
+if (user_readscore != "None") {
+		document.getElementById('readscore').value = user_readscore;
+		}
+
+if (user_minread != "None") {
+		document.getElementById('minread').value = user_minread;
+		}
+
+if (user_maxread != "None") {
+		document.getElementById('maxread').value = user_maxread;
+		}
+
+if (user_line_graph == "F") {
+		$('.line_graph').attr('checked', false);
+		}
+
+if (user_ambig == "T") {
+		$('.ambig_check').attr('checked', true);
+		}
+if (user_cov == "T") {
+		$('.cov_check').attr('checked', true);
+		}
+
+if (user_nuc == "T") {
+		$('.nuc_check').attr('checked', true);
+		}
+
+if (user_crd == "T") {
+		//console.log("Setting crd to true");
+		$('.crd').attr('checked',true);
+		}
+
+
+
+if (user_dir != "None") {
+		if (user_dir == "fiveprime") {
+				$('.fiveprime').attr('checked', true);
+												 }
+		else if (user_dir == "threeprime") {
+				$('.threeprime').attr('checked', true);
+															}
+												};
+
+if (user_transcript != "None") {
+		document.getElementById('tran').value = user_transcript;
+		// If a transcript is passed by the user then automatically produce a graph
+		$("#query").click();
+		}
+else {
+		document.getElementById('tran').value = defaulttran;
+		}
+
+
+//Update the options box on page load and load files in file box
+$(document).ready(function(){
+	var n = document.querySelector('input[name="content_type"]:checked').value;
+	var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+	for (var study_id in studies_dict) {
+		$("#label"+study_id+"").css({ opacity: 0.2 });
+	}
+	for (file_type in seq_study_dict) {
+		if (file_type == seq_type) {
+			console.log("File type is seq_type "+file_type+"  "+seq_type);
+			for (var sub_study_id in seq_study_dict[file_type]) {
+				$("#label"+seq_study_dict[file_type][sub_study_id]+"").css({ opacity: 1 });
+			}
+		}
+	}
+
+	var selector = "#"+seq_type+ n; //Create a selector based on the id
+	$(".show").hide(); //Hide all the checkbox containers
+	$(selector).show(); //Show only the related container
+})
+
+
+// This section listens for clicks from any radio/checkbox with the all_checks class, if it detects a change it goes through
+// all studies to see which if any of them have riboseq/rnaseq files checked, if so it changes the border colour
+$('.all_checks').change(function() {
+		for (var key in studies_dict)  {
+				if (($('.rnaseq_study'+key+':checked').length == 0) && ($('.riboseq_study'+key+':checked').length == 0)) {
+						document.getElementById('label'+key+'').style.borderColor='#e2e2e2';
+						}
+				else {
+						document.getElementById('label'+key+'').style.borderColor='#77abff';
+						}
+		}
+		});
+
+
+// This function is called whenever the check/uncheck all buttons are pressed, when called it goes through
+// all studies to see which if any of them have riboseq/rnaseq files checked, if so it changes the border colour
+function update_colours() {
+		for (var key in studies_dict)  {
+				if (($('.rnaseq_study'+key+':checked').length == 0) && ($('.riboseq_study'+key+':checked').length == 0)) {
+						document.getElementById('label'+key+'').style.borderColor='#e2e2e2';
+						}
+				else {
+						document.getElementById('label'+key+'').style.borderColor='#77abff';
+						}
+				}
+				}
+
+
+
+</script>
+
+{% endblock %}

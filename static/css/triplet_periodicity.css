@@ -1,0 +1,59 @@
+div #sidebar
+{
+		float: left;
+		border:0px solid #dbdbdb;
+		padding:10px 30px;
+		border-radius:20px;
+		width : 32%;
+}
+
+
+div #seq_types
+{
+		float: left;
+		text-align:center;
+		display: inline-block;
+		border:1px solid #dbdbdb;
+		padding:10px 0px;
+		border-radius:20px;
+		width : 99%;
+}
+
+
+
+
+
+div #studies
+{
+		float: left;
+		text-align:center;
+		display: inline-block;
+		border:1px solid #dbdbdb;
+		padding:10px 0px;
+		border-radius:20px;
+		width : 99%;
+}
+
+
+
+div #files
+{
+		display: inline-block;
+		border:1px solid #dbdbdb;
+		padding:50px 0px;
+		border-radius:20px;
+		width : 99%;
+
+}
+
+
+label.checkbox_label {
+		padding: 0px 9px;
+		text-align: center;
+		font-weight: bold;
+		font-size: 14px;
+		color: black;
+		background-color: #ffffff;
+		border: 3px solid #77abff;
+		border-radius: 16px;
+}

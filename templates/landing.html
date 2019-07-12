@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<head>
+<link rel= "stylesheet" href= "{{ url_for('static', filename='css/common.css') }}">
+</head>
+<style>
+
+/* used to style links under riboseq/rnaseq sections: unvisited link */
+a.org:link {
+    font-size: 21px;
+    text-decoration: none;
+    color: #666666;
+    }
+
+/* visited link */
+a.org:visited {
+    font-size: 21px;
+    text-decoration: none;
+    color: #666666;
+    }
+
+/* mouse over link */
+a.org:hover {
+    font-size: 21px;
+    text-decoration: none;
+    color: #77abff;
+    }
+
+#about {
+    padding-bottom: 150px;
+    text-align:center;
+    width: 100%;
+    float: left;
+    }
+
+#desc {
+	padding-left: 220px;
+	padding-right: 220px;
+	}
+
+#riboseq {
+    font-size: 25px;
+    top: 50%;
+    left: 42%;
+    text-align: center;
+    padding-bottom: 95px;
+    }
+
+
+
+span {
+    display: inline-block;
+    vertical-align: bottom;
+    line-height: normal;
+    }
+
+</style>
+
+
+<div id="about">
+<img align="center" width="15%" src="/static/trips.svg"></img>
+<span>
+<p id="desc">
+Trips-viz is a transcriptome browser designed to visualize Ribosome profiling and RNA-seq data at the level of a single gene/transcript isoform as opposed to at <a target="_blank_" href="http://gwips.ucc.ie">the genome level</a>.
+Trips-viz also provides you the ability to vizualize data from a gene under different conditions, get meta-information at an individual dataset level such as read length distribution or triplet periodicity, and provides the ability
+to find differentially expressed or translated genes. For more information on any of these plots and general information on Trips-viz you can view the <a href="/help">help pages</a>. 
+To see the latest updates on Trips-Viz or to get information on the number of organisms and studies currently provided in Trips-Viz, you can view the <a href="/stats">statistics and updates page</a>. To get started click on an organism below.
+</p>
+</span>
+
+</div>
+
+<div id="riboseq">
+<b><u>Choose an organism</b></u>
+<ul class="checkbox-grid" data-role="listview" data-inset="true" id="ulist"  title="nodes list" data-inset="true">
+</div>
+
+
+</body>
+</html>
+<script type="text/javascript">
+
+function capitalize(s)
+{
+    return s[0].toUpperCase() + s.slice(1);
+}
+
+var org = {{  organisms|safe  }};
+var arrayLen = org.length;
+
+window.onload = function() {
+    for (i = 0; i < arrayLen; i++ ) {
+        console.log(i);
+        var newDiv = document.createElement('div');
+        var clean_org_name = org[i].replace("_", " ");
+        var clean_org_name = clean_org_name[0].toUpperCase() + clean_org_name.slice(1);
+        document.getElementById('riboseq').appendChild(newDiv);
+        newDiv.innerHTML = "<a class='org' href="+org[i]+"/>"+clean_org_name+"</a>";}
+}
+</script>
+
+{% endblock %}
