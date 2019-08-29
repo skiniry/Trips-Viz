@@ -31,19 +31,17 @@ def fetch_studies(username, organism, transcriptome):
 	accepted_studies = {}
 	study_access_list = []
 	#get a list of organism id's this user can access
-	print "USERNAM", username
 	if username != None:
-		cursor.execute("SELECT study_access from users WHERE username = '{}';".format(username))
+		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(username))
 		result = (cursor.fetchone())
-
-		if result[0]:
-			split_list = (result[0]).split(",")
-			for study_id in split_list:
-				print "study_id", study_id
-				study_access_list.append(int(study_id))
+		user_id = result[0]
+		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
+		result = (cursor.fetchall())
+		for row in result:
+			study_access_list.append(int(row[0]))
+			
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	result = (cursor.fetchone())
-
 	if result:
 		organism_id = int(result[0])
 
@@ -164,6 +162,8 @@ def fetch_file_paths(file_list,organism):
 			else:
 				file_path_dict[row[0]][row[3]] = ("{}/{}/{}.sqlite".format(config.UPLOADS_DIR,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 	connection.close()
+	for file_id in file_path_dict["riboseq"]:
+		print file_path_dict["riboseq"][file_id]
 	return file_path_dict
 
 
@@ -583,124 +583,7 @@ def calculate_coverages(sqlite_db,longest_tran_list,ambig_type, region, traninfo
 		sqlite_db["ambiguous_all_coverage"] = coverage_dict["ambig_all_coverage"]
 		sqlite_db.commit()
 
-# Used to create custom metagene plots on the metainformation plot page
-def create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,organism,metagene_tranlist):
-	custom_metagene_id = "cmgc_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format((custom_seq_list.upper()).replace(" ","").replace("T","U").replace(",","_"), custom_search_region, exclude_first, exclude_last, include_first, include_last,exclude_first_val,exclude_last_val,include_first_val,include_last_val,metagene_tranlist)
-	try:
-		mgc = sqlite_db[custom_metagene_id]
-		if custom_metagene_id == "cmgc_UGA_UAG_UAA_cds_False_False_False_True_0_0_14_3_":
-			sqlite_db["stop_metagene_counts"] = mgc
-			sqlite_db.commit()
-		return mgc
-	except:
-		pass
-	transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
-	cursor = transhelve.cursor()
-	if metagene_tranlist == "":
-		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE principal = 1")
-	else:
-		metagene_tranlist = metagene_tranlist.split(",")
-		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]")))
-		
-	result = cursor.fetchall()
-	mgc = {"fiveprime":{},"threeprime":{}}
-	iupac_dict =   {"R":"[AG]","Y":"[CU]","S":"[GC]","W":"[AU]","K":"[GU]",
-					"M":"[AC]","B":"[CGU]","D":"[AGU]","D":"[AGU]",
-					"H":"[ACU]","V":"[ACG]","N":"[AUGC]"}
-	
-	subseq_list = []
-	for subseq in custom_seq_list.split(","):
-		subseq = subseq.upper()
-		subseq = subseq.replace("T","U").replace(" ","")
-		for code in iupac_dict:
-			subseq = subseq.replace(code,iupac_dict[code])
-		subseq_list.append(subseq)
-	
-	for row in result:
-		tran = row[0]
-		cds_start = int(row[1])
-		cds_stop = int(row[2])
-		seq = row[3].replace("T","U")
-		if custom_search_region == "whole_gene":
-			min_pos = 0
-			max_pos = len(seq) 
-		if custom_search_region == "five_leader":
-			min_pos = 0
-			max_pos = cds_start
-		if custom_search_region == "cds":
-			min_pos = cds_start
-			max_pos = cds_stop
-		if custom_search_region == "three_trailer":
-			min_pos = cds_stop
-			max_pos = len(seq)
-		if include_first == True:
-			max_pos = min_pos+include_first_val
-		if include_last == True:
-			min_pos = max_pos-include_last_val
-		if exclude_first == True:
-			min_pos = min_pos + exclude_first_val
-		if exclude_last == True:
-			max_pos = max_pos-exclude_last_val
-			
-		if cds_start != "NULL" and cds_start != None:
-			seq_positions = []
-			for subseq in subseq_list:
-				pattern = re.compile(r"{}".format(subseq))
-				m = ""
-				search_pos = min_pos
-				while m != None:
-					m = pattern.search(seq,search_pos,max_pos+1)
-					if m != None:
-						position = m.span()[0]
-						seq_positions.append(position)
-						search_pos = position+1
-		if seq_positions != []:
-			profile = {"fiveprime":{},"threeprime":{}}
-			try:
-				tran_reads = sqlite_db[tran]["unambig"]
-			except:
-				tran_reads = {"unambig":{}}
-			for readlen in tran_reads:
-				profile["fiveprime"][readlen] = {}
-				profile["threeprime"][readlen] = {}
-				for pos in tran_reads[readlen]:
-					three_pos = pos+readlen
-					count = tran_reads[readlen][pos]
-					try:
-						profile["fiveprime"][readlen][pos] += count
-					except:
-						profile["fiveprime"][readlen][pos] = 0
-						profile["fiveprime"][readlen][pos] += count
-					try:
-						profile["threeprime"][readlen][three_pos] += count
-					except:
-						profile["threeprime"][readlen][three_pos] = 0
-						profile["threeprime"][readlen][three_pos] += count
-			for readlen in profile["fiveprime"]:
-				if readlen not in mgc["fiveprime"]:
-					mgc["fiveprime"][readlen] = {}
-					for i in range(-600,601):
-						mgc["fiveprime"][readlen][i] = 0
-				for pos in profile["fiveprime"][readlen]:
-					count = profile["fiveprime"][readlen][pos]
-					for seq_position in seq_positions:
-						if seq_position >= pos-600 and seq_position <= pos+600:
-							relative_seq_position = pos-seq_position
-							mgc["fiveprime"][readlen][relative_seq_position] += count
-			for readlen in profile["threeprime"]:
-				if readlen not in mgc["threeprime"]:
-					mgc["threeprime"][readlen] = {}
-					for i in range(-600,601):
-						mgc["threeprime"][readlen][i] = 0
-				for pos in profile["threeprime"][readlen]:
-					count = profile["threeprime"][readlen][pos]
-					for seq_position in seq_positions:
-						if seq_position >= pos-600 and seq_position <= pos+600:
-							relative_seq_position = pos-seq_position
-							mgc["threeprime"][readlen][relative_seq_position] += count						
-	sqlite_db[custom_metagene_id] = mgc 
-	sqlite_db.commit()
-	return mgc
+
 
 # Builds a profile, applying offsets
 def build_profile(trancounts, offsets, ambig):

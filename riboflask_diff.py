@@ -216,8 +216,6 @@ def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,rib
 			lower_thresholds_x.append(sorted_min_exp_list[(bin_count)*300][1])
 			lower_thresholds_y.append(bin_list[bin_count-1][3])
 			lower_thresholds_y.append(bin_list[bin_count][3])
-
-
 		#print i
 		#print "smel", sorted_min_exp_list[i]
 		#print "bin count", bin_list[bin_count]

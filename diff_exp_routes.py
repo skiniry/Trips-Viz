@@ -154,6 +154,8 @@ def diffquery():
 	transcript_list =  trancursor.fetchall()
 	traninfo_dict = {}
 	for result in transcript_list:
+		if result[1] == "DDX3Y":
+			print "RESULT", result
 		traninfo_dict[result[0]] = {"transcript":result[0] , "gene":result[1], "length":result[2] , "cds_start":result[3] , "cds_stop":result[4] , "seq":result[5] ,
 				"strand":result[6], "stop_list":result[7].split(","),"start_list":result[8].split(","), "exon_junctions":result[9].split(","),
 				"tran_type":result[10], "principal":result[11]}
@@ -583,10 +585,11 @@ def diffquery():
 
 # Given either two or four filepaths, calculates a z-score, places the z-scores in a master dict 
 def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath,master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict, minreads, minzscore,ambiguous,min_cov):
-	if minreads != 0:
-		minreads = log(minreads,2)
-	else:
-		minreads = -1000
+	print "CALCULATE Z SCORE CALLED"
+	#if minreads != 0:
+	#	minreads = log(minreads,2)
+	#else:
+	#	minreads = -1000
 	riboseq1_tot_reads = 0.001
 	riboseq2_tot_reads = 0.001
 	rnaseq1_tot_reads = 0.001
@@ -596,6 +599,7 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 		ambig_type = "unambiguous"
 	elif ambiguous == True:
 		ambig_type = "ambiguous"
+		
 		
 	groupname = ""
 	covdict = {}
@@ -755,6 +759,10 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 			if transcript in covdict:
 				transcript_dict[transcript]["rnaseq2_cov"] += covdict[transcript]
 
+
+	for transcript in transcript_dict:
+		if transcript in ["ENSMUST00000055032","ENSMUST00000091197","ENSMUST00000069309"]:
+			print transcript,"ribo1:",transcript_dict[transcript]["riboseq1"],"ribo2:",transcript_dict[transcript]["riboseq2"]
 	current_min_reads_list = []
 	diff_expressed = []
 
@@ -782,25 +790,33 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 	
 	del_list = []
 	for transcript in transcript_dict:
+		if label == "TE":
+			current_min_reads = min(transcript_dict[transcript]["riboseq1"]/ribo1_modifier,transcript_dict[transcript]["riboseq2"]/ribo2_modifier,transcript_dict[transcript]["rnaseq1"]/rna1_modifier,transcript_dict[transcript]["rnaseq2"]/rna2_modifier)
+		elif label == "Riboseq":
+			current_min_reads = min(transcript_dict[transcript]["riboseq1"]/ribo1_modifier,transcript_dict[transcript]["riboseq2"]/ribo2_modifier)
+		elif label == "Rnaseq":
+			current_min_reads = min(transcript_dict[transcript]["rnaseq1"]/rna1_modifier,transcript_dict[transcript]["rnaseq2"]/rna2_modifier)
+		if minreads != 0:
+			#print "minreads not zero", current_min_reads
+			if current_min_reads < minreads:
+				#print "deleting transcript beacuase its reads {} were less than the min {}".format(current_min_reads, minreads)
+				del_list.append(transcript)
+	
+	for transcript in transcript_dict:
 		if min_cov > 0:
 			max_cov = max(transcript_dict[transcript]["riboseq1_cov"],transcript_dict[transcript]["riboseq2_cov"],transcript_dict[transcript]["rnaseq1_cov"],transcript_dict[transcript]["rnaseq2_cov"])
 			if max_cov > transcript_dict[transcript]["max_cov"]:
 				transcript_dict[transcript]["max_cov"] = max_cov
-		transcript_dict[transcript]["riboseq1"] = log((transcript_dict[transcript]["riboseq1"]/ribo1_modifier),2)
-		transcript_dict[transcript]["riboseq2"] = log((transcript_dict[transcript]["riboseq2"]/ribo2_modifier),2)
-		transcript_dict[transcript]["rnaseq1"] = log((transcript_dict[transcript]["rnaseq1"]/rna1_modifier),2)
-		transcript_dict[transcript]["rnaseq2"] = log((transcript_dict[transcript]["rnaseq2"]/rna2_modifier),2)
+		if transcript_dict[transcript]["riboseq1"] >= 1:
+			transcript_dict[transcript]["riboseq1"] = log((transcript_dict[transcript]["riboseq1"]/ribo1_modifier),2)
+		if transcript_dict[transcript]["riboseq2"] >= 1:
+			transcript_dict[transcript]["riboseq2"] = log((transcript_dict[transcript]["riboseq2"]/ribo2_modifier),2)
+		if transcript_dict[transcript]["rnaseq1"] >= 1:
+			transcript_dict[transcript]["rnaseq1"] = log((transcript_dict[transcript]["rnaseq1"]/rna1_modifier),2)
+		if transcript_dict[transcript]["rnaseq2"] >= 1:
+			transcript_dict[transcript]["rnaseq2"] = log((transcript_dict[transcript]["rnaseq2"]/rna2_modifier),2)
 	
-	for transcript in transcript_dict:
-		if label == "TE":
-			current_min_reads = min(transcript_dict[transcript]["riboseq1"],transcript_dict[transcript]["riboseq2"],transcript_dict[transcript]["rnaseq1"],transcript_dict[transcript]["rnaseq2"])
-		elif label == "Riboseq":
-			current_min_reads = min(transcript_dict[transcript]["riboseq1"],transcript_dict[transcript]["riboseq2"])
-		elif label == "Rnaseq":
-			current_min_reads = min(transcript_dict[transcript]["rnaseq1"],transcript_dict[transcript]["rnaseq2"])
 
-		if current_min_reads < minreads:
-			del_list.append(transcript)
 	for transcript in master_dict:
 		if transcript not in transcript_dict:
 			del_list.append(transcript)

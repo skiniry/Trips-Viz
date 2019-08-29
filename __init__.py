@@ -325,7 +325,21 @@ def uploadspage():
 			organism_dict[organism] = [transcriptome]
 		else:
 			organism_dict[organism].append(transcriptome)
-		org_id_dict[row[2]] = [row[0],transcriptome]
+		org_id_dict[row[2]] = [organism,transcriptome]
+	cursor.execute("SELECT organism_id from organism_access WHERE user_id = '{}';".format(user_id))
+	result = (cursor.fetchall())
+	for row in result:
+		organism_id = row[0]
+		cursor.execute("SELECT organism_name,transcriptome_list from organisms where organism_id = {};".format(organism_id))
+		org_result = cursor.fetchone()
+		organism_name = org_result[0]
+		transcriptome = org_result[1]
+		if organism_name not in organism_dict:
+			organism_dict[organism_name] = [transcriptome]
+		else:
+			organism_dict[organism_name].append(transcriptome)
+		org_id_dict[organism_id] = [organism_name,transcriptome]	
+		
 	study_dict = {}
 	cursor.execute("SELECT study_id,study_name,organism_id from studies where owner = {}".format(user_id))
 	result = cursor.fetchall()
@@ -347,7 +361,6 @@ def uploadspage():
 	result = cursor.fetchall()
 	for row in result:
 		study_access_list = row[1].split(",")
-
 		for study_id in study_access_list:
 			if study_id == '':
 				continue
@@ -664,10 +677,11 @@ def saved():
 		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
 		result = (cursor.fetchone())
 		user_id = result[0]
-	cursor.execute("SELECT organism_access from users WHERE user_id = {};".format(user_id))
-	result = cursor.fetchone()
-	organism_access_list = (result[0].strip("[]")).split(",")
-
+	cursor.execute("SELECT organism_id from organism_access WHERE user_id = '{}';".format(user_id))
+	result = (cursor.fetchall())
+	organism_access_list =[]
+	for row in result:
+		organism_access_list.append(row[0])
 	cursor.execute("SELECT organism_id,organism_name,private from organisms;")
 	organism_list = []
 	# List of all rows returned
@@ -844,12 +858,10 @@ def homepage():
 		result = (cursor.fetchone())
 		user_id = result[0]
 		#get a list of organism id's this user can access
-		cursor.execute("SELECT organism_access from users WHERE username = '{}';".format(user))
-		result = (cursor.fetchone())
-		if result[0]:
-			split_list = (result[0]).split(",")
-			for org_id in split_list:
-				organism_access_list.append(int(org_id))
+		cursor.execute("SELECT organism_id from organism_access WHERE user_id = '{}';".format(user_id))
+		result = (cursor.fetchall())
+		for row in result:
+			organism_access_list.append(int(row[0]))
 				
 	#returns a tuple with each field as a seperate string
 	cursor.execute("SELECT organism_id,organism_name,private,owner from organisms;")
@@ -1021,6 +1033,7 @@ def deletequery():
 @login_required
 def deletestudyquery():
 	data = ast.literal_eval(request.data)
+	print "data", data
 	user = current_user.name
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
@@ -1050,16 +1063,22 @@ def deletestudyquery():
 			study_access = data[study_id][1].split(",")
 			if user not in study_access:
 				study_access.append(user)
+			#print "study_access", study_access
 			#check study_access against a list of all users
 			all_users = []
 			cursor.execute("SELECT username FROM users;")
 			result = cursor.fetchall()
 			for row in result:
 				all_users.append(row[0])
+			# print "all users", all_users
+			# Check that all users exist
 			for user in study_access:
-				if user not in all_users:
+				print user
+				if user != "" and user not in all_users:
 					flash("Error: User {} is not registered on Trips-Viz".format(user))
 					return str(get_flashed_messages())
+				
+				
 	connection.close()
 	flash("Update successful")
 	return redirect("https://trips.ucc.ie/uploads")

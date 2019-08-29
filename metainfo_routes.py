@@ -4,6 +4,7 @@ from sqlitedict import SqliteDict
 import ast
 import os
 import time
+import re
 import operator
 from math import log
 import config
@@ -108,6 +109,132 @@ def metainfo_plotpage(organism, transcriptome):
 						   studyinfo_dict=studyinfo_dict,seq_types=seq_types)
 
 
+
+# Used to create custom metagene plots on the metainformation plot page
+def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist):
+	custom_metagene_id = "cmgc_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format((custom_seq_list.upper()).replace(" ","").replace("T","U").replace(",","_"), custom_search_region, exclude_first, exclude_last, include_first, include_last,exclude_first_val,exclude_last_val,include_first_val,include_last_val,metagene_tranlist)
+	try:
+		mgc = sqlite_db[custom_metagene_id]
+		if custom_metagene_id == "cmgc_UGA_UAG_UAA_cds_False_False_False_True_0_0_14_3_":
+			sqlite_db["stop_metagene_counts"] = mgc
+			sqlite_db.commit()
+		return mgc
+	except:
+		pass
+	transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+	cursor = transhelve.cursor()
+	if metagene_tranlist == "":
+		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE principal = 1")
+	else:
+		metagene_tranlist = metagene_tranlist.split(",")
+		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]")))
+		
+	result = cursor.fetchall()
+	mgc = {"fiveprime":{},"threeprime":{}}
+	iupac_dict =   {"R":"[AG]","Y":"[CU]","S":"[GC]","W":"[AU]","K":"[GU]",
+					"M":"[AC]","B":"[CGU]","D":"[AGU]","D":"[AGU]",
+					"H":"[ACU]","V":"[ACG]","N":"[AUGC]"}
+	
+	subseq_list = []
+	for subseq in custom_seq_list.split(","):
+		subseq = subseq.upper()
+		subseq = subseq.replace("T","U").replace(" ","")
+		for code in iupac_dict:
+			subseq = subseq.replace(code,iupac_dict[code])
+		subseq_list.append(subseq)
+	
+	for row in result:
+		tran = row[0]
+		cds_start = int(row[1])
+		cds_stop = int(row[2])
+		seq = row[3].replace("T","U")
+		if custom_search_region == "whole_gene":
+			min_pos = 0
+			max_pos = len(seq) 
+		if custom_search_region == "five_leader":
+			min_pos = 0
+			max_pos = cds_start
+		if custom_search_region == "cds":
+			min_pos = cds_start
+			max_pos = cds_stop
+		if custom_search_region == "three_trailer":
+			min_pos = cds_stop
+			max_pos = len(seq)
+		if include_first == True:
+			max_pos = min_pos+include_first_val
+		if include_last == True:
+			min_pos = max_pos-include_last_val
+		if exclude_first == True:
+			min_pos = min_pos + exclude_first_val
+		if exclude_last == True:
+			max_pos = max_pos-exclude_last_val
+			
+		if cds_start != "NULL" and cds_start != None:
+			seq_positions = []
+			for subseq in subseq_list:
+				pattern = re.compile(r"{}".format(subseq))
+				m = ""
+				search_pos = min_pos
+				while m != None:
+					m = pattern.search(seq,search_pos,max_pos+1)
+					if m != None:
+						position = m.span()[0]
+						seq_positions.append(position)
+						search_pos = position+1
+		if seq_positions != []:
+			profile = {"fiveprime":{},"threeprime":{}}
+			try:
+				tran_reads = sqlite_db[tran]["unambig"]
+			except:
+				tran_reads = {"unambig":{}}
+			for readlen in tran_reads:
+				profile["fiveprime"][readlen] = {}
+				profile["threeprime"][readlen] = {}
+				for pos in tran_reads[readlen]:
+					three_pos = pos+readlen
+					count = tran_reads[readlen][pos]
+					try:
+						profile["fiveprime"][readlen][pos] += count
+					except:
+						profile["fiveprime"][readlen][pos] = 0
+						profile["fiveprime"][readlen][pos] += count
+					try:
+						profile["threeprime"][readlen][three_pos] += count
+					except:
+						profile["threeprime"][readlen][three_pos] = 0
+						profile["threeprime"][readlen][three_pos] += count
+			for readlen in profile["fiveprime"]:
+				if readlen not in mgc["fiveprime"]:
+					mgc["fiveprime"][readlen] = {}
+					for i in range(-600,601):
+						mgc["fiveprime"][readlen][i] = 0
+				for pos in profile["fiveprime"][readlen]:
+					count = profile["fiveprime"][readlen][pos]
+					for seq_position in seq_positions:
+						if seq_position >= pos-600 and seq_position <= pos+600:
+							relative_seq_position = pos-seq_position
+							mgc["fiveprime"][readlen][relative_seq_position] += count
+			for readlen in profile["threeprime"]:
+				if readlen not in mgc["threeprime"]:
+					mgc["threeprime"][readlen] = {}
+					for i in range(-600,601):
+						mgc["threeprime"][readlen][i] = 0
+				for pos in profile["threeprime"][readlen]:
+					count = profile["threeprime"][readlen][pos]
+					for seq_position in seq_positions:
+						if seq_position >= pos-600 and seq_position <= pos+600:
+							relative_seq_position = pos-seq_position
+							mgc["threeprime"][readlen][relative_seq_position] += count						
+	sqlite_db[custom_metagene_id] = mgc 
+	sqlite_db.commit()
+	return mgc
+
+
+
+
+
+
+
 metainfoquery_blueprint = Blueprint("metainfoquery", __name__, template_folder="templates")
 @metainfoquery_blueprint.route('/metainfoquery', methods=['POST'])
 def metainfoquery():
@@ -125,7 +252,7 @@ def metainfoquery():
 	tran_corr_transcript2 = data['tran_corr_transcript2']
 	
 	single_tran_de_range1 = data['single_tran_de_range1']
-	single_tran_de_range2 = data['single_tran_de_range2']
+	single_tran_de_rge2 = data['single_tran_de_range2']
 	custom_seq_list = data["custom_seq_list"]
 	exclude_first_val = int(data["exclude_first_val"])
 	exclude_last_val = int(data["exclude_last_val"])
@@ -869,14 +996,11 @@ def metainfoquery():
 		for item in result_list:
 			table_str += "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(item[0],item[1],item[7],item[2],item[3],item[5], item[4],item[6])
 		table_str += "</table>"
-		
 		return table_str
-
 	elif plottype == "te":
 		#traninfo_dict = shelve.open("{0}{1}/{1}.shelf".format(config.ANNOTATION_DIR,organism))
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
-		
 		if owner == 1:
 			#transhelve = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
 			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
@@ -917,7 +1041,7 @@ def metainfoquery():
 			filename = organism+"_translation_efficiencies_"+str(time.time())+".csv"
 			table_str += filename+"?~"
 			tmp_te_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-			tmp_te_file.write("Region,Gene,Transcript,A count, T count, G count, C count, GC%, Sequence length")
+			tmp_te_file.write("Region,Gene,Transcript,A count, T count, G count, C count, GC%, Sequence length, Seqeunce\n")
 			gc_list = []
 			for transcript in traninfo_dict:
 				traninfo = traninfo_dict[transcript]
@@ -938,13 +1062,15 @@ def metainfoquery():
 					seqlen = len(seq)
 					nuc_count = calc_gc(seq)
 				if seqlen == 0:
-					continue
-				gc_list.append([region,traninfo_dict[transcript]["gene"],transcript,nuc_count["A"],nuc_count["T"],nuc_count["G"],nuc_count["C"],round((nuc_count["G"]+nuc_count["C"])/(nuc_count["A"]+nuc_count["T"]+nuc_count["G"]+nuc_count["C"]),2)*100,seqlen])
+					gc = 0
+				else:
+					gc = round((nuc_count["G"]+nuc_count["C"])/(nuc_count["A"]+nuc_count["T"]+nuc_count["G"]+nuc_count["C"]),2)*100
+				gc_list.append([region,traninfo_dict[transcript]["gene"],transcript,nuc_count["A"],nuc_count["T"],nuc_count["G"],nuc_count["C"],gc,seqlen,seq])
 			all_sorted_rows = sorted(gc_list, key=lambda x: x[7],reverse=True)
 			total_rows =0
 			#print "all sorted rows", all_sorted_rows[:10]
 			for row in all_sorted_rows:
-				tmp_te_file.write("{},{},{},{},{},{},{},{},{}\n".format(row[0], row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8]))
+				tmp_te_file.write("{},{},{},{},{},{},{},{},{},{}\n".format(row[0], row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9]))
 				total_rows += 1
 				if total_rows <= 1000:
 					input_str = ""
@@ -1650,7 +1776,7 @@ def metainfoquery():
 				elif metagene_type == "metagene_second_aug":
 					mgc = sqlite_db["secondary_metagene_counts"]
 				elif metagene_type == "metagene_custom":
-					mgc = create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,config.ANNOTATION_DIR,organism,metagene_tranlist)
+					mgc = create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,organism,metagene_tranlist)
 
 				if metagene_offsets == True:
 					new_mgc = {"fiveprime":{},"threeprime":{}}
@@ -2097,6 +2223,8 @@ def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, org
 					transcript_dict[transcript][seq_type] = {}
 				if transcript in opendict:
 					transcript_dict[transcript][seq_type][inputfilename] = {"count":opendict[transcript],"file_id":str(file_id)}
+				else:
+					transcript_dict[transcript][seq_type][inputfilename] = {"count":0,"file_id":str(file_id)}
 	total_rows = 0
 	tmp_te_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
 	tmp_te_file.write("Filename,Gene,Transcript,Region,Riboseq count, Rnaseq count, Translation efficiency")
@@ -2126,7 +2254,6 @@ def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, org
 					riboseq_count = count
 				elif seq_type == "rnaseq":
 					rnaseq_count = count
-
 				try:
 					te = riboseq_count/rnaseq_count
 				except:

@@ -77,7 +77,7 @@ def merge_dicts(dict1,dict2):
 	return dict1
 
 def generate_plot(tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,trips_annotation_location,seqhili,seq_rules,title_size,
-subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_location,cds_marker_size,cds_marker_colour,legend_size,ribo_linewidth, secondary_readscore,pcr,mismatches):
+subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_location,cds_marker_size,cds_marker_colour,legend_size,ribo_linewidth, secondary_readscore,pcr,mismatches, hili_start, hili_stop):
 	if lite == "n" and ribocoverage == True:
 		return "Error: Cannot display Ribo-Seq Coverage when 'Line Graph' is turned off"
 	labels = ["Frame 1 profiles","Frame 2 profiles","Frame 3 profiles","RNA", "Exon Junctions"]
@@ -334,12 +334,26 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	title_str = '{} ({})'.format(gene,short_code)
 	plt.title(title_str, fontsize=title_size,y=36)
 	line_collections = [frame0subpro, frame1subpro, frame2subpro, rna_bars, allexons]
+
+
+	
+	
+	
 	if mismatches == True:
 		line_collections.append(a_mismatches)
 		line_collections.append(t_mismatches)
 		line_collections.append(g_mismatches)
 		line_collections.append(c_mismatches)
 	line_collections.append(cds_markers)
+	
+	if not (hili_start == 0 and hili_stop == 0):
+		hili_start = int(hili_start)
+		hili_stop = int(hili_stop)
+		hili = ax_main.fill_between([hili_start,hili_stop], [y_max, y_max],zorder=0, alpha=0.75, color="#fffbaf")
+		labels.append("Highligted region")
+		start_visible.append(True)
+		line_collections.append(hili)
+	
 	for alt_plot in alt_seq_type_vars:
 		line_collections.append(alt_plot)
 	if 'hili_sequences' in locals():

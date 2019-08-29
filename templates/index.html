@@ -48,6 +48,12 @@ var gwips_info = {{  gwips_info|safe  }};
 		<b>Highlight sequences list: </b></tran> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_seq_element_hili">(Whats this?) </a><br>
 		<input id="seqhili" name="seqhili" value="" ></input>
 		<br/>
+		
+		
+		<tr><td><b>Highlight start: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_hili">(Whats this?) </a><input type="text" id="hili_start" name="hili_start" value="0" ></input></tr></td> <br>
+		<tr><td><b>Highlight stop: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_hili">(Whats this?) </a><input type="text" id="hili_stop" name="hili_stop" value="0" ></input></tr></td>
+		<br/>
+		
 		<b>Offset Direction: </b> <a class="whatsthis" target="_blank_"  href="https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_offset_dir">(Whats this?) </a><br>
 		<input type="radio" class = "prime_radio fiveprime" id="fiveprime" value="fiveprime" name="primetype" checked></input>
 		<label for='fiveprime' class='check_label'>5'</label>
@@ -429,10 +435,14 @@ $("#query").click(function() {
 	var secondary_readscore = $('input:text[name=secondary_readscore]').val();
 	var organism = "{{  organism|safe  }}";
 	var transcriptome = "{{  transcriptome|safe  }}";
+	var hili_start = $('input:text[name=hili_start]').val();
+	var hili_stop = $('input:text[name=hili_stop]').val();
 	var qu = {"minfiles":minfiles,"transcript":transcript, "varlite": varlite, "minread":minread, "maxread":maxread,"noisered":noisered,  "ribocoverage": ribocoverage,
 			"ambiguous": ambiguous,"pcr":pcr,"organism":organism,"transcriptome":transcriptome,"readscore":readscore, "primetype":primetype,"preprocess":preprocess,
 			"nucseq":nucseq, "user_hili_starts":user_hili_starts, "user_hili_stops":user_hili_stops,"color_readlen_dist":color_readlen_dist,
-			"user_short":user_short,"advanced":advanced,"seqhili":seqhili, "secondary_readscore":secondary_readscore,"mismatches":mismatches};
+			"user_short":user_short,"advanced":advanced,"seqhili":seqhili, "secondary_readscore":secondary_readscore,"mismatches":mismatches,
+			"hili_start":hili_start,"hili_stop":hili_stop};
+	
 	var file_list = [];
 	for (var filetype in accepted_files) {
 			for (var study_id in accepted_files[filetype]) {

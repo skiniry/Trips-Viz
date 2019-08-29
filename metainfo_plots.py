@@ -20,10 +20,6 @@ import numpy as np
 from flask import make_response
 from scipy.stats.stats import spearmanr,pearsonr
 import matplotlib.cm as cm
-
-
-
-
 from bokeh.plotting import figure, show, output_file
 from bokeh.embed import file_html, components
 from bokeh.resources import CDN
@@ -76,7 +72,6 @@ line_tooltip_css = """
 
 def mismatches(master_dict, title, short_code, background_col,title_size, axis_label_size, subheading_size,marker_size):
 	print "mismatches plot called"
-
 	fig, ax = plt.subplots( figsize=(23,12))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
 	ax.set_xlabel('Position', fontsize="26")
@@ -105,7 +100,6 @@ def mismatches(master_dict, title, short_code, background_col,title_size, axis_l
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
 	return graph
-
 
 
 def readlen_dist(master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size):
@@ -142,8 +136,6 @@ def readlen_dist(master_dict,title,short_code,background_col,readlength_col,titl
 	return graph
 
 
-
-
 def mismatch_pos(master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size):
 	print "readlen plot called"
 	fig, ax = plt.subplots( figsize=(23,12))
@@ -175,8 +167,6 @@ def mismatch_pos(master_dict,title,short_code,background_col,readlength_col,titl
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
 	return graph
-
-
 
 
 def nuc_comp(master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size):
@@ -312,13 +302,13 @@ def metagene_plot(readlen_list, fiveprime_list, threeprime_list,metagene_type,ti
 		returnstr = "Position,Count\n"
 		if metagene_end == "metagene_five":
 			rects1 = ax.bar(ind, fiveprime_list, width, color=metagene_fiveprime_col, linewidth=0)
-			start_pos = -600
+			start_pos = -300
 			for count in fiveprime_list:
 				returnstr += "{},{}\n".format(start_pos, count)
 				start_pos += 1
 		if metagene_end == "metagene_three":
 			rects2 = ax.bar(ind + width, threeprime_list, width, color=metagene_threeprime_col, linewidth=0)
-			start_pos = -600
+			start_pos = -300
 			for count in threeprime_list:
 				returnstr += "{},{}\n".format(start_pos, count)
 				start_pos += 1

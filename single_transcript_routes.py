@@ -126,6 +126,8 @@ def query():
 	minfiles = int(data['minfiles'])
 	organism = data['organism']
 	seqhili = data['seqhili'].split(",")
+	hili_start = int(data['hili_start'])
+	hili_stop = int(data['hili_stop'])
 	transcriptome = data['transcriptome']
 	advanced =  data["advanced"]
 
@@ -290,7 +292,7 @@ def query():
 								   minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict,short_code, color_readlen_dist,
 								   background_col,uga_col, uag_col, uaa_col,advanced,config.ANNOTATION_DIR,seqhili,seq_rules,title_size,
 								   subheading_size,axis_label_size,marker_size,transcriptome,config.UPLOADS_DIR,cds_marker_size,cds_marker_colour,
-								   legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches)
+								   legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches,hili_start, hili_stop)
 	else:
 		x = "ERROR! Could not find any transcript corresponding to whatever you entered"
 	return x
