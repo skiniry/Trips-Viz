@@ -111,19 +111,17 @@ def metainfo_plotpage(organism, transcriptome):
 
 
 # Used to create custom metagene plots on the metainformation plot page
-def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist):
+def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist,metagene_frame):
+	print "create custom metagene called"
 	custom_metagene_id = "cmgc_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format((custom_seq_list.upper()).replace(" ","").replace("T","U").replace(",","_"), custom_search_region, exclude_first, exclude_last, include_first, include_last,exclude_first_val,exclude_last_val,include_first_val,include_last_val,metagene_tranlist)
-	try:
-		mgc = sqlite_db[custom_metagene_id]
-		if custom_metagene_id == "cmgc_UGA_UAG_UAA_cds_False_False_False_True_0_0_14_3_":
-			sqlite_db["stop_metagene_counts"] = mgc
-			sqlite_db.commit()
-		return mgc
-	except:
-		pass
+	#try:
+	#	mgc = sqlite_db[custom_metagene_id]
+	#except:
+	#	pass
 	transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
 	cursor = transhelve.cursor()
 	if metagene_tranlist == "":
+		print "selecting principal transcripts"
 		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE principal = 1")
 	else:
 		metagene_tranlist = metagene_tranlist.split(",")
@@ -142,8 +140,9 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 		for code in iupac_dict:
 			subseq = subseq.replace(code,iupac_dict[code])
 		subseq_list.append(subseq)
-	
+	#print "result", result
 	for row in result:
+		#print "row", row
 		tran = row[0]
 		cds_start = int(row[1])
 		cds_stop = int(row[2])
@@ -182,15 +181,42 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 						seq_positions.append(position)
 						search_pos = position+1
 		if seq_positions != []:
+			#print "seq positions", seq_positions
 			profile = {"fiveprime":{},"threeprime":{}}
 			try:
 				tran_reads = sqlite_db[tran]["unambig"]
 			except:
 				tran_reads = {"unambig":{}}
+			#print "tran reads", tran_reads[25]
+			offsets = sqlite_db["offsets"]
 			for readlen in tran_reads:
+				if readlen in offsets["fiveprime"]["offsets"]:
+					offset = offsets["fiveprime"]["offsets"][readlen]
+				else:
+					offset = 15
 				profile["fiveprime"][readlen] = {}
 				profile["threeprime"][readlen] = {}
 				for pos in tran_reads[readlen]:
+					relative_frame = ((pos+offset)-cds_start)%3
+					#print "pos, relative frame", pos, relative_frame
+					#print "pos, cds_start, relative_frame", pos, cds_start, relative_frame
+					#if pos != 0:
+					#	relative_frame = seq_position%pos
+					#else:
+					#	relative_frame = 0
+					#print "relative frame", relative_frame
+					#print "metagene frame", metagene_frame
+					if metagene_frame == "minus_frame":
+						if relative_frame != 1:
+							continue
+					if metagene_frame == "in_frame":
+						if relative_frame != 2:
+							#print "its not 0", pos%3
+							continue
+					if metagene_frame == "plus_frame":
+						if relative_frame != 0:
+							continue
+					#print "including"
 					three_pos = pos+readlen
 					count = tran_reads[readlen][pos]
 					try:
@@ -209,11 +235,41 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 					for i in range(-600,601):
 						mgc["fiveprime"][readlen][i] = 0
 				for pos in profile["fiveprime"][readlen]:
+					#print "pos", pos
 					count = profile["fiveprime"][readlen][pos]
 					for seq_position in seq_positions:
+						#print "seq position ", seq_position
+						#if pos != 0:
+						#	relative_frame = seq_position%pos
+						#else:
+						#	relative_frame = 0
+						#print "relative frame", relative_frame
+						#print "metagene frame", metagene_frame
+						#if metagene_frame == "minus_frame":
+						#	if relative_frame != 1:
+						#		continue
+						#if metagene_frame == "in_frame":
+						#	if relative_frame != 0:
+						#		#print "its not 0", pos%3
+						#		continue
+						#if metagene_frame == "plus_frame":
+						#	if relative_frame != 2:
+						#		continue
+						#print pos%3
 						if seq_position >= pos-600 and seq_position <= pos+600:
 							relative_seq_position = pos-seq_position
+							#if metagene_frame == "minus_frame":
+							#	if relative_seq_position%3 != 1:
+							#		count = 0
+							#if metagene_frame == "in_frame":
+							#	if relative_seq_position%3 != 0:
+							#		count = 0
+							#if metagene_frame == "plus_frame":
+							#	if relative_seq_position%3 != 2:
+							#		count = 0
+							#print "rsp, count", relative_seq_position%3, count
 							mgc["fiveprime"][readlen][relative_seq_position] += count
+						
 			for readlen in profile["threeprime"]:
 				if readlen not in mgc["threeprime"]:
 					mgc["threeprime"][readlen] = {}
@@ -294,6 +350,7 @@ def metainfoquery():
 	metagene_type = data["metagene_type"]
 	metagene_end = data["metagene_end"]
 	custom_search_region = data["custom_search_region"]
+	metagene_frame = data["metagene_frame"]
 	heatmap_metagene_type = data["heatmap_metagene_type"]
 	contaminant_organism = data["contaminant_organism"]
 	nuc_comp_type = data["nuc_comp_type"]
@@ -1776,7 +1833,7 @@ def metainfoquery():
 				elif metagene_type == "metagene_second_aug":
 					mgc = sqlite_db["secondary_metagene_counts"]
 				elif metagene_type == "metagene_custom":
-					mgc = create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,organism,metagene_tranlist)
+					mgc = create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,organism,metagene_tranlist,metagene_frame)
 
 				if metagene_offsets == True:
 					new_mgc = {"fiveprime":{},"threeprime":{}}
@@ -1857,6 +1914,9 @@ def metainfoquery():
 				threeprime_counts.append(count_dict["threeprime"][i])
 		title = "Metagene profile"
 		connection.close()
+		
+
+			
 		return metainfo_plots.metagene_plot(pos_list,fiveprime_counts,threeprime_counts,metagene_type,title,minpos, maxpos,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end,metagene_aggregate)
 
 	elif plottype == "trip_periodicity":

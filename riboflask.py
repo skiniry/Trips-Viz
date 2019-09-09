@@ -182,6 +182,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	# Plot any alternative sequence types if there are any
 	for seq_type in file_paths_dict:
 		if seq_type != "riboseq" and seq_type != "rnaseq":
+			print "seq_type", seq_type
 			if seq_rules[seq_type]["frame_breakdown"] == 1:
 				frame_breakdown = True
 			else:

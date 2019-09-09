@@ -256,7 +256,7 @@ def query():
 	cds_marker_colour = config.CDS_MARKER_COLOUR
 	legend_size = config.LEGEND_SIZE
 	ribo_linewidth = config.RIBO_LINEWIDTH
-	seq_rules = {}
+	seq_rules = {"proteomics":{"frame_breakdown":1},"conservation":{"frame_breakdown":1}}
 
 	#get user_id
 	if user != None:

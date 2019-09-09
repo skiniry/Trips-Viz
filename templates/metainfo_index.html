@@ -403,7 +403,7 @@ function update_settings(n){
 						<tr><td>  <input type='checkbox' class='metagene_normalise' value='metagene_normalise'  name='metagene_normalise' checked>Normalise</input></td></tr>\
 						<tr><td><label for 'minreadlen'><b>Min readlen: </b><input type='text' id='metagene_minreadlen' name='minreadlen' value='25' ></input></td></tr>   \
 						<tr><td><label for 'maxreadlen'><b>Max readlen: </b><input type='text' id='metagene_maxreadlen' name='maxreadlen' value='35' ></input></td></tr>  \
-						<tr><td><b>Center around:</b></tr></td>\
+						<tr><td><b>Center around:</b></td></tr>\
 						<tr><td><input type='radio' class='metagene_class' class='metagene_start' value='metagene_start' name='metagene_type' checked>Metagene start codon</input></td></tr>\
 						<tr><td><input type='radio' class='metagene_class' class='metagene_stop' value='metagene_stop' name='metagene_type' unchecked>Metagene stop codon</input></td></tr>   \
 						<tr><td><input type='radio' class='metagene_class' class='metagene_custom' value='metagene_custom' name='metagene_type' unchecked>Custom Sequence list</input>\
@@ -425,6 +425,10 @@ function update_settings(n){
 						<tr><td><input type='checkbox' class='include_last' value='include_last' name='include_last' unchecked></input>\
 						Include last <input type='text' id='include_last_val' name='include_last_val' value='0' ></input> nucleotides</td></tr>\
 						<tr><td>Transcript list: <input type='text' id='metagene_tranlist' name='metagene_tranlist' value='' ></input></td></tr>\
+						<tr><td>Frame: <input type='radio' class='all_frames' value='all_frames' name='metagene_frame' checked>All frames</input></td></tr>\
+						<td><input type='radio' class='minus_frame' value='minus_frame' name='metagene_frame' unchecked>-1 frame</input></td>\
+						<td><input type='radio' class='in_frame' value='in_frame' name='metagene_frame' unchecked>In frame</input></td>\
+						<td><input type='radio' class='plus_frame' value='plus_frame' name='metagene_frame' unchecked>+1 frame</input></td></tr> \
 						</table>\
 						</div>\
 						");
@@ -526,6 +530,12 @@ $("#metainfoquery").click(function() {
 		}
 	catch (err) {
 		var custom_search_region = "null";
+		}
+	try  {
+		var metagene_frame = document.querySelector('input[name=metagene_frame]:checked').value;
+		}
+	catch (err) {
+		var metagene_frame = "null";
 		}
 	try  {
 		var corr_type = document.querySelector('input[name=corr_type]:checked').value;
@@ -766,7 +776,7 @@ $("#metainfoquery").click(function() {
 			"md_stop":md_stop,"md_start":md_start,"te_tranlist":te_tranlist,"mrna_readlen_smooth":mrna_readlen_smooth,"smooth_amount":smooth_amount,"html_args":html_args,"maxscaleval":maxscaleval,
 			"all_seq_types":seq_types, "region":region, "mismatch_region":mismatch_region, "count_agg":count_agg, "mismatch_agg":mismatch_agg,"count_gc":count_gc,"contaminant_organism":contaminant_organism,
 			"custom_seq_list":custom_seq_list,"exclude_first_val":exclude_first_val,"exclude_last_val":exclude_last_val,"include_first_val":include_first_val,"include_last_val":include_last_val,
-			"custom_search_region":custom_search_region,"corr_type":corr_type,"exclude_first":exclude_first, "exclude_last":exclude_last, "include_first":include_first, "include_last":include_last,
+			"custom_search_region":custom_search_region,"metagene_frame":metagene_frame,"corr_type":corr_type,"exclude_first":exclude_first, "exclude_last":exclude_last, "include_first":include_first, "include_last":include_last,
 			"metagene_tranlist":metagene_tranlist,"single_tran_de_transcript":single_tran_de_transcript,"single_tran_de_range1":single_tran_de_range1,"single_tran_de_range2":single_tran_de_range2,
 			"mismatch_minreadlen":mismatch_minreadlen,"normalise":normalise,"mismatch_maxreadlen":mismatch_maxreadlen,"tran_corr_transcript1":tran_corr_transcript1,"tran_corr_transcript2":tran_corr_transcript2};
 	var file_list = [];
