@@ -231,6 +231,9 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		rna_bars = ax_main.bar(all_rna_reads.keys(), all_rna_reads.values(), alpha=1, label = labels, zorder=1,color='lightgray', linewidth=0, width=1)
 	else:
 		rna_bars = ax_main.plot(all_rna_reads.keys(), all_rna_reads.values(), alpha=1, label = labels, zorder=1,color='#a7adb7', linewidth=4)
+	
+	
+
 	#if lite == "n":
 	#	all_profiles = ax_main.bar(all_ribo_reads.keys(), all_ribo_reads.values(), alpha=0.01, label = labels, zorder=2, color='crimson', linewidth=0,width=1)
 	#else:
@@ -340,12 +343,34 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	
 	
 	
+	
 	if mismatches == True:
 		line_collections.append(a_mismatches)
 		line_collections.append(t_mismatches)
 		line_collections.append(g_mismatches)
 		line_collections.append(c_mismatches)
 	line_collections.append(cds_markers)
+	
+	plot_gc = False
+	if plot_gc == True:
+		step_size = 5
+		window_size = 20
+		gc_dict = collections.OrderedDict()
+		for i in range(0,len(seq)-(window_size),step_size):
+			#x = float(i)/100 
+			gc_count = 0.0
+			for x in range(i,i+window_size):
+				if seq[x] in ["G","C"]:
+					gc_count += 1
+			norm_gc = gc_count/window_size
+			final_gc = norm_gc*y_max
+			gc_dict[i] = final_gc
+		gc_plot = ax_main.plot(gc_dict.keys(), gc_dict.values(), alpha=1, label = labels, zorder=1,color='black', linewidth=4)
+		line_collections.append(gc_plot)
+		labels.append("GC_content")
+		start_visible.append(True)
+	
+	
 	
 	if not (hili_start == 0 and hili_stop == 0):
 		hili_start = int(hili_start)

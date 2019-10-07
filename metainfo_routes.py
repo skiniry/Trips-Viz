@@ -1087,7 +1087,7 @@ def metainfoquery():
 		region = data["region"]
 		traninfo_dict = {}
 		for result in transcript_list:
-			traninfo_dict[result[0]] = {"transcript":result[0] , "gene":result[1], "length":result[2] , "cds_start":result[3] , "cds_stop":result[4] , "seq":result[5].upper() ,
+			traninfo_dict[result[0]] = {"transcript":result[0] , "gene":result[1].replace(",","_").replace(";","_"), "length":result[2] , "cds_start":result[3] , "cds_stop":result[4] , "seq":result[5].upper() ,
 					"strand":result[6], "stop_list":result[7].split(","),"start_list":result[8].split(","), "exon_junctions":result[9].split(","),
 					"tran_type":result[10], "principal":result[11]}
 
@@ -2186,7 +2186,7 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 		seq_count_dict = {}
 		for seq_type in transcript_dict[transcript]:
 			try:
-				gene = traninfo_dict[transcript]["gene"]
+				gene = (traninfo_dict[transcript]["gene"]).replace(",","_").replace(";","_")
 			except:
 				gene = "Unknown"
 			if seq_type not in seq_count_dict:
@@ -2205,7 +2205,7 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 			te = 0
 		else:
 			te = float(transcript_dict[transcript]["riboseq"])/float(transcript_dict[transcript]["rnaseq"])
-			te = round(te,2)
+			#te = round(te,2)
 		tmp_te_file.write("Aggregate,{},{},{},{},{},{}".format(gene,transcript,region, riboseq_count, rnaseq_count, te))
 		input_list = ["Aggregate", gene,transcript,region, riboseq_count, rnaseq_count, te]
 		for seq_type in all_seq_types:

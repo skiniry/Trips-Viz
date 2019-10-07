@@ -208,10 +208,10 @@ def diffquery():
 	else:
 		ambiguous = False
 	# User can decide to look at just riboseq fold-change, rnaseq fold-change or TE fold-change
-	if len(master_file_dict["riboseq1"]["file_ids"]) != len(master_file_dict["riboseq2"]["file_ids"]):
-		return "Error: Both Riboseq Condition boxes need to have an equal number of files."
-	if len(master_file_dict["rnaseq1"]["file_ids"]) != len(master_file_dict["rnaseq2"]["file_ids"]):
-		return "Error: Both RNA-Seq Condition boxes need to have an equal number of files."
+	#if len(master_file_dict["riboseq1"]["file_ids"]) != len(master_file_dict["riboseq2"]["file_ids"]):
+	#	return "Error: Both Riboseq Condition boxes need to have an equal number of files."
+	#if len(master_file_dict["rnaseq1"]["file_ids"]) != len(master_file_dict["rnaseq2"]["file_ids"]):
+	#	return "Error: Both RNA-Seq Condition boxes need to have an equal number of files."
 	if len(master_file_dict["rnaseq1"]["file_ids"]) >= 1 and len(master_file_dict["riboseq1"]["file_ids"]) >= 1 and (len(master_file_dict["riboseq1"]["file_ids"]) != len(master_file_dict["rnaseq1"]["file_ids"])):
 		return "Error: If RNA-Seq boxes are not empty they need to have an equal number of files as the riboseq boxes"
 	
@@ -222,7 +222,8 @@ def diffquery():
 	elif len(master_file_dict["riboseq1"]["file_ids"]) == 0 and len(master_file_dict["riboseq2"]["file_ids"]) == 0 and len(master_file_dict["rnaseq1"]["file_ids"]) >= 1 and len(master_file_dict["rnaseq2"]["file_ids"]) >= 1:
 		label = "Rnaseq"
 	else:
-		return "ERROR IMBALANCED OR NO FILES: Either all 4 boxes (RIBO-seq files 1, RIBO-seq files 2, mRNA-seq files 1, mRNA-seq files 2) must have a file associated with it OR both riboseq boxes OR both rnaseq boxes, you currently have {} files in RIBO-seq condition 1 files, {} in RIBO-seq condition 2 files, {} in mRNA-seq condition 1 files and {} in mRNA-seq condition 2 files".format(len(riboseq1_filepaths),len(riboseq2_filepaths),len(rnaseq1_filepaths),len(rnaseq2_filepaths))
+		label = "TE"
+	#	return "ERROR IMBALANCED OR NO FILES: Either all 4 boxes (RIBO-seq files 1, RIBO-seq files 2, mRNA-seq files 1, mRNA-seq files 2) must have a file associated with it OR both riboseq boxes OR both rnaseq boxes, you currently have {} files in RIBO-seq condition 1 files, {} in RIBO-seq condition 2 files, {} in mRNA-seq condition 1 files and {} in mRNA-seq condition 2 files".format(len(riboseq1_filepaths),len(riboseq2_filepaths),len(rnaseq1_filepaths),len(rnaseq2_filepaths))
 	
 	no_groups = max(len(master_file_dict["riboseq1"]["file_ids"]),len(master_file_dict["rnaseq1"]["file_ids"]))
 	region = data["region"] #can be cds,fiveprime, or threeprime
@@ -249,25 +250,25 @@ def diffquery():
 			csv_file.write("mRNA-Seq_Cond1_count,mRNA-Seq_Cond2_count,")
 			if mapped_reads_norm:
 				csv_file.write("Normalised_mRNA-Seq_Cond1_count ,Normalised_mRNA-Seq_Cond2_count,")
+		if plottype == "z_score":
+			if len(riboseq1_filepaths) != 0:
+				riboseq1_filepath = riboseq1_filepaths[int(master_file_dict["riboseq1"]["file_ids"][i])]
+				riboseq2_filepath = riboseq2_filepaths[int(master_file_dict["riboseq2"]["file_ids"][i])]
+			else:
+				riboseq1_filepath = ""
+				riboseq2_filepath = ""
+				
+			if len(rnaseq1_filepaths) != 0:
+				rnaseq1_filepath = rnaseq1_filepaths[int(master_file_dict["rnaseq1"]["file_ids"][i])]
+				rnaseq2_filepath = rnaseq2_filepaths[int(master_file_dict["rnaseq2"]["file_ids"][i])]
+			else:
+				rnaseq1_filepath = ""
+				rnaseq2_filepath = ""
 
-		if len(riboseq1_filepaths) != 0:
-			riboseq1_filepath = riboseq1_filepaths[int(master_file_dict["riboseq1"]["file_ids"][i])]
-			riboseq2_filepath = riboseq2_filepaths[int(master_file_dict["riboseq2"]["file_ids"][i])]
-		else:
-			riboseq1_filepath = ""
-			riboseq2_filepath = ""
-			
-		if len(rnaseq1_filepaths) != 0:
-			rnaseq1_filepath = rnaseq1_filepaths[int(master_file_dict["rnaseq1"]["file_ids"][i])]
-			rnaseq2_filepath = rnaseq2_filepaths[int(master_file_dict["rnaseq2"]["file_ids"][i])]
-		else:
-			rnaseq1_filepath = ""
-			rnaseq2_filepath = ""
-
-		transcript_dict,groupname = calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath, master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict,minreads, minzscore,ambiguous,min_cov)
-		if transcript_dict == "error":
-			return groupname
-		master_transcript_dict[groupname] = transcript_dict
+			transcript_dict,groupname = calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath, master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict,minreads, minzscore,ambiguous,min_cov)
+			if transcript_dict == "error":
+				return groupname
+			master_transcript_dict[groupname] = transcript_dict
 
 	del_list = []
 	for tran in master_dict:
@@ -363,7 +364,7 @@ def diffquery():
 		geo_mean_list = []
 		fc_list = []
 		z_scores = []
-		gene = traninfo_dict[tran]["gene"]
+		gene = (traninfo_dict[tran]["gene"]).replace(",","_").replace(";","_")
 		csv_file.write("{},{},".format(tran, gene))
 		for groupname in master_dict[tran]:
 			if groupname in ["skip","fdr","z_score"]:

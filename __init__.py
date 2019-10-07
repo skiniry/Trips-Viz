@@ -5,6 +5,7 @@ import sqlite3
 from flask import Flask,get_flashed_messages, render_template, request, send_from_directory, flash, redirect, url_for
 from flask_recaptcha import ReCaptcha
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
+from flask_security import Security
 import ast
 import stats_plots
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -43,6 +44,8 @@ app.register_blueprint(orfquery_blueprint)
 app.config.from_pyfile('config.py')
 recaptcha = ReCaptcha(app=app)
 app.config['UPLOAD_FOLDER'] = '/static/tmp'
+app.config['SECURITY_RECOVERABLE'] = True
+app.config['SECURITY_REGISTER_URL'] = "/recoverpassword"
 #change cookie name and path, this avoids cookies clashing with other flask apps on the same server 
 try:
 	if sys.argv[1] == "true":
