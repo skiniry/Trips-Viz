@@ -287,9 +287,12 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	if nucseq == True:
 		ax_nucseq.set_axis_bgcolor(background_col)
 		mrnaseq = seq.replace("T","U")
+		color_list = ["#FF4A45","#64FC44","#5687F9"]
+		char_frame = 0
 		for char in mrnaseq:
-			ax_nucseq.text((xy+1)-0.1,0.2,mrnaseq[xy],fontsize=20,color="grey")
+			ax_nucseq.text((xy+1)-0.1,0.2,mrnaseq[xy],fontsize=20,color=color_list[char_frame%3])
 			xy += 1
+			char_frame += 1
 
 	# If the user passed a list of sequences to highlight, find and plot them here. 
 	if seqhili != ['']:
