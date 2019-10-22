@@ -386,7 +386,6 @@ def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 		gene_list = []
 		for item in split_list:
 			gene_list.append(item.strip(" ").upper())
-		
 	x_values = []
 	y_values = []
 	genes = []
@@ -396,7 +395,7 @@ def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 	hili_y_values = []
 	hili_genes = []
 	hili_trans = []
-	
+	#print "RIBO RNA DICT", ribo_rna_dict
 	for gene in ribo_rna_dict:
 		if label == "TE":
 			if gene not in gene_list:
@@ -431,11 +430,7 @@ def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 				hili_x_values.append(log(ribo_rna_dict[gene]["rna2"],2))
 				hili_genes.append(gene)
 				hili_trans.append(ribo_rna_dict[gene]["tran"])
-
-
-
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes})
-
 	if label == "TE":
 		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")

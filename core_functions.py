@@ -30,14 +30,18 @@ def fetch_studies(username, organism, transcriptome):
 	cursor = connection.cursor()
 	accepted_studies = {}
 	study_access_list = []
+	print "username", username
 	#get a list of organism id's this user can access
 	if username != None:
+		print "username is not none", username
 		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(username))
 		result = (cursor.fetchone())
 		user_id = result[0]
+		print "user_id", user_id
 		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchall())
 		for row in result:
+			print "result row", row
 			study_access_list.append(int(row[0]))
 			
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -57,6 +61,7 @@ def fetch_studies(username, organism, transcriptome):
 					if row[0] in study_access_list:
 						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 	connection.close()
+	print "returning accepted studies", accepted_studies
 	return accepted_studies
 
 

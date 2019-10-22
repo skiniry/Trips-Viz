@@ -463,12 +463,13 @@ def upload_file():
 					cursor.execute("INSERT INTO studies VALUES({},{},'{}','{}','{}','{}','{}','{}','{}','{}','{}','{}',{},{})".format(study_id,organism_id,foldername,'NULL','NULL','NULL','NULL','NULL','NULL','NULL','NULL','NULL',1,user_id))
 				else:
 					cursor.execute("INSERT INTO studies VALUES({},{},'{}','{}','{}','{}','{}','{}','{}','{}','{}','{}',{},{})".format(study_id,organism_id,foldername,'NULL','NULL','NULL','NULL','NULL','NULL','NULL','NULL','NULL',0,user_id))
-				cursor.execute("SELECT study_access from users WHERE user_id = {}".format(user_id))
-				result = cursor.fetchone()
-				study_access_list = result[0]
-				if str(study_id) not in study_access_list.split(","):
-					study_access_list += ",{}".format(study_id)
-					cursor.execute("UPDATE users SET study_access = '{}' WHERE user_id = {}".format(study_access_list, user_id))
+				#cursor.execute("SELECT study_access from users WHERE user_id = {}".format(user_id))
+				#result = cursor.fetchone()
+				#study_access_list = result[0]
+				#if str(study_id) not in study_access_list.split(","):
+					#study_access_list += ",{}".format(study_id)
+					#cursor.execute("UPDATE users SET study_access = '{}' WHERE user_id = {}".format(study_access_list, user_id))
+				cursor.execute("INSERT INTO study_access VALUES({},{});".format(study_id,user_id))
 			cursor.execute("INSERT INTO files VALUES({},{},{},'{}','{}','{}',{},{},{},'{}')".format(new_file_id,organism_id,study_id,filename,file_description,filetype,user_id,0,0,""))
 			connection.commit()
 			connection.close()

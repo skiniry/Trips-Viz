@@ -119,6 +119,7 @@ def diffpage(organism,transcriptome):
 diffquery_blueprint = Blueprint("diffquery", __name__, template_folder="templates")
 @diffquery_blueprint.route('/diffquery', methods=['POST'])
 def diffquery():
+	print "DIFFQUERY IS CALLED"
 	global user_short_passed
 	data = ast.literal_eval(request.data)
 	plottype = data["plottype"]
@@ -250,25 +251,25 @@ def diffquery():
 			csv_file.write("mRNA-Seq_Cond1_count,mRNA-Seq_Cond2_count,")
 			if mapped_reads_norm:
 				csv_file.write("Normalised_mRNA-Seq_Cond1_count ,Normalised_mRNA-Seq_Cond2_count,")
-		if plottype == "z_score":
-			if len(riboseq1_filepaths) != 0:
-				riboseq1_filepath = riboseq1_filepaths[int(master_file_dict["riboseq1"]["file_ids"][i])]
-				riboseq2_filepath = riboseq2_filepaths[int(master_file_dict["riboseq2"]["file_ids"][i])]
-			else:
-				riboseq1_filepath = ""
-				riboseq2_filepath = ""
-				
-			if len(rnaseq1_filepaths) != 0:
-				rnaseq1_filepath = rnaseq1_filepaths[int(master_file_dict["rnaseq1"]["file_ids"][i])]
-				rnaseq2_filepath = rnaseq2_filepaths[int(master_file_dict["rnaseq2"]["file_ids"][i])]
-			else:
-				rnaseq1_filepath = ""
-				rnaseq2_filepath = ""
+		#if plottype == "z_score":
+		if len(riboseq1_filepaths) != 0:
+			riboseq1_filepath = riboseq1_filepaths[int(master_file_dict["riboseq1"]["file_ids"][i])]
+			riboseq2_filepath = riboseq2_filepaths[int(master_file_dict["riboseq2"]["file_ids"][i])]
+		else:
+			riboseq1_filepath = ""
+			riboseq2_filepath = ""
+			
+		if len(rnaseq1_filepaths) != 0:
+			rnaseq1_filepath = rnaseq1_filepaths[int(master_file_dict["rnaseq1"]["file_ids"][i])]
+			rnaseq2_filepath = rnaseq2_filepaths[int(master_file_dict["rnaseq2"]["file_ids"][i])]
+		else:
+			rnaseq1_filepath = ""
+			rnaseq2_filepath = ""
 
-			transcript_dict,groupname = calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath, master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict,minreads, minzscore,ambiguous,min_cov)
-			if transcript_dict == "error":
-				return groupname
-			master_transcript_dict[groupname] = transcript_dict
+		transcript_dict,groupname = calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath, master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict,minreads, minzscore,ambiguous,min_cov)
+		if transcript_dict == "error":
+			return groupname
+		master_transcript_dict[groupname] = transcript_dict
 
 	del_list = []
 	for tran in master_dict:
@@ -376,7 +377,9 @@ def diffquery():
 			z_score = (fc-master_dict[tran][groupname]["mean"])/master_dict[tran][groupname]["standard_dev"]
 			z_scores.append(z_score)
 			geo_mean = master_dict[tran][groupname]["geometric_mean"]
+			#print "LABEL IS", label
 			if label == "TE":
+				#print "label is te"
 				csv_file.write("{},{},{},{},{},{},".format(groupname,fc,geo_mean,master_dict[tran][groupname]["mean"],master_dict[tran][groupname]["standard_dev"],z_score))
 				riboseq1_count = (2**transcript_dict[tran]["riboseq1"])*transcript_dict["ribo1_modifier"]-0.0001
 				riboseq2_count = (2**transcript_dict[tran]["riboseq2"])*transcript_dict["ribo2_modifier"]-0.0001
@@ -390,18 +393,22 @@ def diffquery():
 					rnaseq1_count = 0
 				if rnaseq2_count < 0.1:
 					rnaseq2_count = 0
+				#print "counts", riboseq1_count, riboseq2_count, rnaseq1_count, rnaseq2_count
 				csv_file.write("{},{},{},{},".format(riboseq1_count,riboseq2_count,rnaseq1_count,rnaseq2_count))
 				if gene not in ribo_vs_rna_dict:
+					#print "gene not in ribo vs rna dict"
 					ribo_vs_rna_dict[gene] = {"tran":tran,
 											"ribo1":2**transcript_dict[tran]["riboseq1"],
 											"ribo2":2**transcript_dict[tran]["riboseq2"],
 											"rna1":2**transcript_dict[tran]["rnaseq1"],
 											"rna2":2**transcript_dict[tran]["rnaseq2"]}
 				else:
+					#print "gene was in ribo vs rna dict"
 					ribo_vs_rna_dict[gene]["ribo1"] += 2**transcript_dict[tran]["riboseq1"]
 					ribo_vs_rna_dict[gene]["ribo2"] += 2**transcript_dict[tran]["riboseq2"]
 					ribo_vs_rna_dict[gene]["rna1"] += 2**transcript_dict[tran]["rnaseq1"]
 					ribo_vs_rna_dict[gene]["rna2"] += 2**transcript_dict[tran]["rnaseq2"]
+				#print "ribo rna dict gene is now", ribo_vs_rna_dict[gene]
 				if mapped_reads_norm:
 					csv_file.write("{},{},{},{},".format((2**transcript_dict[tran]["riboseq1"])-0.0001,(2**transcript_dict[tran]["riboseq2"])-0.0001,(2**transcript_dict[tran]["rnaseq1"])-0.0001,(2**transcript_dict[tran]["rnaseq2"])-0.0001))
 					
@@ -541,6 +548,7 @@ def diffquery():
 	else:
 		short_code = html_args["user_short"]
 		user_short_passed = True
+	#print "Sending ribo vs rna dict", len(ribo_vs_rna_dict.keys())
 	if plottype == "z_score":
 		return riboflask_diff.generate_plot(sorted_aggregated_values,
 										bin_list,
