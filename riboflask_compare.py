@@ -5,6 +5,7 @@ import mpld3
 from mpld3 import plugins,utils
 from fetch_shelve_reads2 import get_reads
 import sqlite3
+import config
 
 
 def merge_dict(dict1,dict2):
@@ -36,11 +37,11 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
-	owner = (cursor.fetchone())[0]		
+	owner = (cursor.fetchone())[0]
 	if owner == 1:
-		transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(trips_annotation_location,organism))
+		transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
 	else:
-		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(trips_uploads_location,owner,organism,transcriptome))
+		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
 	cursor.execute("SELECT * from transcripts WHERE transcript = '{}'".format(tran))
 	result = cursor.fetchone()
@@ -120,7 +121,7 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 		file_names =item[1][0]
 		file_descs = item[2]
 		if item[5] == "riboseq":
-			filename_reads, seqvar_dict = get_reads(ambig, item[6], item[7], tran, file_paths, tranlen, ribocoverage, organism, False,  False,"fiveprime","riboseq",    1)
+			filename_reads, seqvar_dict = get_reads(ambig, item[6], item[7], tran, file_paths, tranlen, ribocoverage, organism, False,  False,"fiveprime","riboseq",1)
 		else:
 			filename_reads, seqvar_dict = get_reads(ambig, item[6], item[7], tran, file_paths, tranlen, True, organism, False, False,"fiveprime","riboseq",1)
 		if normalize == False:

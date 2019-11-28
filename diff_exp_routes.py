@@ -51,6 +51,7 @@ def diffpage(organism,transcriptome):
 				 "ambig":str(request.args.get('ambig')),
 				 "plottype":str(request.args.get('plottype')),
 				 "gene_list":str(request.args.get('gene_list')),
+				 "transcript_list":str(request.args.get('transcript_list')),
 				 "transcriptome":str(transcriptome),
 				 "min_cov":str(request.args.get('min_cov'))}
 	html_args["riboseq_files_1"] = "None"
@@ -129,6 +130,7 @@ def diffquery():
 	store_de_results = data["store_de_results"]
 	cond_desc = data["cond_desc"]
 	gene_list = data["gene_list"]
+	transcript_list = ((data["transcript_list"].strip(" ")).replace(" ",",")).split(",")
 	if data["min_cov"] != "undefined":
 		min_cov = float(data["min_cov"])
 	else:
@@ -151,15 +153,21 @@ def diffquery():
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	trancursor = transhelve.cursor()
-	trancursor.execute("SELECT * from transcripts WHERE principal = 1 AND tran_type = 'coding'")
-	transcript_list =  trancursor.fetchall()
+	print "transcript list", transcript_list
+	if transcript_list == ['']:
+		print "gettting appris transcripts"
+		trancursor.execute("SELECT * from transcripts WHERE principal = 1 AND tran_type = 'coding'")
+	else:
+		print "SELECT * from transcripts WHERE transcript IN ({});".format(str(transcript_list).strip("[]"))
+		trancursor.execute("SELECT * from transcripts WHERE transcript IN ({});".format(str(transcript_list).strip("[]")))
+	result =  trancursor.fetchall()
 	traninfo_dict = {}
-	for result in transcript_list:
-		if result[1] == "DDX3Y":
-			print "RESULT", result
-		traninfo_dict[result[0]] = {"transcript":result[0] , "gene":result[1], "length":result[2] , "cds_start":result[3] , "cds_stop":result[4] , "seq":result[5] ,
-				"strand":result[6], "stop_list":result[7].split(","),"start_list":result[8].split(","), "exon_junctions":result[9].split(","),
-				"tran_type":result[10], "principal":result[11]}
+	for row in result:
+		#if result[1] == "DDX3Y":
+		#	print "RESULT", result
+		traninfo_dict[row[0]] = {"transcript":row[0] , "gene":row[1], "length":row[2] , "cds_start":row[3] , "cds_stop":row[4] , "seq":row[5] ,
+				"strand":row[6], "stop_list":row[7].split(","),"start_list":row[8].split(","), "exon_junctions":row[9].split(","),
+				"tran_type":row[10], "principal":row[11]}
 	transhelve.close()
 	longest_tran_list = traninfo_dict.keys()
 	

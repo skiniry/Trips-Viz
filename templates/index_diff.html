@@ -26,7 +26,8 @@
 			<tr><td> <input type='checkbox' value='store_de_results' name='store_de_results' unchecked> Store results</input> </td></tr>
 			<tr><td> <input type="text" id="cond_desc" name="cond_desc" value=""></input></td></tr>
 		{% endif %}
-		<tr><td><b>Gene List: </b> <input type="text" id="gene_list" name="gene_list" value=""></input></td></tr>
+		<tr><td><b>Highlight gene List: </b> <input type="text" id="gene_list" name="gene_list" value=""></input></td></tr>
+		<tr><td><b>Transcript List: </b> <input type="text" id="transcript_list" name="transcript_list" value=""></input></td></tr>
 		<tr><td><b>Minimum coverage: </b> <input type="text" id="min_cov" name="min_cov" value="0"></input></td></tr>
 		</table>
 </div>
@@ -419,6 +420,10 @@ $("#diffquery").click(function() {
 	if (gene_list == null){
 		gene_list = ""
 		}
+	var transcript_list = $('input:text[name=transcript_list]').val();
+	if (transcript_list == null){
+		transcript_list = ""
+		}
 	var min_cov = $('input:text[name=min_cov]').val();
 	if (min_cov == null){
 		min_cov = ""
@@ -439,7 +444,7 @@ $("#diffquery").click(function() {
 	
 	var qu = {"master_file_dict":master_file_dict, "organism":organism, "minzscore":minzscore, "minreads":minreads, "region":region,"transcriptome":transcriptome,
 				"html_args":html_args,"mapped_reads_norm":mapped_reads_norm,"store_de_results":store_de_results,"cond_desc":cond_desc,"gene_list":gene_list,
-				"ambiguous":ambiguous,"min_cov":min_cov,"plottype":plottype}
+				"transcript_list":transcript_list,"ambiguous":ambiguous,"min_cov":min_cov,"plottype":plottype}
 
 	$.ajax({
 		type: "POST",
@@ -506,7 +511,11 @@ if (html_args["plottype"] != "None") {
 if (html_args["gene_list"] != "None") {
 	document.getElementById('gene_list').value = html_args["gene_list"];
 	}
-	
+
+//if transcript list in html args pass it here
+if (html_args["transcript_list"] != "None") {
+	document.getElementById('transcript_list').value = html_args["transcript_list"];
+	}
 
 // if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
 if (html_args["riboseq_files_1"] != "None") {

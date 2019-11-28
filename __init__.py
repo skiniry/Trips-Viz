@@ -20,6 +20,7 @@ import smtplib
 from core_functions import fetch_file_paths,generate_short_code,base62_to_integer,build_profile,User
 from gene_reg_routes import gene_regulation_page, gene_regulation_query
 from metainfo_routes import metainfo_plotpage_blueprint, metainfoquery_blueprint
+from traninfo_routes import traninfo_plotpage_blueprint, traninfoquery_blueprint
 from comparison_routes import comparison_plotpage_blueprint, comparisonquery_blueprint
 from single_transcript_routes import single_transcript_plotpage_blueprint, single_transcript_query_blueprint
 from diff_exp_routes import diff_plotpage_blueprint,diffquery_blueprint
@@ -33,6 +34,8 @@ app.register_blueprint(gene_regulation_page)
 app.register_blueprint(gene_regulation_query)
 app.register_blueprint(metainfo_plotpage_blueprint)
 app.register_blueprint(metainfoquery_blueprint)
+app.register_blueprint(traninfo_plotpage_blueprint)
+app.register_blueprint(traninfoquery_blueprint)
 app.register_blueprint(single_transcript_plotpage_blueprint)
 app.register_blueprint(single_transcript_query_blueprint)
 app.register_blueprint(comparison_plotpage_blueprint)
@@ -360,15 +363,24 @@ def uploadspage():
 	for row in result:
 		transcriptome_dict[int(row[0])] = [row[1],row[2]]
 
-	cursor.execute("SELECT username,study_access from users")
-	result = cursor.fetchall()
-	for row in result:
-		study_access_list = row[1].split(",")
-		for study_id in study_access_list:
-			if study_id == '':
-				continue
-			if int(study_id) in study_dict:
-				study_dict[int(study_id)][3].append(row[0])
+	#cursor.execute("SELECT username,study_access from users")
+	#result = cursor.fetchall()
+	#for row in result:
+	#
+	#	study_access_list = row[1].split(",")
+	#	for study_id in study_access_list:
+	#		if study_id == '':
+	#			continue
+	#		if int(study_id) in study_dict:
+	for study_id in study_dict:
+		cursor.execute("SELECT user_id FROM study_access WHERE study_id = {}".format(study_id))
+		result = cursor.fetchall()
+		for row in result:
+			cursor.execute("SELECT username FROM users WHERE user_id = {}".format(row[0]))
+			result2 = cursor.fetchone()
+			shared_user = result2[0]
+			if shared_user not in study_dict[study_id][3]:
+				study_dict[study_id][3].append(result2[0])
 	file_dict = {}
 	cursor.execute("SELECT file_name,study_id,file_id from files where owner = {}".format(user_id))
 	result = cursor.fetchall()
@@ -1039,6 +1051,7 @@ def deletestudyquery():
 	data = ast.literal_eval(request.data)
 	print "data", data
 	user = current_user.name
+	print "CURRENT USER IS", user
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
@@ -1065,24 +1078,37 @@ def deletestudyquery():
 			connection.commit()
 		else:
 			study_access = data[study_id][1].split(",")
-			if user not in study_access:
-				study_access.append(user)
+			#if user not in study_access:
+			#	study_access.append(user)
 			#print "study_access", study_access
 			#check study_access against a list of all users
-			all_users = []
-			cursor.execute("SELECT username FROM users;")
+			all_users = {}
+			cursor.execute("SELECT username,user_id FROM users;")
 			result = cursor.fetchall()
 			for row in result:
-				all_users.append(row[0])
+				all_users[row[0]] = row[1]
 			# print "all users", all_users
 			# Check that all users exist
-			for user in study_access:
-				print user
-				if user != "" and user not in all_users:
-					flash("Error: User {} is not registered on Trips-Viz".format(user))
-					return str(get_flashed_messages())
+			for username in study_access:
+				print username
+				if username:
+					if username not in all_users.keys():
+						flash("Error: User {} is not registered on Trips-Viz".format(username))
+						return str(get_flashed_messages())
+					else:
+						print "username:"+username+":resu"
+						print "study_id", study_id
+						cursor.execute("SELECT * FROM study_access WHERE user_id = {} and study_id = {};".format(all_users[username],study_id))
+						result = cursor.fetchone()
+						print result
+						if result == None:
+							print "username is ",username 
+							print "study access is ", study_access
+							print ("\n\n\nINSERT INTO study_access VALUES({},{});".format(study_id,all_users[username]))
+							cursor.execute("\n\n\nINSERT INTO study_access VALUES({},{});".format(study_id,all_users[username]))
+					
 				
-				
+	connection.commit()
 	connection.close()
 	flash("Update successful")
 	return redirect("https://trips.ucc.ie/uploads")
@@ -1196,7 +1222,6 @@ def dataset_breakdown(organism,transcriptome):
 	for file_id in files.split("_"):
 		file_list.append(int(file_id))
 	file_paths_dict = fetch_file_paths(file_list,organism)
-
 	xlist = []
 	ylist = []
 	filenames = []
@@ -1204,7 +1229,7 @@ def dataset_breakdown(organism,transcriptome):
 	studies = []
 	raw_reads = []
 	controls = []
-	cell_lines = []	
+	cell_lines = []
 	control_colors = []
 	study_colors = []
 	cell_line_colors = []

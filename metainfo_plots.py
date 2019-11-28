@@ -1188,36 +1188,41 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 
 
 	for key in mrna_dist_dict:
+		try:
+			total = mrna_dist_dict[key]["total"]
+		except:
+			total = mrna_dist_dict[key]["5_leader"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"]+mrna_dist_dict[key]["3_trailer"]
+		print "total", total
+		print "the rest", mrna_dist_dict[key]["5_leader"],mrna_dist_dict[key]["start_codon"],mrna_dist_dict[key]["cds"],mrna_dist_dict[key]["stop_codon"],mrna_dist_dict[key]["3_trailer"]
 		labels.append(key)
-		
 		five_leaders.append(mrna_dist_dict[key]["5_leader"])
-		five_leaders_per.append((mrna_dist_dict[key]["5_leader"]/mrna_dist_dict[key]["total"])*100)
+		five_leaders_per.append((mrna_dist_dict[key]["5_leader"]/total)*100)
 		three_trailers.append(mrna_dist_dict[key]["3_trailer"])
-		three_trailers_per.append((mrna_dist_dict[key]["3_trailer"]/mrna_dist_dict[key]["total"])*100)
+		three_trailers_per.append((mrna_dist_dict[key]["3_trailer"]/total)*100)
 		if md_start == True and md_stop == True:
 			start_codons.append(mrna_dist_dict[key]["start_codon"])
-			start_codons_per.append((mrna_dist_dict[key]["start_codon"]/mrna_dist_dict[key]["total"])*100)
+			start_codons_per.append((mrna_dist_dict[key]["start_codon"]/total)*100)
 			cds.append(mrna_dist_dict[key]["cds"])
-			cds_per.append((mrna_dist_dict[key]["cds"]/mrna_dist_dict[key]["total"])*100)
+			cds_per.append((mrna_dist_dict[key]["cds"]/total)*100)
 			stop_codons.append(mrna_dist_dict[key]["stop_codon"])
-			stop_codons_per.append((mrna_dist_dict[key]["stop_codon"]/mrna_dist_dict[key]["total"])*100)
+			stop_codons_per.append((mrna_dist_dict[key]["stop_codon"]/total)*100)
 		elif md_start == True and md_stop == False:
 			start_codons.append(mrna_dist_dict[key]["start_codon"])
-			start_codons_per.append((mrna_dist_dict[key]["start_codon"]/mrna_dist_dict[key]["total"])*100)
+			start_codons_per.append((mrna_dist_dict[key]["start_codon"]/total)*100)
 			cds.append(mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"])
-			cds_per.append(((mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"])/mrna_dist_dict[key]["total"])*100)
+			cds_per.append(((mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"])/total)*100)
 			stop_codons.append(0)
 			stop_codons_per.append(0)
 		elif md_start == False and md_stop == True:
 			stop_codons.append(mrna_dist_dict[key]["stop_codon"])
-			stop_codons_per.append((mrna_dist_dict[key]["stop_codon"]/mrna_dist_dict[key]["total"])*100)
+			stop_codons_per.append((mrna_dist_dict[key]["stop_codon"]/total)*100)
 			cds.append(mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["start_codon"])
-			cds_per.append(((mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["start_codon"])/mrna_dist_dict[key]["total"])*100)
+			cds_per.append(((mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["start_codon"])/total)*100)
 			start_codons.append(0)
 			start_codons_per.append(0)
 		elif md_start == False and md_stop == False:
 			cds.append(mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["stop_codon"])
-			cds_per.append(((mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["stop_codon"])/mrna_dist_dict[key]["total"])*100)	
+			cds_per.append(((mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["stop_codon"])/total)*100)	
 			stop_codons.append(0)
 			stop_codons_per.append(0)
 			start_codons.append(0)

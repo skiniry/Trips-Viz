@@ -341,11 +341,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	title_str = '{} ({})'.format(gene,short_code)
 	plt.title(title_str, fontsize=title_size,y=36)
 	line_collections = [frame0subpro, frame1subpro, frame2subpro, rna_bars, allexons]
-
-
-	
-	
-	
 	
 	if mismatches == True:
 		line_collections.append(a_mismatches)
@@ -357,7 +352,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	plot_gc = False
 	if plot_gc == True:
 		step_size = 5
-		window_size = 20
+		window_size = 100
 		gc_dict = collections.OrderedDict()
 		for i in range(0,len(seq)-(window_size),step_size):
 			#x = float(i)/100 
@@ -372,8 +367,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		line_collections.append(gc_plot)
 		labels.append("GC_content")
 		start_visible.append(True)
-	
-	
 	
 	if not (hili_start == 0 and hili_stop == 0):
 		hili_start = int(hili_start)
@@ -486,7 +479,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	ax_f2.axes.get_yaxis().set_ticks([])
 	ax_f1.axes.get_yaxis().set_ticks([])
 
-	returnstr = "Position,Sequence,Frame 1,Frame 2, Frame 3,RNA-Seq\n"
+	returnstr = "Position,Sequence,Frame 1,Frame 2,Frame 3,RNA-Seq\n"
 	for i in range(0,len(seq)):
 		f1_count = 0
 		f2_count = 0

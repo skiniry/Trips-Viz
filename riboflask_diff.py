@@ -460,13 +460,15 @@ def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 	if label == "TE":
 		p.line([-8,8], [-8,8], color="#cccccc",line_width=1)
 		hover.tooltips = [("Ribo fc", "@y"),("RNA fc","@x"),("Genes","@genes"),("Transcript","@trans")]
-	elif label == "Riboseq":	
+	elif label == "Riboseq":
+			p.line([0,16], [0,16], color="#cccccc",line_width=1)
 			hover.tooltips = [("Ribo Cond 1 count (log2)", "@y"),("Ribo Cond 2 count (log2)","@x"),("Genes","@genes"),("Transcript","@trans")]
 			#corr = spearmanr(x_values, y_values)
 			pearson_corr = pearsonr(x_values, y_values)
 			mytext = Label(x=0.1,y=max(y_values),text="Pearson correlation: {}".format(round(pearson_corr[0],2)),background_fill_color="white",text_font_size="13pt")
 			p.add_layout(mytext)
 	else:
+			p.line([0,16], [0,16], color="#cccccc",line_width=1)
 			hover.tooltips = [("Rna-seq Cond 1 count (log2)", "@y"),("Rna-seq Cond 2 count (log2)","@x"),("Genes","@genes"),("Transcript","@trans")]
 			hover.tooltips = [("Ribo Cond 1 count (log2)", "@y"),("Ribo Cond 2 count (log2)","@x"),("Genes","@genes"),("Transcript","@trans")]
 			#corr = spearmanr(x_values, y_values)

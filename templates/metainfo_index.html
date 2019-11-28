@@ -327,7 +327,13 @@ function update_settings(n){
 		switch(n)
 		{
 				case 'readlen_dist':
-						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td>  <input type='checkbox'\ class = 'readlen_ambig' value='readlen_ambig'  name='readlen_ambig' checked>Allow ambiguous reads</input> </td> </tr>        </table>");
+						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td>  <input type='checkbox'\ class = 'readlen_ambig' value='readlen_ambig'  name='readlen_ambig' checked>Allow ambiguous reads</input> </td> </tr>\
+							<tr><td>Transcript list (optional): <input type='text' id='metagene_tranlist' name='metagene_tranlist' value=''></input></td></tr>\
+							<tr><td>mRNA region (optional):<td><input type='radio' class='whole_gene' value='whole_gene' name='custom_search_region' checked>Whole Gene</input></td></tr>\
+							<tr><td><input type='radio' class='five_leader' value='five_leader' name='custom_search_region' unchecked>5' Leader</input></td></tr>\
+							<tr><td><input type='radio' class='cds' value='cds' name='custom_search_region' unchecked>CDS</input></td></tr>\
+							<tr><td><input type='radio' class='three_trailer' value='three_trailer' name='custom_search_region' unchecked>3' trailer</input></td></tr>\
+							</table>");
 						break;
 				case 'single_tran_de':
 					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td>\

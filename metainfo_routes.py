@@ -512,7 +512,11 @@ def metainfoquery():
 
 
 	if plottype == "readlen_dist":
+		print "readlength dist called, custom_search_region is ", custom_search_region
+		print "metagene_tranlist is", metagene_tranlist
 		master_dict = {}
+		if metagene_tranlist != "":
+			metagene_tranlist = metagene_tranlist.split(",")
 		for filetype in file_paths_dict:
 			for file_id in file_paths_dict[filetype]:
 				filepath = file_paths_dict[filetype][file_id]
@@ -520,28 +524,67 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath)
-				if readlen_ambig == True:
-					if "read_lengths" not in sqlite_db:
-						return "No readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page."
-					else:
-						read_lengths = sqlite_db["read_lengths"]
-					sqlite_db.close()
-					for i in read_lengths:
-						if i in master_dict:
-							master_dict[i] += read_lengths[i]
+				# If no transcripts given and no region specified, get the precomputed read lengths (all transcripts, entire gene)
+				if metagene_tranlist == "" and custom_search_region == "whole_gene":
+					if readlen_ambig == True:
+						if "read_lengths" not in sqlite_db:
+							return "No readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page."
 						else:
-							master_dict[i] = read_lengths[i]
-				elif readlen_ambig == False:
-					if "unambig_read_lengths" not in sqlite_db:
-						return "No unambiguous readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page."
-					else:
-						read_lengths = sqlite_db["unambig_read_lengths"]
-					sqlite_db.close()
-					for i in read_lengths:
-						if i in master_dict:
-							master_dict[i] += read_lengths[i]
+							read_lengths = sqlite_db["read_lengths"]
+						sqlite_db.close()
+						for i in read_lengths:
+							if i in master_dict:
+								master_dict[i] += read_lengths[i]
+							else:
+								master_dict[i] = read_lengths[i]
+					elif readlen_ambig == False:
+						if "unambig_read_lengths" not in sqlite_db:
+							return "No unambiguous readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page."
 						else:
-							master_dict[i] = read_lengths[i]
+							read_lengths = sqlite_db["unambig_read_lengths"]
+						sqlite_db.close()
+						for i in read_lengths:
+							if i in master_dict:
+								master_dict[i] += read_lengths[i]
+							else:
+								master_dict[i] = read_lengths[i]
+				else:
+					traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.v2.sqlite".format(organism))
+					traninfo_cursor = traninfo_connection.cursor()
+					if metagene_tranlist == "":
+						print "metagene tranlist is", metagene_tranlist
+						traninfo_cursor.execute("SELECT transcript,sequence,cds_start,cds_stop FROM transcripts WHERE principal = 1;")
+						result = traninfo_cursor.fetchall()
+					else:
+						print "metagene tranlist is", metagene_tranlist
+						
+						#print "SELECT transcript,sequence,cds_start,cds_stop FROM transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]"))
+						traninfo_cursor.execute("SELECT transcript,sequence,cds_start,cds_stop FROM transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]").replace('"','')))
+						result = traninfo_cursor.fetchall()
+						#print "result", result
+						for row in result:
+							tran = row[0]
+							seq = row[1]
+							cds_start = row[2]
+							cds_stop = row[3]
+							if tran in sqlite_db:
+								counts = sqlite_db[tran]["unambig"]
+								for readlen in counts:
+									if readlen not in master_dict:
+										master_dict[readlen] = 0
+									for pos in counts[readlen]:
+										cnt = counts[readlen][pos]
+										if custom_search_region == "whole_gene":
+											master_dict[readlen] += cnt
+										elif custom_search_region == "five_leader":
+											if pos < cds_start:
+												master_dict[readlen] += cnt 
+										elif custom_search_region == "cds":
+											if pos > cds_start and pos < cds_stop:
+												master_dict[readlen] += cnt 
+										elif custom_search_region == "three_trailer":
+											if pos > cds_stop:
+												master_dict[readlen] += cnt 
 					
 		title = "Readlength distribution"
 		connection.close()
@@ -877,7 +920,7 @@ def metainfoquery():
 		if owner == 1:
 			traninfo_dict = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
 		else:
-			traninfo_dict = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome), autocommit=False)
+			traninfo_dict = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome), autocommit=False)
 		if organism == "homo_sapiens" or organism == "homo_sapiens_polio":
 			longest_tran_db = SqliteDict("{0}homo_sapiens/principal_isoforms_5ldr3tlr_rnaseq.sqlite".format(config.ANNOTATION_DIR), autocommit=False)
 			longest_tran_list = longest_tran_db["transcripts"]
@@ -1062,8 +1105,9 @@ def metainfoquery():
 			#transhelve = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
 			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
 		else:
-			#transhelve = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome), autocommit=False)
-			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(trips_uploads_location,owner,organism,transcriptome))
+			#print "getting tran data", "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome)
+			#transhelve = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome), autocommit=False)
+			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		cursor = transhelve.cursor()
 		#print " this is the te tranlist :{}:".format(te_tranlist)
 		if te_tranlist == "" or te_tranlist == ['']:
@@ -1092,6 +1136,9 @@ def metainfoquery():
 					"tran_type":result[10], "principal":result[11]}
 
 		transhelve.close()
+		
+		print "len traninfo_dict", len(traninfo_dict.keys())
+		
 		if count_gc == True:
 			#print "COUNT GC IS TRUE"
 			table_str = ""
@@ -1148,23 +1195,35 @@ def metainfoquery():
 		return table_str
 
 	elif plottype == "mrna_dist":
+		longest_tran_list = []
+		cds_dict = {}
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
 		if owner == 1:
-			traninfo_dict = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
+			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
 		else:
-			traninfo_dict = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome), autocommit=False)
-
-
-		if organism == "homo_sapiens" or organism == "homo_sapiens_polio":
-			longest_tran_db = SqliteDict("{0}homo_sapiens/principal_isoforms_5ldr3tlr_rnaseq.sqlite".format(config.ANNOTATION_DIR), autocommit=False)
-			longest_tran_list = longest_tran_db["transcripts"]
-			longest_tran_db.close()
-			if organism == "homo_sapiens_polio":
-				longest_tran_list.append("POLIO")
-		else:
-			longest_tran_list = traninfo_dict.keys()
+			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 			
+		cursor = transhelve.cursor()
+		cursor.execute("SELECT transcript,cds_start,cds_stop from transcripts where principal = 1;")
+		result = cursor.fetchall()
+		
+		for row in result:
+			longest_tran_list.append(str(row[0]))
+			cds_dict[str(row[0])] = {"cds_start":int(row[1]),"cds_stop":int(row[2])}
+		#if organism == "homo_sapiens" or organism == "homo_sapiens_polio":
+		#	longest_tran_db = SqliteDict("{0}homo_sapiens/principal_isoforms_5ldr3tlr_rnaseq.sqlite".format(config.ANNOTATION_DIR), autocommit=False)
+		#	longest_tran_list = longest_tran_db["transcripts"]
+		#	longest_tran_db.close()
+		#	if organism == "homo_sapiens_polio":
+		#		longest_tran_list.append("POLIO")
+		#else:
+		#	longest_tran_list = traninfo_dict.keys()
+		
+		
+		
+		
+		
 		mrna_dist_dict = {}
 		
 		for filetype in file_paths_dict:
@@ -1183,6 +1242,7 @@ def metainfoquery():
 				else:
 					return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath)
 				if "mrna_dist_dict" in sqlite_db:
+					print "getting old mrna dist dict"
 					mrna_dist_dict[filename]["5_leader"] = sqlite_db["mrna_dist_dict"]["5_leader"]
 					mrna_dist_dict[filename]["start_codon"] = sqlite_db["mrna_dist_dict"]["start_codon"]
 					mrna_dist_dict[filename]["cds"] = sqlite_db["mrna_dist_dict"]["cds"]
@@ -1190,6 +1250,7 @@ def metainfoquery():
 					mrna_dist_dict[filename]["3_trailer"] = sqlite_db["mrna_dist_dict"]["3_trailer"]
 					mrna_dist_dict[filename]["total"] = float(sqlite_db["mrna_dist_dict"]["5_leader"]+sqlite_db["mrna_dist_dict"]["start_codon"]+sqlite_db["mrna_dist_dict"]["cds"]+sqlite_db["mrna_dist_dict"]["stop_codon"]+sqlite_db["mrna_dist_dict"]["3_trailer"])
 				else:
+					print "going trhought transcript list", longest_tran_list[:10]
 					for transcript in longest_tran_list:
 						try:
 							transcript_dict = sqlite_db[transcript]["unambig"]
@@ -1197,8 +1258,8 @@ def metainfoquery():
 							continue
 							
 						try:
-							cds_start = int(traninfo_dict[transcript]["cds_start"])
-							cds_stop = int(traninfo_dict[transcript]["cds_stop"])
+							cds_start = cds_dict[transcript]["cds_start"]
+							cds_stop = cds_dict[transcript]["cds_stop"]
 						except:
 							continue
 						for readlen in transcript_dict:
@@ -1224,7 +1285,7 @@ def metainfoquery():
 				sqlite_db.close()
 		connection.close()
 		
-
+		print "returining mrna dist_dict, ",mrna_dist_dict
 		return metainfo_plots.mrna_dist(mrna_dist_dict,short_code, background_col,title_size, axis_label_size, subheading_size,marker_size,mrna_dist_per,md_start,md_stop)
 	elif plottype == "mrna_dist_readlen":
 		minreadlen = 15
@@ -1235,16 +1296,26 @@ def metainfoquery():
 		if owner == 1:
 			traninfo_dict = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
 		else:
-			traninfo_dict = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome), autocommit=False)
+			traninfo_dict = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome), autocommit=False)
 
-		if organism == "homo_sapiens" or organism == "homo_sapiens_polio":
-			longest_tran_db = SqliteDict("{0}homo_sapiens/principal_isoforms_5ldr3tlr_rnaseq.sqlite".format(config.ANNOTATION_DIR),autocommit=True)
-			longest_tran_list = longest_tran_db["transcripts"]
-			longest_tran_db.close()
-			if organism == "homo_sapiens_polio":
-				longest_tran_list.append("POLIO")
+		longest_tran_list = []
+		cds_dict = {}
+		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
+		owner = (cursor.fetchone())[0]
+		if owner == 1:
+			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
 		else:
-			longest_tran_list = traninfo_dict.keys()
+			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
+			
+		cursor = transhelve.cursor()
+		cursor.execute("SELECT transcript,cds_start,cds_stop from transcripts where principal = 1;")
+		result = cursor.fetchall()
+		
+		for row in result:
+			longest_tran_list.append(str(row[0]))
+			cds_dict[str(row[0])] = {"cds_start":int(row[1]),"cds_stop":int(row[2])}
+			
+			
 		mrna_dist_dict = {"5_leader":collections.OrderedDict(),
 						  "start_codon":collections.OrderedDict(),
 						  "cds":collections.OrderedDict(),
@@ -1303,8 +1374,8 @@ def metainfoquery():
 						except:
 							continue 
 						try:
-							cds_start = int(traninfo_dict[transcript]["cds_start"])
-							cds_stop = int(traninfo_dict[transcript]["cds_stop"])
+							cds_start = cds_dict[transcript]["cds_start"]
+							cds_stop = cds_dict[transcript]["cds_stop"]
 						except:
 							continue 
 
