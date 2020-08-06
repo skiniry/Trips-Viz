@@ -26,14 +26,14 @@ def interactiveplotpage(organism,transcriptome):
 	except:
 		user = None
 	organism = str(organism)
-	
+
 	accepted_studies = fetch_studies(user, organism, transcriptome)
 	file_id_to_name_dict,accepted_studies,accepted_files,seq_types = fetch_files(accepted_studies)
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
 
-	cursor.execute("SELECT gwips_clade,gwips_organism,gwips_database,default_transcript from organisms WHERE organism_name = '{}';".format(organism))
+	cursor.execute("SELECT gwips_clade,gwips_organism,gwips_database,default_transcript from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism,transcriptome))
 	result = (cursor.fetchone())
 	gwips_clade = result[0]
 	gwips_org = result[1]
@@ -144,13 +144,17 @@ def query():
 	cursor = connection.cursor()
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	owner = (cursor.fetchone())[0]
-	
+
 	if owner == 1:
-		transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		else:
+			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
 	cursor.execute("SELECT * from transcripts WHERE transcript = '{}'".format(tran))
+	
 	result = cursor.fetchone()
 	inputtran = True
 
@@ -167,7 +171,7 @@ def query():
 			else:
 				return_str = "TRANSCRIPTS"
 				for transcript in result:
-					cursor.execute("SELECT length,cds_start,cds_stop,principal from transcripts WHERE transcript = '{}'".format(transcript[0]))
+					cursor.execute("SELECT length,cds_start,cds_stop,principal,version from transcripts WHERE transcript = '{}'".format(transcript[0]))
 					tran_result = cursor.fetchone()
 					tranlen = tran_result[0]
 					cds_start = tran_result[1]
@@ -176,13 +180,14 @@ def query():
 						principal = "principal"
 					else:
 						principal = ""
+					version = tran_result[4]
 					if cds_start == "NULL" or cds_start == None:
 						cdslen = "NULL"
 						threeutrlen = "NULL"
 					else:
 						cdslen = cds_stop-cds_start
 						threeutrlen = tranlen - cds_stop
-					return_str += (":{},{},{},{},{},{}".format(transcript[0], tranlen, cds_start, cdslen, threeutrlen,principal))
+					return_str += (":{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen,principal))
 				return return_str
 		else:
 			return "ERROR! Could not find any transcript corresponding to {}".format(tran)
@@ -256,7 +261,8 @@ def query():
 	cds_marker_colour = config.CDS_MARKER_COLOUR
 	legend_size = config.LEGEND_SIZE
 	ribo_linewidth = config.RIBO_LINEWIDTH
-	seq_rules = {"proteomics":{"frame_breakdown":1},"conservation":{"frame_breakdown":1}}
+	#Put any publicly available seq types (apart from riboseq and rnaseq) here
+	seq_rules = {"proteomics":{"frame_breakdown":1},"conservation":{"frame_breakdown":1},"tcpseq":{"frame_breakdown":0}}
 
 	#get user_id
 	if user != None:
@@ -296,6 +302,3 @@ def query():
 	else:
 		x = "ERROR! Could not find any transcript corresponding to whatever you entered"
 	return x
-
-
-

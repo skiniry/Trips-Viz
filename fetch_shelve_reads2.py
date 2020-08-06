@@ -19,7 +19,6 @@ def merge_dicts(dict1,dict2):
 
 # Create dictionary of read counts at each position in a transcript
 def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, organism, subcodon, noisered, primetype, filetype, readscore, secondary_readscore=1,pcr=False,get_mismatches=False):
-	
 	mismatch_dict = collections.OrderedDict()
 	mismatch_dict["A"] = {}
 	mismatch_dict["T"] = {}
@@ -35,9 +34,8 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 
 	master_dict = collections.OrderedDict()
 	three_frame_dict = {0:{},1:{},2:{}}
-	for i in range(0,tranlen):
+	for i in range(0,tranlen+1):
 		master_dict[i] = 0
-
 	master_file_dict = {}
 	list_master_dict = {}
 
@@ -48,11 +46,13 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 	if read_type == "unambig":
 		if filetype in user_files:
 			for file_id in user_files[filetype]:
+				#print "fILE ID ", file_id
 				filename = user_files[filetype][file_id]
 				if os.path.isfile(filename):
 					sqlite_db = SqliteDict(filename, autocommit=False)
 				else:
 					return "File not found",filename.split("/")[-1]
+				#print "Filename", filename
 				accepted_offsets = {}
 				accepted_secondary_offsets = {}
 				if "offsets" in sqlite_db:
@@ -62,7 +62,7 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 					all_offsets = {}
 					scores = {}
 				if scores == {}:
-					for i in range(25,150):
+					for i in range(min_read,max_read):
 						scores[i] = 1
 						all_offsets[i] = 15
 				for rl in scores:
@@ -96,14 +96,16 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 
 				try:
 					alltrandict = sqlite_db[tran]
+					#print "alltran dict", alltrandict
 					unambig_tran_dict = alltrandict["unambig"]
+					#print "unambig tran dict", unambig_tran_dict
 					if pcr == True:
 						if "unambig_pcr" in alltrandict:
 							unambig_tran_dict = merge_dicts(unambig_tran_dict, alltrandict["unambig_pcr"])
 					sqlite_db.close()
 					master_file_dict[filename] = unambig_tran_dict
 				except Exception as e:
-					print "error", e
+					#print "error", e
 					pass
 	else:
 		if filetype in user_files:
@@ -123,7 +125,7 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 					scores = {}
 				#oyster has no readscores so subcodon profiles not displaying, so i put this in to give every readlength a score of 1
 				if scores == {}:
-					for i in range(25,50):
+					for i in range(min_read,max_read):
 						scores[i] = 1
 						all_offsets[i] = 15
 
@@ -169,7 +171,7 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 							trandict = merge_dicts(trandict, alltrandict["ambig_pcr"])
 					master_file_dict[filename] = trandict
 				except Exception as e:
-					print "error: ", e
+					#print "error: ", e
 					pass	
 
 	#Next check coverage, if that's true then calculate coverage for each rl and return dict
@@ -179,7 +181,7 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 				if readlen >= min_read and readlen <= max_read:
 					for pos in master_file_dict[filename][readlen]:
 						count = master_file_dict[filename][readlen][pos]
-						if pos-1 not in master_dict:
+						if pos != 0 and pos-1 not in master_dict:
 							master_dict[pos-1] = 0
 						for i in range(pos,pos+(readlen+1)):
 							if i in master_dict:
@@ -244,8 +246,9 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 									try:
 										master_dict[new_offset_pos] += count
 									except Exception as e:
-										print "Error tried adding to position {} but tranlen is only {}".format(e,tranlen)
+										#print "Error tried adding to position {} but tranlen is only {}".format(e,tranlen)
 										pass
+	
 		return master_dict, mismatch_dict
 
 # Create dictionary of counts at each position, averged by readlength

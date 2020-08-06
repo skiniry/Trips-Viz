@@ -1,6 +1,9 @@
 {% extends "layout.html" %}
 {% block content %}
 
+
+
+
 <head>
 <link rel= "stylesheet" href= "{{ url_for('static', filename='css/diff_translation.css') }}">
 <script src="https://cdn.pydata.org/bokeh/release/bokeh-0.12.14.min.js"></script>
@@ -12,9 +15,15 @@
 <div id="general_settings">
 		<p><font size="5" text-align="center"><b><u>General Settings</u></b></br></font></p>
 		<table align="center">
-		<tr><td><b>Plot type: </b><input type="radio" class = "plot_radio Z-score" id="z_score" value="z_score" name="plottype" checked>Z-score</input><input type="radio" class="plot_radio ribo_rna" id="ribo_rna" value="ribo_rna" name="plottype" unchecked> Correlation </input></td></tr>
-		<tr><td><b>Minimum no. of reads: </b><input type="text" id="minread" name="minread" value="1" ></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_minreads">(Whats this?) </a></td></tr>
-		<tr><td><b>Min z-score (+/-): </b><input type="text" id="minzscore" name="minzscore" value="4" ></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_minz">(Whats this?) </a></td></tr>
+		<tr><td><b>Plot type: </b><input type="radio" class="plot_radio ribo_rna" id="ribo_rna" value="ribo_rna" name="plottype" unchecked> Correlation </input><input type="radio" class = "plot_radio Z-score" id="z_score" value="z_score" name="plottype" checked>Z-score</input><input type="radio" class="plot_radio deseq2" id="deseq2" value="deseq2" name="plottype" unchecked> DESeq2 </input></td></tr>
+
+		<tr><td><b>Gene type: </b><input type="radio" class = "gene_radio all" id="all" value="all" name="genetype" unchecked>All</input>
+			<input type="radio" class="gene_radio coding" id="coding" value="coding" name="genetype" checked> Coding</input>
+			<input type="radio" class="gene_radio noncoding" id="noncoding" value="noncoding" name="genetype" unchecked> Non-coding </input></td></tr>
+
+
+		<tr><td><b>Minimum no. of reads: </b><input type="text" id="minread" name="minread" value="0" ></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_minreads">(Whats this?) </a></td></tr>
+		<tr><td><b>Min z-score (+/-)/ Max padj (%): </b><input type="text" id="minzscore" name="minzscore" value="4" ></input></td><td><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_minz">(Whats this?) </a></td></tr>
 		<tr><td><b>Region: </b>
 		<input class="all" type="radio" value="all" name="region" checked>All</input>
 		<input class="cds" type="radio" value="cds" name="region" checked>CDS</input>
@@ -28,7 +37,7 @@
 		{% endif %}
 		<tr><td><b>Highlight gene List: </b> <input type="text" id="gene_list" name="gene_list" value=""></input></td></tr>
 		<tr><td><b>Transcript List: </b> <input type="text" id="transcript_list" name="transcript_list" value=""></input></td></tr>
-		<tr><td><b>Minimum coverage: </b> <input type="text" id="min_cov" name="min_cov" value="0"></input></td></tr>
+		<tr class= "hidden_element"><td><b>Minimum coverage: </b> <input type="text" id="min_cov" name="min_cov" value="0"></input></td></tr>
 		</table>
 </div>
 
@@ -233,13 +242,13 @@ for (var filetype in accepted_files) {
 				file_names = file_names.sort(function(a, b) {
 					return a[0].localeCompare(b[0]);
 				})
-				
+
 				var sorted_file_list = [];
 				for (var z in file_names) {
 					var tup = file_names[z];
 					sorted_file_list.push(tup[1]);
 					}
-				
+
 				for (var file_id in sorted_file_list) {
 						file_id = sorted_file_list[file_id]
 						//console.log("file_id", file_id);
@@ -394,6 +403,7 @@ $("#diffquery").click(function() {
 	$("#loading-div-background").show();
 	$("#container").hide();
 	var plottype = document.querySelector('input[name=plottype]:checked').value;
+	var genetype = document.querySelector('input[name=genetype]:checked').value;
 	var transcript = $('input:text[name=transcript]').val();
 	var minreads = $('input:text[name=minread]').val();
 	var minzscore = $('input:text[name=minzscore]').val();
@@ -407,7 +417,7 @@ $("#diffquery").click(function() {
 	var rnaseq1 = document.getElementById("rna_file_list_1");
 	var rnaseq2 = document.getElementById("rna_file_list_2");
 	var total_files = 0
-	
+
 	var store_de_results = $('input:checkbox[name=store_de_results]:checked').val();
 	if (typeof store_de_results == 'undefined'){
 		store_de_results = "";
@@ -428,7 +438,7 @@ $("#diffquery").click(function() {
 	if (min_cov == null){
 		min_cov = ""
 		}
-	
+
 	for (key in master_file_dict) {
 			console.log("KEY"+key);
 			for (file_id in master_file_dict[key]["file_ids"]) {
@@ -436,15 +446,15 @@ $("#diffquery").click(function() {
 				total_files += 1
 				}
 			}
-	
+
 	if (total_files == 1) {
 		loading_header.innerText = "Loading data from "+total_files+" file";}
 	else {
 		loading_header.innerText = "Loading data from "+total_files+" files";}
-	
+
 	var qu = {"master_file_dict":master_file_dict, "organism":organism, "minzscore":minzscore, "minreads":minreads, "region":region,"transcriptome":transcriptome,
 				"html_args":html_args,"mapped_reads_norm":mapped_reads_norm,"store_de_results":store_de_results,"cond_desc":cond_desc,"gene_list":gene_list,
-				"transcript_list":transcript_list,"ambiguous":ambiguous,"min_cov":min_cov,"plottype":plottype}
+				"transcript_list":transcript_list,"ambiguous":ambiguous,"min_cov":min_cov,"plottype":plottype,"genetype":genetype}
 
 	$.ajax({
 		type: "POST",
@@ -467,7 +477,7 @@ if (html_args["minreads"] != "None" ) {
 		}
 
 if (html_args["min_cov"] != "None" ) {
-	document.getElementById('min_cov').value = html_args["min_cov"];	
+	document.getElementById('min_cov').value = html_args["min_cov"];
 	}
 
 if (html_args["minzscore"] != "None" ) {
@@ -506,7 +516,7 @@ if (html_args["plottype"] != "None") {
 		$('.ribo_rna').attr('checked', true);
 		}
 	};
-	
+
 //if gene list in html args pass it here
 if (html_args["gene_list"] != "None") {
 	document.getElementById('gene_list').value = html_args["gene_list"];

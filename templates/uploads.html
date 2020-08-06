@@ -102,10 +102,10 @@ table, th, td {
 <h3 class="acc_headers" align="left"> My files</h3>
 <div>
 <table id="file_table">
-<tr><th>Filename</th><th>Studyname</th><th>Delete</th></tr>
+<tr><th>Filename</th><th>Studyname</th><th>Description</th><th>Cutadapt removed</th><th>rRNA removed</th><th>Unmapped</th><th>Delete</th></tr>
 </table>
 <div align="center">
-	<button align="center" type="button"  id="delete_button"><b>Delete selected files</b></button>
+	<button align="center" type="button"  id="delete_button"><b>Update</b></button>
 </div>
 </div>
 
@@ -178,14 +178,64 @@ table, th, td {
 
 
 var file_dict = {{  file_dict|safe  }}
-
+var file_names = [];
 for (var filename in file_dict) {
+	study_name = file_dict[filename][0];
+	file_names.push([filename, study_name])
+	};
+
+file_names = file_names.sort(function(a, b) {
+	return a[1].localeCompare(b[1]);
+})
+
+var sorted_file_list = [];
+for (var z in file_names) {
+	var tup = file_names[z];
+	sorted_file_list.push(tup[0]);
+	};
+
+
+
+
+
+
+for (var i in sorted_file_list) {
+	filename = sorted_file_list[i];
 	file_table = document.getElementById('file_table');
 	var tr = document.createElement("tr");
 
 	var filename_td = document.createElement("td");
 	var txt = document.createTextNode(filename);
 	filename_td.appendChild(txt);
+
+	var desc_td = document.createElement("td");
+	//var txt = document.createTextNode(file_dict[filename][2]);
+	var desc_txt = document.createElement('input');
+	desc_txt.setAttribute("type", "text");
+	desc_txt.value = file_dict[filename][2]
+	desc_txt.id = "desc_"+file_dict[filename][1];
+	desc_td.appendChild(desc_txt);
+
+	var cutadapt_td = document.createElement("td");
+	var cutadapt_txt = document.createElement('input');
+	cutadapt_txt.setAttribute("type", "text");
+	cutadapt_txt.value = 0
+	cutadapt_txt.id = "cutadapt_"+file_dict[filename][1];
+	cutadapt_td.appendChild(cutadapt_txt);
+
+	var rrna_td = document.createElement("td");
+	var rrna_txt = document.createElement('input');
+	rrna_txt.setAttribute("type", "text");
+	rrna_txt.value = 0
+	rrna_txt.id = "rrna_"+file_dict[filename][1];
+	rrna_td.appendChild(rrna_txt);
+
+	var unmapped_td = document.createElement("td");
+	var unmapped_txt = document.createElement('input');
+	unmapped_txt.setAttribute("type", "text");
+	unmapped_txt.value = 0
+	unmapped_txt.id = "unmapped_"+file_dict[filename][1];
+	unmapped_td.appendChild(unmapped_txt);
 
 	var study_td = document.createElement("td");
 	var txt = document.createTextNode(file_dict[filename][0]);
@@ -201,6 +251,10 @@ for (var filename in file_dict) {
 
 	tr.appendChild(filename_td);
 	tr.appendChild(study_td);
+	tr.appendChild(desc_td);
+	tr.appendChild(cutadapt_td);
+	tr.appendChild(rrna_td);
+	tr.appendChild(unmapped_td);
 	tr.appendChild(delete_td);
 	file_table.appendChild(tr);
 }
@@ -241,27 +295,106 @@ for (var seq_name in seq_dict) {
 
 var study_dict = {{  study_dict|safe  }}
 
+
+var study_ids = [];
 for (var study_id in study_dict) {
+	study_name = study_dict[study_id][0];
+	study_ids.push([study_id, study_name])
+	};
+
+study_ids = study_ids.sort(function(a, b) {
+	return a[1].localeCompare(b[1]);
+})
+
+var sorted_study_ids = [];
+for (var z in study_ids) {
+	var tup = study_ids[z];
+	sorted_study_ids.push(tup[0]);
+};
+
+
+
+var transcriptome_dict = {{  transcriptome_dict|safe  }}
+var organism_dict = {{ organism_dict|safe }};
+
+
+for (var i in sorted_study_ids) {
+	study_id = sorted_study_ids[i]
 	study_table = document.getElementById('study_table');
 	var tr = document.createElement("tr");
 
-	var study_td = document.createElement("td");
-	var txt = document.createTextNode(study_dict[study_id][0]);
-	study_td.appendChild(txt);
-
+	var study_td = document.createElement("input");
+	study_td.setAttribute('type', 'text');
+	study_td.setAttribute('value', study_dict[study_id][0]);
+	study_td.setAttribute('id', 'studyname_'+study_id);
+	
 	var org_td = document.createElement("td");
-	var txt = document.createTextNode(study_dict[study_id][1]);
-	org_td.appendChild(txt);
-
+	var select_td = document.createElement("select");
+	select_td.name = "organism";
+	select_td.id = "organism_"+study_id
+	var curr_organism = study_dict[study_id][1]
+	console.log("TRANSCRIPTOME DICT IS",organism_dict);
+	for (var organism_id in organism_dict) {
+		console.log("ORGANISM_ID"+organism_id);
+		var option = document.createElement("option");
+		option.value = organism_id
+		option.text = organism_id
+		select_td.appendChild(option);
+	}
+	
+	for(var i, j = 0; i = select_td.options[j]; j++) {
+		if(i.value == curr_organism) {
+			select_td.selectedIndex = j;
+			break;
+		}
+	}
+	org_td.appendChild(select_td);
+	
+	//var txt = document.createTextNode(study_dict[study_id][1]);
+	//org_td.appendChild(txt);
+	
+	
+	
 	var assembly_td = document.createElement("td");
-	var txt = document.createTextNode(study_dict[study_id][2]);
-	assembly_td.appendChild(txt);
-
+	var select2_td = document.createElement("select");
+	select2_td.name = "assembly";
+	select2_td.id = "assembly_"+study_id
+	var curr_assembly = study_dict[study_id][2]
+	for (var organism_id in organism_dict) {
+		var option = document.createElement("option");
+		for (var i in organism_dict[organism_id])    {
+			option.value = organism_dict[organism_id][i]
+			option.text = organism_dict[organism_id][i]
+			}
+		select2_td.appendChild(option);
+		}
+	
+	for(var i, j = 0; i = select2_td.options[j]; j++) {
+		if(i.value == curr_assembly) {
+			select2_td.selectedIndex = j;
+			break;
+		}
+		}
+	assembly_td.appendChild(select2_td);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	//var assembly_td = document.createElement("td");
+	//var txt = document.createTextNode(study_dict[study_id][2]);
+	//assembly_td.appendChild(txt);
+	
 	var access_td = document.createElement("input");
 	access_td.setAttribute('type', 'text');
 	access_td.setAttribute('value', study_dict[study_id][3]);
 	access_td.setAttribute('id', 'access_'+study_id);
-
+	
 	var delete_td = document.createElement("td");
 	var checkbox = document.createElement('input');
 	checkbox.type = "checkbox";
@@ -269,7 +402,7 @@ for (var study_id in study_dict) {
 	checkbox.value = "delete_"+study_id;
 	checkbox.id = "delete_"+study_id;
 	delete_td.appendChild(checkbox);
-
+	
 	tr.appendChild(study_td);
 	tr.appendChild(org_td);
 	tr.appendChild(assembly_td);
@@ -283,9 +416,10 @@ for (var study_id in study_dict) {
 
 
 
-var transcriptome_dict = {{  transcriptome_dict|safe  }}
+
 
 for (var organism_id in transcriptome_dict) {
+	
 	transcriptome_table = document.getElementById('transcriptome_table');
 	var tr = document.createElement("tr");
 	
@@ -311,13 +445,10 @@ for (var organism_id in transcriptome_dict) {
 	transcriptome_table.appendChild(tr);
 	}
 
-	var organism_dict = {{ organism_dict|safe }};
+	
 	for (var org in organism_dict) {
 		org_dropdown = document.getElementById('organism_dropdown');
 		org_dropdown.options[org_dropdown.options.length] = new Option(org, org);
-		for (var assembly in organism_dict[org]){
-			console.log("Assembly is "+organism_dict[org][assembly])
-		}
 	}
 
 		$(document).ready(function () {
@@ -361,16 +492,17 @@ var del_transcriptome_url = "/deletetranscriptomequery"
 var seq_url = "/seqrulesquery"
 
 document.getElementById("update_study_button").onclick = (function() {
-	console.log("JJJavascript calling delete study query");
 	$("#loading-div-background").show();
 	$("#container").hide();
 	var qu = {};
 	for (var study_id in study_dict) {
 		var studycheck = $('input:checkbox[name="delete_'+study_id+'"]:checked').val();
 		var access_list = document.getElementById('access_'+study_id).value
-		console.log("ACCESS LIST IS "+access_list)
+		var studyname = document.getElementById('studyname_'+study_id).value
+		var organism_name = document.getElementById('organism_'+study_id).value
+		var assembly_name = document.getElementById('assembly_'+study_id).value
 		// python fails if studycheck is an empty string, so added 'del_'
-		qu[study_id] = ["del_"+studycheck,access_list]
+		qu[study_id] = ["del_"+studycheck,access_list,studyname,organism_name,assembly_name]
 		};
 	$.ajax({
 			type: "POST",
@@ -380,7 +512,6 @@ document.getElementById("update_study_button").onclick = (function() {
 			data: JSON.stringify(qu),
 			dataType: "html",
 			success: function (data) {
-				console.log("Study updated successfully"+data)
 				showNotificationBar(data,5000);
 		}
 		})
@@ -388,7 +519,6 @@ document.getElementById("update_study_button").onclick = (function() {
 
 
 document.getElementById("update_transcriptomes_button").onclick = (function() {
-	console.log("JJJavascript calling delete transcriptome query");
 	$("#loading-div-background").show();
 	$("#container").hide();
 	var qu = {};
@@ -405,7 +535,6 @@ document.getElementById("update_transcriptomes_button").onclick = (function() {
 		data: JSON.stringify(qu),
 		dataType: "html",
 		success: function (data) {
-			console.log("Transcriptomes updated successfully"+data)
 			showNotificationBar(data,5000);
 			}
 		})
@@ -418,7 +547,14 @@ document.getElementById("delete_button").onclick = (function() {
 	var qu = {};
 	for (var filename in file_dict) {
 		var filecheck = $('input:checkbox[name="delete_'+file_dict[filename][1]+'"]:checked').val();
-		qu[filename] = filecheck};
+		var file_desc = document.getElementById("desc_"+file_dict[filename][1]).value;
+		var cutadapt_removed = document.getElementById("cutadapt_"+file_dict[filename][1]).value;
+		var rrna_removed = document.getElementById("rrna_"+file_dict[filename][1]).value;
+		var unmapped = document.getElementById("unmapped_"+file_dict[filename][1]).value;
+		var file_id = file_dict[filename][1]
+		var file_info = {"filecheck":filecheck,"file_desc":file_desc,"file_id":file_id,"cutadapt_removed":cutadapt_removed,"rrna_removed":rrna_removed,"unmapped":unmapped};
+		qu[filename] = file_info;
+		};
 	$.ajax({
 			type: "POST",
 			async:true,

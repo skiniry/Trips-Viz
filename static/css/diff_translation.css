@@ -106,3 +106,8 @@ div #rnaseq_file_list_2
 ul {
 		text-align: center;
 }
+
+
+.hidden_element {
+	visibility: hidden;
+}

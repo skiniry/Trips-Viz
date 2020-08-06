@@ -41,7 +41,7 @@ def fetch_studies(username, organism, transcriptome):
 		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchall())
 		for row in result:
-			print "result row", row
+			#print "result row", row
 			study_access_list.append(int(row[0]))
 			
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -61,7 +61,7 @@ def fetch_studies(username, organism, transcriptome):
 					if row[0] in study_access_list:
 						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 	connection.close()
-	print "returning accepted studies", accepted_studies
+	#print "returning accepted studies", accepted_studies
 	return accepted_studies
 
 
@@ -138,7 +138,7 @@ def fetch_study_info(organism):
 
 # Given a list of file id's as strings returns a list of filepaths to the sqlite files.
 def fetch_file_paths(file_list,organism):
-	file_path_dict = {"riboseq":{},"rnaseq":{}}
+	file_path_dict = {"riboseq":{},"rnaseq":{},"proteomics":{}}
 	#Convert to a tuple so it works with mysql
 	try:
 		int_file_list = [int(x) for x in file_list]
@@ -167,8 +167,8 @@ def fetch_file_paths(file_list,organism):
 			else:
 				file_path_dict[row[0]][row[3]] = ("{}/{}/{}.sqlite".format(config.UPLOADS_DIR,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 	connection.close()
-	for file_id in file_path_dict["riboseq"]:
-		print file_path_dict["riboseq"][file_id]
+	#for file_id in file_path_dict["riboseq"]:
+	#	print file_path_dict["riboseq"][file_id]
 	return file_path_dict
 
 
@@ -312,6 +312,9 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 					url += "&hm_col={}".format(data["color_palette"])
 			if "maxscaleval" in data:
 				url += "&maxscaleval={}".format(data["maxscaleval"])
+			if "metagene_tranlist" in data:
+				if data["metagene_tranlist"] != "None":
+					url += "&metagene_tranlist={}".format(data["metagene_tranlist"])
 
 		# Triplet periodicity
 		if data["plottype"] == "trip_periodicity":
@@ -333,6 +336,36 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 
 		# metagene
 		if data["plottype"] == "metagene_plot":
+			if "include_first" in data:
+				if data["include_first"] != "None":
+					url += "&include_first=T"
+			if "include_last" in data:
+				if data["include_last"] != "None":
+					url += "&include_last=T"
+			if "exclude_first" in data:
+				if data["exclude_first"] != "None":
+					url += "&exclude_first=T"
+			if "exclude_last" in data:
+				if data["exclude_last"] != "None":
+					url += "&exclude_last=T"
+			if "custom_seq_list" in data:
+				if data["custom_seq_list"] != "None":
+					url += "&custom_seq_list={}".format(data["custom_seq_list"])
+			if "exclude_first_val" in data:
+				if data["exclude_first_val"] != "None":
+					url += "&exclude_first_val={}".format(data["exclude_first_val"])	
+			if "exclude_last_val" in data:
+				if data["exclude_last_val"] != "None":
+					url += "&exclude_last_val={}".format(data["exclude_last_val"])	
+			if "include_first_val" in data:
+				if data["include_first_val"] != "None":
+					url += "&include_first_val={}".format(data["include_first_val"])	
+			if "include_last_val" in data:
+				if data["include_last_val"] != "None":
+					url += "&include_last_val={}".format(data["include_last_val"])
+			if "metagene_tranlist" in data:
+				if data["metagene_tranlist"] != "None":
+					url += "&metagene_tranlist={}".format(data["metagene_tranlist"])
 			if "metagene_type" in data:
 				if data["metagene_type"] != "None":
 					url += "&mg_pos={}".format(data["metagene_type"])
@@ -430,9 +463,9 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 			start_codons.append("NONE")
 			
 		url += "&start_codons={}".format(str(start_codons).strip("[]").replace("'",""))
-		url += "&min_start_inc={}&max_start_inc={}&min_stop_dec={}&max_stop_dec={}&min_cds_rat={}&max_cds_rat={}&min_lfd={}&max_lfd={}&min_hfd={}&max_hfd={}".format(data["min_start_increase"],data["max_start_increase"],data["min_stop_decrease"],data["max_stop_decrease"],data["min_cds_ratio"],data["max_cds_ratio"],data["min_lowest_frame_diff"],data["max_lowest_frame_diff"],data["min_highest_frame_diff"],data["max_highest_frame_diff"])
+		url += "&min_start_inc={}&max_start_inc={}&min_stop_dec={}&max_stop_dec={}&min_lfd={}&max_lfd={}&min_hfd={}&max_hfd={}".format(data["min_start_increase"],data["max_start_increase"],data["min_stop_decrease"],data["max_stop_decrease"],data["min_lowest_frame_diff"],data["max_lowest_frame_diff"],data["min_highest_frame_diff"],data["max_highest_frame_diff"])
 		url += "&min_cds={}&max_cds={}&min_len={}&max_len={}&min_avg={}&max_avg={}".format(data["min_cds"],data["max_cds"],data["min_len"],data["max_len"],data["min_avg"],data["max_avg"])
-		url += "&region={}".format(data["region"])
+		#url += "&region={}".format(data["region"])
 		url += "&tran_list={}".format(data["tran_list"])
 		
 		if "start_increase_check" in data:
@@ -445,10 +478,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 		else:
 			url += "&sdc=F"
 
-		if "cds_ratio_check" in data:
-			url += "&crc=T"
-		else:
-			url += "&crc=F"
+
 
 		if "lowest_frame_diff_check" in data:
 			url += "&lfdc=T"
@@ -524,7 +554,10 @@ def nuc_to_aa(nuc_seq):
 	aa_seq = ""
 	for i in range(0, len(nuc_seq),3):
 		codon = nuc_seq[i:i+3]
-		aa_seq += codon_dict[codon]
+		if "N" in codon:
+			aa_seq += "N"
+		else:
+			aa_seq += codon_dict[codon]
 	return aa_seq
 
 
@@ -592,8 +625,9 @@ def calculate_coverages(sqlite_db,longest_tran_list,ambig_type, region, traninfo
 
 # Builds a profile, applying offsets
 def build_profile(trancounts, offsets, ambig):
-	minreadlen = 25
-	maxreadlen = 35
+	#print "build profile called wth trancounts", trancounts
+	minreadlen = 15
+	maxreadlen = 150
 	profile = {}
 	try:
 		unambig_trancounts = trancounts["unambig"]
@@ -606,34 +640,81 @@ def build_profile(trancounts, offsets, ambig):
 	for readlen in unambig_trancounts:
 		if readlen < minreadlen or readlen > maxreadlen:
 			continue
-		if readlen in offsets:
+		try:
 			offset = offsets[readlen]
-		else:
+		except:
 			offset = 15
 		for pos in unambig_trancounts[readlen]:
 			count = unambig_trancounts[readlen][pos]
 			offset_pos = pos + offset
-			if offset_pos not in profile:
-				profile[offset_pos]  = 0
-			profile[offset_pos] += count
+			try:
+				profile[offset_pos]  += count
+			except:
+				profile[offset_pos] = count
 	
 	if ambig == True:
 		for readlen in ambig_trancounts:
 			if readlen < minreadlen or readlen > maxreadlen:
 				continue
-			if readlen in offsets:
+			try:
 				offset = offsets[readlen]
-			else:
+			except:
 				offset = 15
 			for pos in ambig_trancounts[readlen]:
 				count = ambig_trancounts[readlen][pos]
 				offset_pos = pos + offset
-				if offset_pos not in profile:
-					profile[offset_pos]  = 0
-				profile[offset_pos] += count
+				try:
+					profile[offset_pos]  += 0
+				except:
+					profile[offset_pos] = count
 	return profile
 
+# Builds a profile, applying offsets
+def build_proteomics_profile(trancounts, ambig):
+	minreadlen = 15
+	maxreadlen = 150
+	profile = {}
+	try:
+		unambig_trancounts = trancounts["unambig"]
+	except:
+		unambig_trancounts = {}
+	try:
+		ambig_trancounts = trancounts["ambig"]
+	except:
+		ambig_trancounts = {}
+	for readlen in unambig_trancounts:
+		if readlen < minreadlen or readlen > maxreadlen:
+			continue
 
+		for pos in unambig_trancounts[readlen]:
+			# Rather than add the whole count to each position, we divide by the length of the peptide first, 
+			# That way when we add the reduced count at each position, in total it will add up to the original count
+			# and prevent a bias toward longer peptides, this allows us to count a fraction of a peptide that overlaps with an ORF 
+			# rather than counting an arbitrary position like the 5' end or 3' end which may fall outside the ORF in question.
+			count = unambig_trancounts[readlen][pos]/float(readlen/3)
+			for x in range(pos, pos+readlen,3):
+				try:
+					profile[x]  += count
+				except:
+					profile[x] = count
+	
+	if ambig == True:
+		for readlen in ambig_trancounts:
+			if readlen < minreadlen or readlen > maxreadlen:
+				continue
+			try:
+				offset = offsets[readlen]
+			except:
+				offset = 15
+			for pos in ambig_trancounts[readlen]:
+				
+				count = unambig_trancounts[readlen][pos]/float(readlen/3)
+				for x in range(pos, pos+readlen,3):
+					try:
+						profile[x]  += count
+					except:
+						profile[x] = count
+	return profile
 
 # Creates nucleotide composition counts if they don't already exist. 
 def get_nuc_comp_reads(sqlite_db, nuccomp_reads, organism, transcriptome):

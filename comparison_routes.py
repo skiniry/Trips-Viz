@@ -107,7 +107,10 @@ def comparequery():
 	
 	owner = (cursor.fetchone())[0]
 	if owner == 1:
-		transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		else:
+			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
@@ -184,6 +187,11 @@ def comparequery():
 						sqlite_db = SqliteDict(filepath, autocommit=False)
 					else:
 						return "File not found, please report this to tripsvizsite@gmail.com or via the contact page."
+					#if maxread != 150:
+					#	read_lengths = sqlite_db["read_lengths"]
+					#	for i in range(master_filepath_dict[color]["minread"],master_filepath_dict[color]["maxread"]+1):
+					#		master_filepath_dict[color]["mapped_reads"] += read_lengths[i]
+					
 					if "noncoding_counts" in sqlite_db and "coding_counts" in sqlite_db:
 						master_filepath_dict[color]["mapped_reads"] += float(sqlite_db["noncoding_counts"])
 						master_filepath_dict[color]["mapped_reads"] += float(sqlite_db["coding_counts"])
@@ -204,6 +212,7 @@ def comparequery():
 		ambiguous = "ambig"
 	else:
 		ambiguous = "unambig"
+		
 	if "normalize" in data:
 		normalize = True
 	else:

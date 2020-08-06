@@ -663,27 +663,31 @@ def mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels, ambiguo
 
 
 
-def single_tran_de(single_tran_de_transcript, sorted_master_list,study_master_list,organism, transcriptome):
-	print study_master_list
-	sorted_master_list = study_master_list
+def single_tran_de(single_tran_de_transcript, sorted_master_list, study_master_list, organism, transcriptome):
+	#print study_master_list
+	#sorted_master_list = study_master_list
 	xvals = []
 	yvals = []
 	labels = []
 	range1counts = []
-	range2counts = []
 	file_ids = []
-
+	mapped_reads = []
+	file_descs = []
+	x_val = 1
+	
 	for tup in sorted_master_list:
-		xvals.append(tup[4])
-		yvals.append(tup[5])
+		xvals.append(x_val)
+		yvals.append(tup[2])
 		labels.append(tup[1])
 		range1counts.append(tup[2])
-		range2counts.append(tup[3])
 		file_ids.append(tup[0])
+		mapped_reads.append(tup[3])
+		file_descs.append(tup[4])
+		x_val += 1
 
-	full_title = "Single translation differential translation ({})"
-	x_lab = 'Geometric mean (log2)'
-	y_lab = 'Fold change (log2)'
+	full_title = "ORF TPMs ({})"
+	x_lab = ''
+	y_lab = 'TPM'
 	p = figure(plot_width=1800, plot_height=750,x_axis_label=x_lab,  y_axis_label=y_lab,title= full_title,toolbar_location="below",
 			   tools = "reset,pan,box_zoom,hover,tap",logo=None)
 	p.title.align="center"
@@ -691,9 +695,9 @@ def single_tran_de(single_tran_de_transcript, sorted_master_list,study_master_li
 	p.ygrid.grid_line_color = "white"
 
 	hover = p.select(dict(type=HoverTool))
-	hover.tooltips = [("Ratio", "@y"),("Max count","@x"),("File name","@labels"),("Range 1 count","@range1counts"),("Range 2 count","@range2counts")]
-	source = ColumnDataSource({'x':xvals,'y':yvals,'labels':labels,"range1counts":range1counts,"range2counts":range2counts,"file_id":file_ids})
-	p.scatter('x','y',source=source, alpha=1,color="grey",size=5)
+	hover.tooltips = [("Ratio", "@y"),("Max count","@x"),("File name","@labels"),("Range 1 count","@range1counts"),("Mapped reads","@mapped_reads"),("Description","@file_descs")]
+	source = ColumnDataSource({'x':xvals,'y':yvals,'labels':labels,"range1counts":range1counts,"file_id":file_ids,"mapped_reads":mapped_reads,"file_descs":file_descs})
+	p.scatter('x','y',source=source, alpha=1,color="grey",size=9)
 	output_file("scatter10k.html", title="Single transcript differential translation")
 	hover = p.select(dict(type=HoverTool))
 	hover.mode = 'mouse'
@@ -1188,10 +1192,10 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 
 
 	for key in mrna_dist_dict:
-		try:
-			total = mrna_dist_dict[key]["total"]
-		except:
-			total = mrna_dist_dict[key]["5_leader"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"]+mrna_dist_dict[key]["3_trailer"]
+		#try:
+		#	total = float(mrna_dist_dict[key]["total"])
+		#except:
+		total = float(mrna_dist_dict[key]["5_leader"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"]+mrna_dist_dict[key]["3_trailer"])
 		print "total", total
 		print "the rest", mrna_dist_dict[key]["5_leader"],mrna_dist_dict[key]["start_codon"],mrna_dist_dict[key]["cds"],mrna_dist_dict[key]["stop_codon"],mrna_dist_dict[key]["3_trailer"]
 		labels.append(key)
@@ -1204,6 +1208,7 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 			start_codons_per.append((mrna_dist_dict[key]["start_codon"]/total)*100)
 			cds.append(mrna_dist_dict[key]["cds"])
 			cds_per.append((mrna_dist_dict[key]["cds"]/total)*100)
+			print "appending {} divided by total {} and multiplied by 100 which is {}".format(mrna_dist_dict[key]["cds"],total,cds_per[-1])
 			stop_codons.append(mrna_dist_dict[key]["stop_codon"])
 			stop_codons_per.append((mrna_dist_dict[key]["stop_codon"]/total)*100)
 		elif md_start == True and md_stop == False:
@@ -1246,7 +1251,8 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 		p4 = plt.bar(ind, stop_codons, bar_width,color='#05bc27', bottom=[i+j+z for i,j,z in zip(five_leaders,start_codons, cds)],linewidth=0)
 		p5 = plt.bar(ind, three_trailers, bar_width,color='#ff77d4', bottom=[i+j+z+q for i,j,z,q in zip(five_leaders,start_codons, cds, stop_codons)],linewidth=0)
 	else:
-		print cds_per
+		print "CDS PER",cds_per
+		print "CDS", cds
 		p1 = plt.bar(ind, five_leaders_per, bar_width, color='#ff6d6d',linewidth=0)
 		p2 = plt.bar(ind, start_codons_per, bar_width,color='#a38b22', bottom=five_leaders_per,linewidth=0)
 		p3 = plt.bar(ind, cds_per, bar_width,color='#00d8cd', bottom=[i+j for i,j in zip(five_leaders_per,start_codons_per)],linewidth=0)

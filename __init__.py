@@ -134,7 +134,7 @@ def statisticspage():
 	cursor.execute("SELECT paper_year from studies WHERE private = 0;")
 	result = cursor.fetchall()
 	for row in result:
-		if row[0] == "None" or row[0] == "NULL":
+		if row[0] == "None" or row[0] == "NULL" or row[0] == "":
 			continue
 		if int(row[0]) not in year_dict:
 			year_dict[int(row[0])] = 0
@@ -327,6 +327,7 @@ def uploadspage():
 	for row in result:
 		organism = row[0]
 		transcriptome = row[1]
+		print ("organism, transcriptome", organism, transcriptome)
 		if organism not in organism_dict:
 			organism_dict[organism] = [transcriptome]
 		else:
@@ -345,7 +346,7 @@ def uploadspage():
 		else:
 			organism_dict[organism_name].append(transcriptome)
 		org_id_dict[organism_id] = [organism_name,transcriptome]	
-		
+	#print ("organism dict0", organism_dict)
 	study_dict = {}
 	cursor.execute("SELECT study_id,study_name,organism_id from studies where owner = {}".format(user_id))
 	result = cursor.fetchall()
@@ -353,25 +354,15 @@ def uploadspage():
 		#add to organism dict if not caught earlier (this only happens when database is modified manually)
 		if row[2] not in org_id_dict:
 			cursor.execute("SELECT organism_name,transcriptome_list,organism_id from organisms where organism_id =  {};".format(row[2]))
-			organism_dict[organism] = [transcriptome]
+			#organism_dict[organism] = [transcriptome]
 			org_id_dict[row[2]] = [row[0],transcriptome]
 		study_dict[int(row[0])] = [row[1].replace("_{}".format(user_id),"",1),org_id_dict[row[2]][0],org_id_dict[row[2]][1],[]]
-
+	#print ("organism dict1", organism_dict)
 	transcriptome_dict = {}
 	cursor.execute("SELECT organism_id,organism_name,transcriptome_list from organisms where owner = {}".format(user_id))
 	result = cursor.fetchall()
 	for row in result:
 		transcriptome_dict[int(row[0])] = [row[1],row[2]]
-
-	#cursor.execute("SELECT username,study_access from users")
-	#result = cursor.fetchall()
-	#for row in result:
-	#
-	#	study_access_list = row[1].split(",")
-	#	for study_id in study_access_list:
-	#		if study_id == '':
-	#			continue
-	#		if int(study_id) in study_dict:
 	for study_id in study_dict:
 		cursor.execute("SELECT user_id FROM study_access WHERE study_id = {}".format(study_id))
 		result = cursor.fetchall()
@@ -382,18 +373,23 @@ def uploadspage():
 			if shared_user not in study_dict[study_id][3]:
 				study_dict[study_id][3].append(result2[0])
 	file_dict = {}
-	cursor.execute("SELECT file_name,study_id,file_id from files where owner = {}".format(user_id))
+	cursor.execute("SELECT file_name,study_id,file_id,file_description from files where owner = {}".format(user_id))
 	result = cursor.fetchall()
 	for row in result:
+		print "row", row, row[0], row[1], row[2], row[3]
 		cursor.execute("SELECT study_name from studies where study_id = {}".format(row[1]))
 		study_name = (cursor.fetchone())
-		file_dict[row[0]] = [study_name[0].replace("_{}".format(user_id),"",1),row[2]]
+		if study_name != None:
+			file_dict[row[0]] = [study_name[0].replace("_{}".format(user_id),"",1),row[2],row[3]]
 	seq_dict = {}
 	cursor.execute("SELECT seq_name,frame_breakdown from seq_rules where user_id = {}".format(user_id))
 	result = cursor.fetchall()
 	for row in result:
 		seq_dict[row[0]] = [row[1]]
 	connection.close()
+	#print ("passing file dict to uploads.html", file_dict)
+	print "organism_dict", organism_dict
+	print "transcriptome dict", transcriptome_dict
 	return render_template('uploads.html',
 						   local=local,
 						   user=user,
@@ -425,9 +421,9 @@ def upload_file():
 				flash("Error: File extension should be sqlite not {}".format(file_ext))
 				return redirect("https://trips.ucc.ie/uploads")
 			if user != "public":
-				foldername = "{}_{}".format(request.form["foldername"],user_id)
+				foldername = "{}_{}".format(request.form["foldername"].replace(" ","_"),user_id)
 			else:
-				foldername = "{}".format(request.form["foldername"])
+				foldername = "{}".format(request.form["foldername"].replace(" ","_"))
 			organism = request.form["organism"]
 			assembly = request.form["assembly"]
 			filetype_radio = request.form["filetype"]
@@ -557,7 +553,7 @@ def login():
 			for row in result:
 				username_dict[row[0]] = row[1]
 			if username in username_dict:
-				if check_password_hash(username_dict[username],password) == True:
+				if check_password_hash(username_dict[username],password) == True or local == True:
 					id = username
 					user = User(id)
 					login_user(user)
@@ -885,12 +881,12 @@ def homepage():
 	result = (cursor.fetchall())
 	for row in result:
 		if row[2] == 0:
-			organism_list.append(row[1])
+			if row[1] not in organism_list:
+				organism_list.append(row[1])
 		elif row[2] == 1:
 			if row[0] in organism_access_list or row[3] == user_id:
 				if row[1] not in organism_list:
 					organism_list.append(row[1])
-	
 	organism_list.sort()
 	connection.close()
 	return render_template('landing.html',organisms=organism_list)
@@ -1026,37 +1022,85 @@ def deletequery():
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
+	#print ("DATA", data)
 	for key in data:
-		file_id = data[key].replace("delete_","")
-		cursor.execute("SELECT * FROM files WHERE file_id = {}".format(file_id))
-		result = cursor.fetchone()
-		study_id = result[2]
-		filename = result[3]
-		cursor.execute("SELECT * FROM studies WHERE study_id = {}".format(study_id))
-		result = cursor.fetchone()
-		study_name = result[2]
-		full_path = "{}{}/{}".format(config.UPLOADS_DIR,study_name, filename)
-		os.remove(full_path)
-		cursor.execute("DELETE FROM files WHERE file_id = {}".format(file_id))
-		connection.commit()
+		file_id = data[key]["file_id"]
+		if "filecheck" in data[key]:
+			cursor.execute("SELECT * FROM files WHERE file_id = {}".format(file_id))
+			result = cursor.fetchone()
+			study_id = result[2]
+			filename = result[3]
+			cursor.execute("SELECT * FROM studies WHERE study_id = {}".format(study_id))
+			result = cursor.fetchone()
+			study_name = result[2]
+			full_path = "{}{}/{}".format(config.UPLOADS_DIR,study_name, filename)
+			#os.remove(full_path)
+			cursor.execute("DELETE FROM files WHERE file_id = {}".format(file_id))
+		cursor.execute("UPDATE files SET file_description = '{}' WHERE file_id = {}".format(data[key]["file_desc"] ,file_id))
+		if data[key]["cutadapt_removed"] != '0':
+			cursor.execute("SELECT organism_id FROM files WHERE file_id = {}".format(file_id))
+			result = cursor.fetchone()
+			cursor.execute("SELECT organism_name FROM organisms WHERE organism_id = {}".format(result[0]))
+			organism = cursor.fetchone()[0]
+			filepath_dict = fetch_file_paths([file_id],organism)
+			for seq_type in filepath_dict:
+				if file_id in filepath_dict[seq_type]:
+					filepath = filepath_dict[seq_type][file_id]
+					print "filepath", filepath
+					opendict = SqliteDict(filepath,autocommit=True)
+					print "BEFORE", opendict["cutadapt_removed"]
+					opendict["cutadapt_removed"] = int(data[key]["cutadapt_removed"])
+					print "AFTER", opendict["cutadapt_removed"]
+					print "cutadapt removed", int(data[key]["cutadapt_removed"])
+					opendict.close()
+			
+		if data[key]["rrna_removed"] != '0':
+			cursor.execute("SELECT organism_id FROM files WHERE file_id = {}".format(file_id))
+			result = cursor.fetchone()
+			cursor.execute("SELECT organism_name FROM organisms WHERE organism_id = {}".format(result[0]))
+			organism = cursor.fetchone()[0]
+			filepath_dict = fetch_file_paths([file_id],organism)
+			for seq_type in filepath_dict:
+				if file_id in filepath_dict[seq_type]:
+					filepath = filepath_dict[seq_type][file_id]
+					opendict = SqliteDict(filepath,autocommit=True)
+					opendict["rrna_removed"] = int(data[key]["rrna_removed"])
+					opendict.close()
+		if data[key]["unmapped"] != '0':
+			cursor.execute("SELECT organism_id FROM files WHERE file_id = {}".format(file_id))
+			result = cursor.fetchone()
+			cursor.execute("SELECT organism_name FROM organisms WHERE organism_id = {}".format(result[0]))
+			organism = cursor.fetchone()[0]
+			filepath_dict = fetch_file_paths([file_id],organism)
+			for seq_type in filepath_dict:
+				if file_id in filepath_dict[seq_type]:
+					filepath = filepath_dict[seq_type][file_id]
+					opendict = SqliteDict(filepath,autocommit=True)
+					opendict["unmapped_reads"] = int(data[key]["unmapped"])
+					opendict.close()
+		
+		
+	connection.commit()
 	connection.close()
 	flash("Files have been deleted")
 	return redirect("https://trips.ucc.ie/uploads")
 
 
-# Allows users to delete studies
+# Allows users to delete studies,modify access, modify the organism/transcriptome assembly or study name
 @app.route('/deletestudyquery', methods=['GET','POST'])
 @login_required
 def deletestudyquery():
 	data = ast.literal_eval(request.data)
-	print "data", data
 	user = current_user.name
-	print "CURRENT USER IS", user
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
+	cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+	result = (cursor.fetchone())
+	user_id = result[0]
 	for study_id in data:
 		studycheck = data[study_id][0]
+		#Delete studies where the "delete" checkbox is checked
 		if studycheck.split("_")[-1] != "undefined":
 			study_id = studycheck.split("_")[-1]
 			#First delete all files on the server associated with this study, if there are any
@@ -1076,38 +1120,66 @@ def deletestudyquery():
 			cursor.execute("DELETE FROM studies WHERE study_id = {}".format(study_id))
 			cursor.execute("DELETE FROM files WHERE study_id = {}".format(study_id))
 			connection.commit()
-		else:
-			study_access = data[study_id][1].split(",")
-			#if user not in study_access:
-			#	study_access.append(user)
-			#print "study_access", study_access
-			#check study_access against a list of all users
-			all_users = {}
-			cursor.execute("SELECT username,user_id FROM users;")
-			result = cursor.fetchall()
-			for row in result:
-				all_users[row[0]] = row[1]
-			# print "all users", all_users
-			# Check that all users exist
-			for username in study_access:
-				print username
-				if username:
-					if username not in all_users.keys():
-						flash("Error: User {} is not registered on Trips-Viz".format(username))
-						return str(get_flashed_messages())
-					else:
-						print "username:"+username+":resu"
-						print "study_id", study_id
-						cursor.execute("SELECT * FROM study_access WHERE user_id = {} and study_id = {};".format(all_users[username],study_id))
-						result = cursor.fetchone()
-						print result
-						if result == None:
-							print "username is ",username 
-							print "study access is ", study_access
-							print ("\n\n\nINSERT INTO study_access VALUES({},{});".format(study_id,all_users[username]))
-							cursor.execute("\n\n\nINSERT INTO study_access VALUES({},{});".format(study_id,all_users[username]))
-					
+		#Modify access list next to studies 
+		study_access = data[study_id][1].split(",")
+		#check study_access against a list of all users
+		all_users = {}
+		cursor.execute("SELECT username,user_id FROM users;")
+		result = cursor.fetchall()
+		for row in result:
+			all_users[row[0]] = row[1]
+		# Check that all users exist
+		for username in study_access:
+			if username:
+				if username not in all_users.keys():
+					flash("Error: User {} is not registered on Trips-Viz".format(username))
+					return str(get_flashed_messages())
+				else:
+					cursor.execute("SELECT * FROM study_access WHERE user_id = {} and study_id = {};".format(all_users[username],study_id))
+					result = cursor.fetchone()
+					if result == None:
+						cursor.execute("\n\n\nINSERT INTO study_access VALUES({},{});".format(study_id,all_users[username]))
+		
+		#Modify study names if they have changed
+		new_study_name = "{}_{}".format(data[study_id][2],user_id)
+		cursor.execute("SELECT study_name FROM studies WHERE study_id = {}".format(study_id))
+		old_study_name = cursor.fetchone()[0]
+		if old_study_name != new_study_name:
+			#Update study name in the sqlite
+			cursor.execute("UPDATE studies SET study_name = '{}' WHERE study_id = {}".format(new_study_name,study_id))
+			#If the new_study_name folder does not exist, rename the old study to the new study, else move all files from old folder to new folder
+			if not os.path.isdir("{}/uploads/{}".format(config.SCRIPT_LOC,new_study_name)):
+				os.rename("{0}/uploads/{1}".format(config.SCRIPT_LOC,old_study_name),"{0}/uploads/{1}".format(config.SCRIPT_LOC,new_study_name))
+			else:
+				if os.path.isdir("{}/uploads/{}".format(config.SCRIPT_LOC,old_study_name)):
+					for filename in os.listdir("{}/uploads/{}".format(config.SCRIPT_LOC,new_study_name)):
+						if os.path.isfile("{}/uploads/{}/{}".format(config.SCRIPT_LOC, old_study_name,filename)):
+							os.rename("{}/uploads/{}/{}".format(config.SCRIPT_LOC, old_study_name,filename),"{}/uploads/{}/{}".format(config.SCRIPT_LOC, new_study_name,filename))
+		# Change organism/transcriptome assembly if applicable
+		organism_name = data[study_id][3]
+		assembly_name = data[study_id][4]
+		#print "organism name, assembly_name", organism_name, assembly_name
+		cursor.execute("SELECT organism_id FROM studies WHERE study_id = {}".format(study_id))
+		org_id = cursor.fetchone()[0]
+		cursor.execute("SELECT organism_name,transcriptome_list FROM organisms WHERE organism_id = {}".format(org_id))
+		result = cursor.fetchone()
+		if result != None:
+			old_organism = result[0]
+			old_assembly = result[1]
+			if old_organism != organism_name or old_assembly != assembly_name:
+				print "{}: Changing from {} to {} or {} to {}".format(old_study_name,old_organism,organism_name, old_assembly, assembly_name)
+				#Check if the new orgnaism and new assembly are a valid combination
+				cursor.execute("SELECT organism_id  FROM organisms WHERE organism_name = '{}' AND transcriptome_list = '{}'".format(organism_name, assembly_name))
+				result = cursor.fetchone()
+				if result == None:
+					return "Invalid organism/transcriptome combo for study {}".format(new_study_name)
+				else:
+					cursor.execute("UPDATE studies SET organism_id = {} WHERE study_id = {}".format(result[0],study_id))
+					print "Org_id is {}".format(result[0])
+					pass
+					#update study_id with new org_id
 				
+
 	connection.commit()
 	connection.close()
 	flash("Update successful")
@@ -1279,6 +1351,8 @@ def dataset_breakdown(organism,transcriptome):
 # Estimates the time taken to complete the orfquery search
 @app.route('/estimate_orfquery', methods=['POST'])
 def estimate_orfquery():
+	
+	return "Estimated time: < 15 minutes"
 	#return "Estimated time: 10 minutes"
 	connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
 	cursor = connection.cursor()

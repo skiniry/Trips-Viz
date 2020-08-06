@@ -28,7 +28,7 @@
 	<tr><td><input id="unmapped" class="study_radio unmapped" type="radio" value="unmapped" name="plottype" unchecked></input><label for="unmapped" class='subplot_label'>Most frequent unmapped reads</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_unmapped_reads'>  (Whats this?) </a>        </td></tr>
 	<tr><td><input id="te" class="study_radio te" type="radio" value="te" name="plottype" unchecked></input><label for="te" class="subplot_label">Counts table</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_count_table'>  (Whats this?) </a> </td></tr>
 	<tr><td><input id="mrna_dist" class="study_radio mrna_dist" type="radio" value="mrna_dist" name="plottype" unchecked></input><label for="mrna_dist" class="subplot_label">mRNA distribution</label>        </td></tr>
-	<tr><td><input id="mrna_dist_readlen" class="study_radio mrna_dist_readlen" type="radio" value="mrna_dist_readlen" name="plottype" unchecked></input><label for="mrna_dist_readlen" class="subplot_label">mRNA distribution vs readlengths</label></td></tr> 
+	<tr><td><input id="mrna_dist_readlen" class="study_radio mrna_dist_readlen" type="radio" value="mrna_dist_readlen" name="plottype" unchecked></input><label for="mrna_dist_readlen" class="subplot_label">mRNA distribution vs readlengths</label></td></tr>  
 	<!-- <tr><td><input id="codon_usage" class="study_radio codon_usage" type="radio" value="codon_usage" name="plottype" unchecked></input><label for="codon_usage" class="subplot_label">Codon Usage</label></td></tr> -->
 	<!-- <tr><td><input id="fastq_screen" class="study_radio fastq_screen" type="radio" value="fastq_screen" name="plottype" unchecked></input><label for="fastq_screen" class='subplot_label'>Fastq screen</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_dinuc'>  (Whats this?) </a>        </td></tr> -->
 	<!-- <tr><td><input id="contamination" class="study_radio contamination" type="radio" value="contamination" name="plottype" unchecked></input><label for="contamination" class="subplot_label">Contamination</label></td></tr>-->
@@ -153,13 +153,15 @@ var username = "{{ current_username|safe }}";
 
 if (username == "master") {
 	var table = document.getElementById("plottype_table");
+	$(table).find('tbody').append('<tr><td><input id="bulk_dl" class="study_radio bulk_dl" type="radio" value="bulk_dl" name="plottype" unchecked></input><label for="bulk_dl" class="subplot_label">Bulk Download</label></td></tr> ' );
 	$(table).find('tbody').append('<tr><td><input id="codon_usage" class="study_radio codon_usage" type="radio" value="codon_usage" name="plottype" unchecked></input><label for="codon_usage" class="subplot_label">Codon Counts</label></td></tr> ' );
 	$(table).find('tbody').append('<tr><td><input id="diff_codon_usage" class="study_radio diff_codon_usage" type="radio" value="diff_codon_usage" name="plottype" unchecked></input><label for="diff_codon_usage" class="subplot_label">Differential Codon Counts</label></td></tr> ' );
 	$(table).find('tbody').append('<tr><td><input id="fastq_screen" class="study_radio fastq_screen" type="radio" value="fastq_screen" name="plottype" unchecked></input><label for="fastq_screen" class="subplot_label">Fastq screen</label><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_dinuc">  (Whats this?) </a>        </td></tr> ' );
 	$(table).find('tbody').append('<tr><td><input id="fastq_screen" class="study_radio fastq_screen" type="radio" value="fastq_screen" name="plottype" unchecked></input><label for="fastq_screen" class="subplot_label">Fastq screen</label><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_dinuc">  (Whats this?) </a>        </td></tr> ' );
-	$(table).find('tbody').append('<tr><td><input id="single_tran_de" class="study_radio single_tran_de" type="radio" value="single_tran_de" name="plottype" unchecked></input><label for="single_tran_de" class="subplot_label">Single transcript DE</label><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_dinuc">  (Whats this?) </a>        </td></tr> ' );
+	$(table).find('tbody').append('<tr><td><input id="single_tran_de" class="study_radio single_tran_de" type="radio" value="single_tran_de" name="plottype" unchecked></input><label for="single_tran_de" class="subplot_label">ORF TPM</label><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_dinuc">  (Whats this?) </a>        </td></tr> ' );
 	$(table).find('tbody').append('<tr><td><input id="tran_corr" class="study_radio tran_corr" type="radio" value="tran_corr" name="plottype" unchecked></input><label for="tran_corr" class="subplot_label">Tran Corr.</label><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_dinuc">  (Whats this?) </a>        </td></tr> ' );
 	$(table).find('tbody').append('<tr><td><input id="mismatch_pos" class="study_radio mismatch_pos" type="radio" value="mismatch_pos" name="plottype" unchecked></input><label for="mismatch_pos" class="radio_label">Mismatch positions</label></td></tr>' );
+	$(table).find('tbody').append('<tr><td><input id="sw_diff" class="study_radio sw_diff" type="radio" value="sw_diff" name="plottype" unchecked></input><label for="sw_diff" class="radio_label">Sliding window difference</label></td></tr>' );
 	};
 
 
@@ -222,9 +224,9 @@ for (var i in seq_types) {
 
 
 	//add a column to the count table for all seq types not ribo or rna
-	if (seq_types[i] != "riboseq" && seq_types[i] != "rnaseq") {
-		tableHTML += "<th>"+seq_types[i]+" count</th>"
-	}
+	//if (seq_types[i] != "riboseq" && seq_types[i] != "rnaseq") {
+	//	tableHTML += "<th>"+seq_types[i]+" count</th>"
+	//}
 
 	tableHTML += "<th>View plot</th></tr></thead>"
 	var mytable = document.getElementById('myTable')
@@ -336,10 +338,9 @@ function update_settings(n){
 							</table>");
 						break;
 				case 'single_tran_de':
-					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td>\
-						<b>Transcript: </b><input type='text' id='single_tran_de_transcript' name='single_tran_de_transcript' value='ENST00000558401' ></input> </td> </tr>\
-						<b>Range1: </b><input type='text' id='single_tran_de_range1' name='single_tran_de_range1' value='0_100' ></input> </td> </tr>\
-						<b>Range2: </b><input type='text' id='single_tran_de_range2' name='single_tran_de_range2' value='100_200' ></input> </td> </tr></table>");
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>\
+						<tr><td><b>Transcript: </b><input type='text' id='single_tran_de_transcript' name='single_tran_de_transcript' value='ENST00000558401' ></input> </td> </tr>\
+						<tr><td><b>Range1: </b><input type='text' id='single_tran_de_range1' name='single_tran_de_range1' value='100_500' ></input> </td> </tr></table>");
 						break;
 				case 'tran_corr':
 					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td>\
@@ -352,6 +353,19 @@ function update_settings(n){
 						<tr><td><b>Max readlen: </b><input type='text' id='mismatch_maxreadlen' name='mismatch_maxreadlen' value='35' ></input></td></tr>\
 						</td> </tr></table>");
 						break;
+				case 'sw_diff':
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td>\
+						<tr><td><b>Group 1: </b><input type='text' id='sw_diff_group1' name='sw_diff_group1' value='' ></input><button id='btnAdd' value='Add to Cond 1' onclick='addgrp1()'>Add</button></td></tr>\
+						<tr><td><b>Group 2: </b><input type='text' id='sw_diff_group2' name='sw_diff_group2' value='' ></input><button id='btnAdd' value='Add to Cond 2' onclick='addgrp2()'>Add</button></td></tr>\
+						<tr><td><b>Window size: </b><input type='text' id='sw_diff_window_size' name='sw_diff_window_size' value='30' ></input></td></tr>\
+						<tr><td><b>Step size: </b><input type='text' id='sw_diff_step_size' name='sw_diff_step_size' value='10' ></input></td></tr>\
+						<tr><td><b>Min difference: </b><input type='text' id='sw_diff_min_diff' name='sw_diff_min_diff' value='50' ></input></td></tr>\
+						<tr><td><input type='radio' class='whole_gene' value='whole_gene' name='custom_search_region' checked>Whole Gene</input></td></tr>\
+						<tr><td><input type='radio' class='five_leader' value='five_leader' name='custom_search_region' checked>5' Leader</input></td></tr>\
+						<tr><td><input type='radio' class='cds' value='cds' name='custom_search_region' checked>CDS</input></td></tr>\
+						<tr><td><input type='radio' class='three_trailer' value='three_trailer' name='custom_search_region' checked>3' trailer</input></td></tr>\
+						</td> </tr></table>");
+					break;
 				case 'nuc_comp':
 					// The following line can be used to add framing options to nuc comp plot, I didn't implement this as it's too difficult
 					// Firstly it can't be done retroactively as we need the mismatch info for each individual read (otherwise we are just reading the sequence, no info on if untemplated addition / adapter etc is causing the misframing)
@@ -362,9 +376,9 @@ function update_settings(n){
 					// reads.
 					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>  <tr><td><input type='radio'\
 						class='nuc_comp_five' value='nuc_comp_five' name='nuc_comp_direction' checked>5'</input>   <input class='nuc_comp_three' type='radio' value='nuc_comp_three'\
-						name='nuc_comp_direction' unchecked>3'</input></td></tr>      <tr><td><input type='radio' class='nuc_comp_per' value='nuc_comp_per' name='nuc_comp_type'\
-						checked>Percentage</input>          <input type='radio' class='nuc_comp_count' value='nuc_comp_count' name='nuc_comp_type' unchecked>Absolute\
-						count</input></td></tr>        <tr><td><b>Min readlen: </b><input type='text' id='nuc_minreadlen' name='nuc_minreadlen' value='25' ></input></td></tr> \
+						name='nuc_comp_direction' unchecked>3'</input></td></tr> <tr><td><input type='radio' class='nuc_comp_per' value='nuc_comp_per' name='nuc_comp_type'\
+						checked>Percentage</input> <input type='radio' class='nuc_comp_count' value='nuc_comp_count' name='nuc_comp_type' unchecked>Absolute\
+						count</input></td></tr> <tr><td><b>Min readlen: </b><input type='text' id='nuc_minreadlen' name='nuc_minreadlen' value='25' ></input></td></tr> \
 						<tr><td><b>Max readlen: </b><input type='text' id='nuc_maxreadlen' name='nuc_maxreadlen' value='35' ></input></td></tr>\
 						<tr><td><input type='radio'  class = 'mapped' value='mapped'  name='nuccomp_reads' checked>All mapped reads</input> </td></tr>\
 						<tr><td><input type='radio' class = 'unmapped' value='unmapped'  name='nuccomp_reads' unchecked>All unmapped reads</input></td></tr> \
@@ -396,6 +410,7 @@ function update_settings(n){
 								<tr><td>  <b>End position: </b><input type='text'   id='heatmap_endpos' name='heatmap_endpos' value='150' ></input></td></tr>     \
 								<tr><td>  <b>Max scale value: </b><input type='text'   id='maxscaleval' name='maxscaleval' value='None' ></input></td></tr>     \
 								<tr><td>  <b>Color palette: </b>  <input type='radio' value='gist_rainbow' class='gist_rainbow' name='color_palette' checked>Rainbow</input> <input type='radio' id='heatmap_colour' value='Inferno' class='Inferno' name='color_palette' unchecked>Inferno</input>    <input type='radio' value='Viridis' class='Viridis' name='color_palette' unchecked>Viridis</input>   <input type='radio' value='Spectral' class='Spectral' name='color_palette' unchecked>Spectral</input>    </td></tr>    \
+								<tr><td>  <b>Transcript list (optional): </b> <input type='text' id='metagene_tranlist' name='metagene_tranlist' value=''></input></td></tr>\
 								</table>");
 						break;
 				// Put in this line somewhere in the below table to allow users to choose second aug
@@ -410,9 +425,9 @@ function update_settings(n){
 						<tr><td><label for 'minreadlen'><b>Min readlen: </b><input type='text' id='metagene_minreadlen' name='minreadlen' value='25' ></input></td></tr>   \
 						<tr><td><label for 'maxreadlen'><b>Max readlen: </b><input type='text' id='metagene_maxreadlen' name='maxreadlen' value='35' ></input></td></tr>  \
 						<tr><td><b>Center around:</b></td></tr>\
-						<tr><td><input type='radio' class='metagene_class' class='metagene_start' value='metagene_start' name='metagene_type' checked>Metagene start codon</input></td></tr>\
-						<tr><td><input type='radio' class='metagene_class' class='metagene_stop' value='metagene_stop' name='metagene_type' unchecked>Metagene stop codon</input></td></tr>   \
-						<tr><td><input type='radio' class='metagene_class' class='metagene_custom' value='metagene_custom' name='metagene_type' unchecked>Custom Sequence list</input>\
+						<tr><td><input type='radio' class='metagene_class' id='metagene_start' class='metagene_start' value='metagene_start' name='metagene_type' checked>Metagene start codon</input></td></tr>\
+						<tr><td><input type='radio' class='metagene_class' id='metagene_stop' class='metagene_stop' value='metagene_stop' name='metagene_type' unchecked>Metagene stop codon</input></td></tr>   \
+						<tr><td><input type='radio' class='metagene_class' id='metagene_custom' class='metagene_custom' value='metagene_custom' name='metagene_type' unchecked>Custom Sequence list</input>\
 						<input type='text' id='custom_seq_list' name='custom_seq_list' value='' ></input></td></tr>\
 						</table>\
 						<div id='custom_limits' class='hidden'>\
@@ -443,7 +458,17 @@ function update_settings(n){
 					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>      <tr><td><input type='checkbox' class='md_per' value='mrna_dist_per' name='mrna_dist_per' unchecked>Percentage</input></td></tr>   <tr><td><input type='checkbox' class='md_start' value='md_start' name='md_start' checked>Include Start Codons</input></td></tr>     <tr><td><input type='checkbox' class='md_stop' value='md_stop' name='md_stop' checked>Include Stop Codons</input></td></tr>    </table>");
 						break;
 				case 'mrna_dist_readlen':
-						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>      <tr><td><input type='checkbox' class='mdr_per' value='mrna_readlen_per' name='mrna_readlen_per' unchecked>Percentage</input></td></tr>  <tr><td>  Smooth amount: <input type='text' id='mdr_smooth' name='smooth_amount' value='1' ></input> </td></tr>                                 </table>");
+						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>      <tr><td><input type='checkbox' class='mdr_per' value='mrna_readlen_per' name='mrna_readlen_per' unchecked>Percentage</input></td></tr></table>");
+						break;
+				case 'bulk_dl':
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p>\
+						<table align='center'>\
+						<tr><td><label for 'minreadlen'><b>Min readlen: </b><input type='text' id='minreadlen' name='minreadlen' value='25' ></input></td></tr>\
+						<tr><td><label for 'maxreadlen'><b>Max readlen: </b><input type='text' id='maxreadlen' name='maxreadlen' value='150' ></input></td></tr>\
+						<tr><td><input type='checkbox' class = 'apply_offset' value='apply_offset' name='apply_offset' checked>Apply offsets</input></td></tr>\
+						<tr><td><input type='checkbox'\ class = 'readlen_ambig' value='readlen_ambig'  name='readlen_ambig' checked>Allow ambiguous reads</input></td></tr>\
+						<tr><td><b>Transcripts: </b><input class='all' type='radio' value='all' name='region' checked>All</input><input class='principal' type='radio' value='principal' name='region' checked>Principal</input><input class='custom' type='radio' value='custom' name='region' checked>Custom</input><input type='text' id='te_tranlist' name='te_tranlist' value=''></input></td></tr>\
+						</table>");
 						break;
 				case 'codon_usage':
 						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>      </table>");
@@ -480,7 +505,7 @@ function update_settings(n){
 						<tr><td><b>Transcript list</b><input type='text' id='te_tranlist' name='te_tranlist' value=''></input></td></tr> 	\
 						<tr><td><b>Region: </b><input class='all' type='radio' value='all' name='region' checked>All</input><input class='cds' type='radio' value='cds' name='region' checked>CDS</input> <input class='fiveprime' type='radio' value='fiveprime' name='region' unchecked>5'</input><input class='threeprime' type='radio' value='threeprime' name='region' unchecked>3'</input></td></tr> \
 						<tr><td>  <input type='checkbox' class = 'count_agg' value='count_agg' name='count_agg' checked>Aggregate Counts</input>   </td></tr> \
-						<tr><td>  <input type='checkbox' class = 'count_gc' value='count_gc' name='count_gc' unchecked>GC content</input> </td></tr>\
+						<tr><td><b>Count type: </b><input class='raw' type='radio' value='raw' name='count_type' checked>Raw</input> <input class='rpkm' type='radio' value='rpkm' name='count_type' unchecked>RPKM</input><input class='tpm' type='radio' value='tpm' name='count_type' unchecked>TPM</input></td></tr> \
 						</table>");
 						break;
 				}
@@ -509,7 +534,12 @@ $("#metainfoquery").click(function() {
 	catch (err) {
 			var region = "cds";
 			}
-
+	try  {
+		var count_type = document.querySelector('input[name=count_type]:checked').value;
+		}
+	catch (err) {
+		var count_type = "raw";
+		}
 	try  {
 		var mismatch_region = document.querySelector('input[name=mismatch_region]:checked').value;
 		}
@@ -583,7 +613,6 @@ $("#metainfoquery").click(function() {
 		var nuccomp_reads = "null";
 		}	
 	
-	
 	try {
 		var nuc_comp_frame = document.querySelector('input[name=nuc_comp_frame]:checked').value;
 		}
@@ -604,11 +633,17 @@ $("#metainfoquery").click(function() {
 			var heatmap_direction = "null";
 			}
 
+
+	var sw_diff_group1 = $('input:text[name=sw_diff_group1]').val();
+	var sw_diff_group2 = $('input:text[name=sw_diff_group2]').val();
+	var sw_diff_window_size = $('input:text[name=sw_diff_window_size]').val();
+	var sw_diff_step_size = $('input:text[name=sw_diff_step_size]').val();
+	var sw_diff_min_diff = $('input:text[name=sw_diff_min_diff]').val();
+
 	var minreadlen = $('input:text[name=minreadlen]').val();
 	var maxreadlen = $('input:text[name=maxreadlen]').val();
 	var single_tran_de_transcript= $('input:text[name=single_tran_de_transcript]').val();
 	var single_tran_de_range1= $('input:text[name=single_tran_de_range1]').val();
-	var single_tran_de_range2= $('input:text[name=single_tran_de_range2]').val();
 	var tran_corr_transcript1= $('input:text[name=tran_corr_transcript1]').val();
 	var tran_corr_transcript2= $('input:text[name=tran_corr_transcript2]').val();
 	var custom_seq_list = $('input:text[name=custom_seq_list]').val();
@@ -624,7 +659,6 @@ $("#metainfoquery").click(function() {
 	var mismatch_maxper = $('input:text[name=mismatch_maxper]').val();
 	var mismatch_maxhit = $('input:text[name=mismatch_maxhit]').val();
 	var heatmap_minreadlen = $('input:text[name=heatmap_minreadlen]').val();
-	var smooth_amount = $('input:text[name=smooth_amount]').val();
 	var heatmap_maxreadlen = $('input:text[name=heatmap_maxreadlen]').val();
 	var heatmap_startpos = $('input:text[name=heatmap_startpos]').val();
 	var heatmap_endpos = $('input:text[name=heatmap_endpos]').val();
@@ -640,8 +674,8 @@ $("#metainfoquery").click(function() {
 	var te_tranlist = $('input:text[name=te_tranlist]').val();
 	var log_scale = $('input:checkbox[name=log_scale]:checked').val();
 	var count_agg = $('input:checkbox[name=count_agg]:checked').val();
+	var apply_offset = $('input:checkbox[name=apply_offset]:checked').val();
 	var mismatch_agg = $('input:checkbox[name=mismatch_agg]:checked').val();
-	var count_gc = $('input:checkbox[name=count_gc]:checked').val();
 	var mrna_readlen_per = $('input:checkbox[name=mrna_readlen_per]:checked').val();
 	var mrna_dist_per = $('input:checkbox[name=mrna_dist_per]:checked').val();
 	var md_start = $('input:checkbox[name=md_start]:checked').val();
@@ -657,14 +691,33 @@ $("#metainfoquery").click(function() {
 	var include_last = $('input:checkbox[name=include_last]:checked').val();
 	var normalise = $('input:checkbox[name=normalise]:checked').val();
 	
+	
+	
+	
+	if (sw_diff_group1 == null){
+		sw_diff_group1 = "50"
+		}
+	if (sw_diff_group2 == null){
+		sw_diff_group2 = "50"
+		}
+	if (sw_diff_window_size == null){
+		sw_diff_window_size = "50"
+		}
+	if (sw_diff_step_size == null){
+		sw_diff_step_size = "50"
+		}
+	if (sw_diff_min_diff == null){
+		sw_diff_min_diff = "50"
+		}
+	
+	
+	
+	
 	if (single_tran_de_transcript == null){
 		single_tran_de_transcript = "50"
 		}
 	if (single_tran_de_range1 == null){
 		single_tran_de_range1 = "50"
-		}
-	if (single_tran_de_range2 == null){
-		single_tran_de_range2 = "50"
 		}
 	if (tran_corr_transcript1 == null){
 		tran_corr_transcript1 = "50"
@@ -720,10 +773,6 @@ $("#metainfoquery").click(function() {
 		mismatch_maxhit = "100"
 		}	
 	
-	if (smooth_amount == null){
-		smooth_amount = "1"
-		}
-
 	if (heatmap_minreadlen == null){
 		heatmap_minreadlen = "15"
 		}
@@ -779,12 +828,14 @@ $("#metainfoquery").click(function() {
 			"mismatch_maxhit":mismatch_maxhit, "mismatch_minreadcount":mismatch_minreadcount,"heatmap_minreadlen":heatmap_minreadlen,
 			"heatmap_maxreadlen":heatmap_maxreadlen,"heatmap_startpos":heatmap_startpos,"heatmap_endpos":heatmap_endpos,"minimum_reads":minimum_reads,"te_minimum_reads":te_minimum_reads,
 			"log_scale":log_scale,"reverse_scale":reverse_scale,"color_palette":color_palette,"heatmap_direction":heatmap_direction,"mrna_readlen_per":mrna_readlen_per,"mrna_dist_per":mrna_dist_per,
-			"md_stop":md_stop,"md_start":md_start,"te_tranlist":te_tranlist,"mrna_readlen_smooth":mrna_readlen_smooth,"smooth_amount":smooth_amount,"html_args":html_args,"maxscaleval":maxscaleval,
-			"all_seq_types":seq_types, "region":region, "mismatch_region":mismatch_region, "count_agg":count_agg, "mismatch_agg":mismatch_agg,"count_gc":count_gc,"contaminant_organism":contaminant_organism,
+			"md_stop":md_stop,"md_start":md_start,"te_tranlist":te_tranlist,"mrna_readlen_smooth":mrna_readlen_smooth,"html_args":html_args,"maxscaleval":maxscaleval,
+			"all_seq_types":seq_types, "region":region,"count_type":count_type, "mismatch_region":mismatch_region, "count_agg":count_agg, "mismatch_agg":mismatch_agg,"contaminant_organism":contaminant_organism,
 			"custom_seq_list":custom_seq_list,"exclude_first_val":exclude_first_val,"exclude_last_val":exclude_last_val,"include_first_val":include_first_val,"include_last_val":include_last_val,
 			"custom_search_region":custom_search_region,"metagene_frame":metagene_frame,"corr_type":corr_type,"exclude_first":exclude_first, "exclude_last":exclude_last, "include_first":include_first, "include_last":include_last,
-			"metagene_tranlist":metagene_tranlist,"single_tran_de_transcript":single_tran_de_transcript,"single_tran_de_range1":single_tran_de_range1,"single_tran_de_range2":single_tran_de_range2,
-			"mismatch_minreadlen":mismatch_minreadlen,"normalise":normalise,"mismatch_maxreadlen":mismatch_maxreadlen,"tran_corr_transcript1":tran_corr_transcript1,"tran_corr_transcript2":tran_corr_transcript2};
+			"metagene_tranlist":metagene_tranlist,"single_tran_de_transcript":single_tran_de_transcript,"single_tran_de_range1":single_tran_de_range1,
+			"mismatch_minreadlen":mismatch_minreadlen,"normalise":normalise,"mismatch_maxreadlen":mismatch_maxreadlen,"tran_corr_transcript1":tran_corr_transcript1,
+			"tran_corr_transcript2":tran_corr_transcript2,"apply_offset":apply_offset,"sw_diff_group1":sw_diff_group1,"sw_diff_group2":sw_diff_group2,"sw_diff_window_size":sw_diff_window_size,
+			"sw_diff_step_size":sw_diff_step_size,"sw_diff_min_diff":sw_diff_min_diff};
 	var file_list = [];
 	for (var filetype in accepted_files) {
 			for (var study_id in accepted_files[filetype]) {
@@ -792,10 +843,10 @@ $("#metainfoquery").click(function() {
 							var newelement=$('input:checkbox[name='+file_id+']:checked').val();
 							if (newelement == 'inputfile'){
 									file_list.push(file_id);
-																						};
-																																	}
-																											}
-																			 };
+															};
+																			}
+															}
+										};
 	qu["file_list"] = file_list
 	if (file_list.length == 1) {
 		loading_header.innerText = "Loading data from "+file_list.length+" file";}
@@ -808,13 +859,6 @@ $("#metainfoquery").click(function() {
 		url: url,
 		data: JSON.stringify(qu),
 		success: function (data) {
-				console.log("return function called:",qu["count_gc"],":")
-				// If gc content of count table is selected, change the headers of the count table.
-				if (qu["count_gc"] != undefined) {
-					console.log("changing headers");
-					var mytable = document.getElementById('myTable').tHead.innerHTML = "<tr><th>Region</th><th>Gene</th><th>Transcript</th><th>A count</th><th>T count</th><th>G count</th><th>C count</th><th>GC %</th><th>Length</th></tr>";
-					}
-				
 				if (data.slice(0, 2) == "TE"){
 						//update link to point to temporary csv
 						var splitdata = data.split("?~");
@@ -974,9 +1018,61 @@ if (html_args["maxscaleval"] != "None") {
 		document.getElementById('maxscaleval').value = html_args["maxscaleval"];
 		};
 
+
+
+
+
+
+if (html_args["include_first"] == "T") {
+	$('input.include_first').prop('checked',true);
+	};
+
+if (html_args["include_last"] == "T") {
+	$('input.include_last').prop('checked',true);
+	};
+if (html_args["exclude_first"] == "T") {
+	$('input.exclude_first').prop('checked',true);
+	};
+if (html_args["exclude_last"] == "T") {
+	$('input.exclude_last').prop('checked',true);
+	};
+
+if (html_args["custom_seq_list"] != "None") {
+	document.getElementById('custom_seq_list').value = html_args["custom_seq_list"]
+	};
+
+if (html_args["exclude_first_val"] != "None") {
+	document.getElementById('exclude_first_val').value = html_args["exclude_first_val"]
+	};
+
+if (html_args["exclude_last_val"] != "None") {
+	document.getElementById('exclude_last_val').value = html_args["exclude_last_val"]
+	};
+
+if (html_args["include_first_val"] != "None") {
+	document.getElementById('include_first_val').value = html_args["include_first_val"]
+	};
+if (html_args["include_last_val"] != "None") {
+	document.getElementById('include_last_val').value = html_args["include_last_val"]
+	};
+if (html_args["metagene_tranlist"] != "None") {
+	document.getElementById('metagene_tranlist').value = html_args["metagene_tranlist"]
+	};
+
+
+console.log("HTML args is "+html_args);
+
+
+
 if (html_args["metagene_pos"] == "metagene_start") {
 		$('input.metagene_start').prop('checked',true);
 		};
+
+
+if (html_args["metagene_pos"] == "metagene_custom") {
+	console.log("sETTING METAGENE CUSTOM TO TRUE")
+	$('#metagene_custom').prop('checked',true);
+	};
 
 if (html_args["metagene_pos"] == "metagene_stop") {
 		$('input.metagene_stop').prop('checked',true);
@@ -1078,6 +1174,45 @@ function update_colours() {
 						}
 				}
 				}
+
+
+function addgrp1(){
+	var grp1_files = "";
+	for (var filetype in accepted_files) {
+		for (var study_id in accepted_files[filetype]) {
+			for (var file_id in accepted_files[filetype][study_id]) {
+				var newelement=$('input:checkbox[name='+file_id+']:checked').val();
+				if (newelement == 'inputfile'){
+					var grp1_files = grp1_files.concat(file_id+",");
+					};
+				}
+				}
+				};
+	document.getElementById("sw_diff_group1").value = grp1_files;
+	console.log("grp1_files",grp1_files);
+	};
+
+function addgrp2(){
+	var grp2_files = "";
+	for (var filetype in accepted_files) {
+		for (var study_id in accepted_files[filetype]) {
+			for (var file_id in accepted_files[filetype][study_id]) {
+				var newelement=$('input:checkbox[name='+file_id+']:checked').val();
+				if (newelement == 'inputfile'){
+					var grp2_files = grp2_files.concat(file_id+",");
+					};
+				}
+				}
+				};
+				document.getElementById("sw_diff_group2").value = grp2_files;
+				console.log("grp2_files",grp2_files);
+				};
+
+
+
+
+
+
 
 
 </script>

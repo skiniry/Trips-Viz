@@ -6,7 +6,8 @@ from mpld3 import plugins,utils
 from fetch_shelve_reads2 import get_reads
 import sqlite3
 import config
-
+import os
+import config
 
 def merge_dict(dict1,dict2):
 	master_dict = dict1
@@ -39,7 +40,10 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	owner = (cursor.fetchone())[0]
 	if owner == 1:
-		transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		else:
+			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
@@ -142,6 +146,7 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 			
 		else:
 			normalized_reads = {}
+			print "Normalization is true, normalizing by factor", item[8]
 			for pos in filename_reads:
 				normalized_reads[pos] = filename_reads[pos]*item[8]
 			try:

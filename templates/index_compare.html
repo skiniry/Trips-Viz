@@ -76,6 +76,16 @@ borderColor:'#FFF', insetColor:'#FFF', backgroundColor:'#666', hash:true}"  styl
 </tr>
 <tr id="tablerow14">
 </tr>
+<tr id="tablerow15">
+</tr>
+<tr id="tablerow16">
+</tr>
+<tr id="tablerow17">
+</tr>
+<tr id="tablerow18">
+</tr>
+<tr id="tablerow19">
+</tr>
 </table>
 </div>
 
@@ -313,6 +323,16 @@ function addItem(file_id){
 		if (colorinput.value in master_file_dict) {
 				console.log("COLOR INPUT "+colorinput.value+" is in master file dict ");
 				master_file_dict[colorinput.value]["file_ids"].push(fileinput);
+				
+				
+				var group_id = 'label_'+colorinput.value
+				console.log("INPUT GROUP ID IS "+group_id)
+				var group_label = document.getElementById(group_id);
+				var label_val = (group_label.value).replace(/_/g, "-");
+				master_file_dict[colorinput.value]["label"] = label_val
+				
+				
+				
 				for (key in master_file_dict) {
 						for (id in master_file_dict[key]["file_ids"]) {
 								console.log("id "+master_file_dict[key]["file_ids"][id]);
@@ -323,7 +343,7 @@ function addItem(file_id){
 				console.log("COLOR INPUT "+colorinput.value+" is not in master file dict ");
 				var minread = $('input:text[name=minread]').val();
 				var maxread = $('input:text[name=maxread]').val();
-				master_file_dict[colorinput.value] = {"file_ids":[fileinput],"minread":minread, "maxread":maxread}
+				master_file_dict[colorinput.value] = {"file_ids":[fileinput],"minread":minread, "maxread":maxread,"label":""}
 
 				for (key in master_file_dict) {
 						console.log("Color", key);
@@ -343,16 +363,19 @@ function addItem(file_id){
 				indiv.className = "color-box";
 				indiv.style.backgroundColor = ""+color+"";
 				newdiv.appendChild(indiv);
-
 				var file_name = file_id_to_name_dict[master_file_dict[color]["file_ids"][0]]
 				var group_id = 'label_'+color
 				console.log("INPUT GROUP ID IS "+group_id)
 				if (master_file_dict[color]["file_ids"].length == 1) {
-						var group_name = "<input type='text' id="+group_id+" value='"+file_name+"' ></input>"
+						var minread = master_file_dict[color]["minread"];
+						var maxread = master_file_dict[color]["maxread"];
+						var group_name = "<input type='text' id="+group_id+" value='"+file_name+"_"+minread+"-"+maxread+"' ></input>"
 						li.innerHTML = [group_name];
 																														 }
 				else {
-						var initial_value = [file_name+ " and "+ ((master_file_dict[color]["file_ids"].length)-1).toString() +" others"];
+						var minread = master_file_dict[color]["minread"];
+						var maxread = master_file_dict[color]["maxread"];
+						var initial_value = [file_name+ " and "+ ((master_file_dict[color]["file_ids"].length)-1).toString() +" others"+"_"+minread+"-"+maxread];
 						var group_name = "<input type='text' id="+group_id+" value='"+initial_value+"' ></input>"
 						li.innerHTML = [group_name];
 						}

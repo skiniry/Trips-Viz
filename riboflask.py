@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.transforms import blended_transform_factory
 import mpld3
 from mpld3 import plugins,utils
 import collections
@@ -9,6 +10,8 @@ from sqlitedict import SqliteDict
 import pandas as pd
 from fetch_shelve_reads2 import get_reads,get_seq_var,get_readlength_breakdown
 import sqlite3
+import os
+import config
 
 # CSS for popup tables that appear when hovering over aug codons
 point_tooltip_css = """
@@ -66,6 +69,9 @@ def get_user_defined_seqs(seq,seqhili):
 
 def merge_dicts(dict1,dict2):
 	for nuc in dict2:
+		#print "nuc", nuc
+		#print dict1
+		#print dict2[nuc]
 		if nuc not in dict1:
 			dict1[nuc] = dict2[nuc]
 		else:
@@ -78,6 +84,7 @@ def merge_dicts(dict1,dict2):
 
 def generate_plot(tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,trips_annotation_location,seqhili,seq_rules,title_size,
 subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_location,cds_marker_size,cds_marker_colour,legend_size,ribo_linewidth, secondary_readscore,pcr,mismatches, hili_start, hili_stop):
+	
 	if lite == "n" and ribocoverage == True:
 		return "Error: Cannot display Ribo-Seq Coverage when 'Line Graph' is turned off"
 	labels = ["Frame 1 profiles","Frame 2 profiles","Frame 3 profiles","RNA", "Exon Junctions"]
@@ -102,7 +109,10 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	owner = (cursor.fetchone())[0]
 	if owner == 1:
-		transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(trips_annotation_location,organism))
+		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		else:
+			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(trips_uploads_location,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
@@ -115,16 +125,28 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		traninfo["stop_list"] = [int(x) for x in traninfo["stop_list"]]
 	except:
 		traninfo["stop_list"] = []
-		
+
 	try:
 		traninfo["start_list"] = [int(x) for x in traninfo["start_list"]]
 	except:
 		traninfo["start_list"] = []
-		
+
 	if str(traninfo["exon_junctions"][0]) != "":
 		traninfo["exon_junctions"] = [int(x) for x in traninfo["exon_junctions"]]
 	else:
 		traninfo["exon_junctions"] = []
+
+	all_cds_regions = []
+	# Check if the 'coding_regions' table exists
+	cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coding_regions';")
+	result = cursor.fetchone()
+	#print ("CODING REGION RESULT",result)
+	if result != None:
+		print ("result is not empty")
+		cursor.execute("SELECT * from coding_regions WHERE transcript = '{}'".format(tran))
+		result = cursor.fetchall()
+		for row in result:
+			all_cds_regions.append((row[1],row[2]))
 	transhelve.close()
 	gene = traninfo["gene"]
 	tranlen = traninfo["length"]
@@ -163,8 +185,11 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			if best_stop_pos != 10000000:
 				frame_orfs[frame].append((start, best_stop_pos))
 	all_rna_reads, rna_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, False,noisered, primetype,"rnaseq",readscore,pcr,get_mismatches=mismatches)
+
 	all_subcodon_reads,ribo_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,ribocoverage, organism, True,noisered, primetype,"riboseq",readscore,secondary_readscore,pcr,get_mismatches=mismatches)
+	#print "riboseq var dict",ribo_seqvar_dict
 	seq_var_dict = merge_dicts(ribo_seqvar_dict, rna_seqvar_dict)
+	#print "all subcodon reads", all_subcodon_reads
 	try:
 		rnamax = max(all_rna_reads.values())
 	except:
@@ -178,11 +203,14 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	fig = plt.figure(figsize=(23,12))
 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
 	ax_main.spines['bottom'].set_visible(False)
+	for s in ['bottom', 'left','top','right']:
+		ax_main.spines[s].set_linewidth(15)
+		ax_main.spines[s].set_color("red")
 	alt_seq_type_vars = []
 	# Plot any alternative sequence types if there are any
 	for seq_type in file_paths_dict:
 		if seq_type != "riboseq" and seq_type != "rnaseq":
-			print "seq_type", seq_type
+			#print "seq_type", seq_type
 			if seq_rules[seq_type]["frame_breakdown"] == 1:
 				frame_breakdown = True
 			else:
@@ -190,7 +218,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			alt_sequence_reads,empty_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, frame_breakdown,noisered, primetype,seq_type,readscore)
 
 			if frame_breakdown == False:
-				alt_seq_plot = ax_main.plot(alt_sequence_reads.keys(), alt_sequence_reads.values(), alpha=1, label = seq_type, zorder=2, color='lightblue', linewidth=2)
+				alt_seq_plot = ax_main.plot(alt_sequence_reads.keys(), alt_sequence_reads.values(), alpha=1, label = seq_type, zorder=2, color='#5c5c5c', linewidth=2)
 				labels.append(seq_type)
 				start_visible.append(True)
 				alt_seq_type_vars.append(alt_seq_plot)
@@ -224,36 +252,46 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	label = 'Read count'
 	ax_main.set_ylabel(label,  fontsize=axis_label_size, labelpad=30)
 	label = 'Position (nucleotides)'
-	ax_main.set_xlabel(label, fontsize=axis_label_size)
+	ax_main.set_xlabel(label, fontsize=axis_label_size,labelpad=-10)
 	ax_main.set_ylim(0, y_max)
 
 	if lite == "n":
 		rna_bars = ax_main.bar(all_rna_reads.keys(), all_rna_reads.values(), alpha=1, label = labels, zorder=1,color='lightgray', linewidth=0, width=1)
 	else:
 		rna_bars = ax_main.plot(all_rna_reads.keys(), all_rna_reads.values(), alpha=1, label = labels, zorder=1,color='#a7adb7', linewidth=4)
-	
-	
 
-	#if lite == "n":
-	#	all_profiles = ax_main.bar(all_ribo_reads.keys(), all_ribo_reads.values(), alpha=0.01, label = labels, zorder=2, color='crimson', linewidth=0,width=1)
-	#else:
-	#	all_profiles = ax_main.plot(all_ribo_reads.keys(), all_ribo_reads.values(), alpha=0.01, label = labels, zorder=2, color='crimson', linewidth=1)
-	cds_markers = ax_main.plot((cds_start+1,cds_start+1), (0, y_max), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
-	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
-	ax_f1 = plt.subplot2grid((30,1), (26,0),rowspan=1,sharex=ax_main)
+	cds_markers = ax_main.plot((cds_start,cds_start), (0, y_max*0.97), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
+	ax_main.text(cds_start,y_max*0.97,"CDS start",fontsize=18,color="black",ha="center")
+	#ax_main.annotate('axes fraction',xy=(3, 1), xycoords='data',xytext=(0.8, 0.95), textcoords='axes fraction',arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='right', verticalalignment='top')
+	#trans = blended_transform_factory(ax_main.transData, ax_main.transAxes)
+	#ax_main.annotate('CDS RELATIVE START',(100,100),transform=trans)
+	#tform = blended_transform_factory(ax_main.transData, ax_main.transAxes)
+	#r=10
+	#ax_main.text(cds_start, 0.9, "CDS START OR WHATEVER", fontsize='xx-large', color='r', transform=tform)
+	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max*0.97), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
+	ax_main.text(cds_stop,y_max*0.97,"CDS stop",fontsize=18,color="black",ha="center")
+	ax_cds = plt.subplot2grid((31,1), (26,0),rowspan=1,sharex=ax_main)
+	ax_cds.set_axis_bgcolor("white")
+	ax_cds.set_ylabel('Merged CDS', labelpad=4, verticalalignment='center',horizontalalignment="right",rotation="horizontal",color="black",fontsize=axis_label_size-5)
+	ax_f1 = plt.subplot2grid((31,1), (27,0),rowspan=1,sharex=ax_main)
 	ax_f1.set_axis_bgcolor(color_dict['frames'][0])
-	ax_f2 = plt.subplot2grid((30,1), (27,0),rowspan=1,sharex=ax_main)
+	ax_f2 = plt.subplot2grid((31,1), (28,0),rowspan=1,sharex=ax_main)
 	ax_f2.set_axis_bgcolor(color_dict['frames'][1])
-	ax_f3 = plt.subplot2grid((30,1), (28,0),rowspan=1,sharex=ax_main)
+	ax_f3 = plt.subplot2grid((31,1), (29,0),rowspan=1,sharex=ax_main)
 	ax_f3.set_axis_bgcolor(color_dict['frames'][2])
-	ax_nucseq = plt.subplot2grid((30,1), (29,0),rowspan=1,sharex=ax_main)
-	ax_nucseq.set_xlabel('Transcript: {} Length: {} nt'.format(tran, tranlen), fontsize=subheading_size, labelpad=10)
+	ax_nucseq = plt.subplot2grid((31,1), (30,0),rowspan=1,sharex=ax_main)
+	ax_nucseq.set_xlabel('Transcript: {} Length: {} nt'.format(tran, tranlen), fontsize=subheading_size)
+
+
+	for tup in all_cds_regions:
+		ax_cds.fill_between([tup[0],tup[1]], [1, 1],zorder=0, alpha=1, color="#001285")
+
 
 	#plot a dummy exon junction at postion -1, needed in cases there are no exon junctions, this wont be seen
 	allexons = ax_main.plot((-1,-1), (0, 1), alpha=0.01,color='black',linestyle = '-.', linewidth=2)
 	for exon in exon_junctions:
 		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.01,color='black',linestyle = '-.', linewidth=3)
-		
+
 	#dictionary for each frame in which the keys are the posistions and the values are the counts
 	frame_counts = {0: collections.OrderedDict(), 1: collections.OrderedDict(), 2: collections.OrderedDict()}
 	for key in all_subcodon_reads:
@@ -294,7 +332,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			xy += 1
 			char_frame += 1
 
-	# If the user passed a list of sequences to highlight, find and plot them here. 
+	# If the user passed a list of sequences to highlight, find and plot them here.
 	if seqhili != ['']:
 		near_cog_starts,signalhtml = get_user_defined_seqs(seq, seqhili)
 		for slip in near_cog_starts[0]:
@@ -322,7 +360,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		signaltooltip1 = plugins.PointHTMLTooltip(frame1_subsequences[0], signalhtml[0], voffset=10, hoffset=10, css=point_tooltip_css)
 		signaltooltip2 = plugins.PointHTMLTooltip(frame2_subsequences[0], signalhtml[1], voffset=10, hoffset=10, css=point_tooltip_css)
 		signaltooltip3 = plugins.PointHTMLTooltip(frame3_subsequences[0], signalhtml[2], voffset=10, hoffset=10, css=point_tooltip_css)
-	for axisname in (ax_f1, ax_f2, ax_f3,ax_nucseq):
+	for axisname in (ax_f1, ax_f2, ax_f3,ax_nucseq,ax_cds):
 		axisname.tick_params(top=False, bottom=False, labelleft=False, labelright=False, labelbottom=False)
 	for label in ax_main.xaxis.get_majorticklabels():
 		label.set_fontsize(36)
@@ -337,37 +375,18 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		axis.broken_barh(uaa_stops, (0, 1), color=uaa_col, zorder=2, linewidth=2)
 		axis.broken_barh(uga_stops, (0, 1), color=uga_col, zorder=2, linewidth=2)
 		axis.set_ylim(0, 1)
-		axis.set_ylabel('{}'.format(frame), labelpad=10, verticalalignment='center',rotation="horizontal",color="black")
+		axis.set_ylabel('Frame {}'.format(frame), labelpad=4, verticalalignment='center',horizontalalignment="right",rotation="horizontal",color="black",fontsize=axis_label_size-5)
 	title_str = '{} ({})'.format(gene,short_code)
-	plt.title(title_str, fontsize=title_size,y=36)
+	plt.title(title_str, fontsize=title_size,y=38)
 	line_collections = [frame0subpro, frame1subpro, frame2subpro, rna_bars, allexons]
-	
+
 	if mismatches == True:
 		line_collections.append(a_mismatches)
 		line_collections.append(t_mismatches)
 		line_collections.append(g_mismatches)
 		line_collections.append(c_mismatches)
 	line_collections.append(cds_markers)
-	
-	plot_gc = False
-	if plot_gc == True:
-		step_size = 5
-		window_size = 100
-		gc_dict = collections.OrderedDict()
-		for i in range(0,len(seq)-(window_size),step_size):
-			#x = float(i)/100 
-			gc_count = 0.0
-			for x in range(i,i+window_size):
-				if seq[x] in ["G","C"]:
-					gc_count += 1
-			norm_gc = gc_count/window_size
-			final_gc = norm_gc*y_max
-			gc_dict[i] = final_gc
-		gc_plot = ax_main.plot(gc_dict.keys(), gc_dict.values(), alpha=1, label = labels, zorder=1,color='black', linewidth=4)
-		line_collections.append(gc_plot)
-		labels.append("GC_content")
-		start_visible.append(True)
-	
+
 	if not (hili_start == 0 and hili_stop == 0):
 		hili_start = int(hili_start)
 		hili_stop = int(hili_stop)
@@ -375,7 +394,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		labels.append("Highligted region")
 		start_visible.append(True)
 		line_collections.append(hili)
-	
+
 	for alt_plot in alt_seq_type_vars:
 		line_collections.append(alt_plot)
 	if 'hili_sequences' in locals():
@@ -431,7 +450,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			for i in range(start+2, stop,3):
 				for subframe in [0,1,2]:
 					if i in frame_counts[subframe]:
-						orf_ribo += frame_counts[subframe][i]				
+						orf_ribo += frame_counts[subframe][i]
 
 			for i in range(start, stop,3):
 				for subframe in [0,1,2]:
@@ -466,14 +485,14 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			label = df.ix[[0], :].T
 			label.columns = ["Start pos: {}".format(start-1)]
 			htmllabels[frame].append(str(label.to_html()))
-			
+
 	points1 =ax_f1.plot(all_start_points[1], [0.75]*len(all_start_points[1]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 	points2 =ax_f2.plot(all_start_points[2], [0.75]*len(all_start_points[2]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 	points3 =ax_f3.plot(all_start_points[3], [0.75]*len(all_start_points[3]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 
 	tooltip1 = plugins.PointHTMLTooltip(points1[0], htmllabels[1],voffset=10, hoffset=10, css=point_tooltip_css)
-	tooltip2 =  plugins.PointHTMLTooltip(points2[0], htmllabels[2],voffset=10, hoffset=10, css=point_tooltip_css)
-	tooltip3 =  plugins.PointHTMLTooltip(points3[0], htmllabels[3],voffset=10, hoffset=10, css=point_tooltip_css)
+	tooltip2 = plugins.PointHTMLTooltip(points2[0], htmllabels[2],voffset=10, hoffset=10, css=point_tooltip_css)
+	tooltip3 = plugins.PointHTMLTooltip(points3[0], htmllabels[3],voffset=10, hoffset=10, css=point_tooltip_css)
 
 	ax_f3.axes.get_yaxis().set_ticks([])
 	ax_f2.axes.get_yaxis().set_ticks([])
@@ -509,5 +528,5 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	#Without this style tag the markers sizes will appear correct on browser but be original size when downloaded via png
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
-	graph +=  mpld3.fig_to_html(fig)                   
+	graph +=  mpld3.fig_to_html(fig)
 	return graph

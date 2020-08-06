@@ -8,11 +8,11 @@ import re
 import operator
 from math import log
 import config
-from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_file_paths,generate_short_code
+from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_file_paths,generate_short_code,build_profile
 import metainfo_plots
 import collections
 from flask_login import current_user
-
+import subprocess
 
 
 
@@ -50,43 +50,57 @@ def metainfo_plotpage(organism, transcriptome):
 				  "clade": gwips_clade,
 				  "database": gwips_db}
 	default_tran = result[3]
+	
+	
+	
+	
+	
+	
 	# holds all values the user could possibly pass in the url (keywords are after request.args.get), anything not passed by user will be a string: "None"
 	html_args = {"user_short":str(request.args.get('short')),
-				 "user_plot_type":str(request.args.get('plot')),
-				 "nuc_comp_direction":str(request.args.get('nc_dir')),
-				 "nuc_comp_type":str(request.args.get('nc_type')),
-				 "nuc_comp_min_readlen":str(request.args.get('nc_minreadlen')),
-				 "nuc_comp_max_readlen":str(request.args.get('nc_maxreadlen')),
-				 "trip_periodicity_min_readlen":str(request.args.get('tp_minreadlen')),
-				 "trip_periodicity_max_readlen":str(request.args.get('tp_maxreadlen')),
-				 "heatmap_dir":str(request.args.get('hm_dir')),
-				 "heatmap_log_scale":str(request.args.get('hm_log')),
-				 "heatmap_reverse":str(request.args.get('hm_rev')),
-				 "heatmap_position":str(request.args.get('hm_pos')),
-				 "heatmap_minreadlen":str(request.args.get('hm_minreadlen')),
-				 "heatmap_maxreadlen":str(request.args.get('hm_maxreadlen')),
-				 "heatmap_start":str(request.args.get('hm_start')),
-				 "heatmap_stop":str(request.args.get('hm_stop')),
-				 "heatmap_colour":str(request.args.get('hm_col')),
-				 "metagene_pos":str(request.args.get('mg_pos')),
-				 "metagene_minreadlen":str(request.args.get('mg_minreadlen')),
-				 "metagene_maxreadlen":str(request.args.get('mg_maxreadlen')),
-				 "replicate_minreads":str(request.args.get('rp_minreads')),
-				 "mrna_dist_readlen_per":str(request.args.get('mdr_per')),
-				 "transcriptome":str(transcriptome),
-				 "maxscaleval":str(request.args.get('maxscaleval')),
-				 "mrna_dist_readlen_smooth":str(request.args.get('mdr_smooth')),
-				 "te_minreads":str(request.args.get('te_minreads')),
-				 "te_tranlist":str(request.args.get('te_tranlist'))}
-
-
+				"user_plot_type":str(request.args.get('plot')),
+				"nuc_comp_direction":str(request.args.get('nc_dir')),
+				"nuc_comp_type":str(request.args.get('nc_type')),
+				"nuc_comp_min_readlen":str(request.args.get('nc_minreadlen')),
+				"nuc_comp_max_readlen":str(request.args.get('nc_maxreadlen')),
+				"trip_periodicity_min_readlen":str(request.args.get('tp_minreadlen')),
+				"trip_periodicity_max_readlen":str(request.args.get('tp_maxreadlen')),
+				"heatmap_dir":str(request.args.get('hm_dir')),
+				"heatmap_log_scale":str(request.args.get('hm_log')),
+				"heatmap_reverse":str(request.args.get('hm_rev')),
+				"heatmap_position":str(request.args.get('hm_pos')),
+				"heatmap_minreadlen":str(request.args.get('hm_minreadlen')),
+				"heatmap_maxreadlen":str(request.args.get('hm_maxreadlen')),
+				"heatmap_start":str(request.args.get('hm_start')),
+				"heatmap_stop":str(request.args.get('hm_stop')),
+				"heatmap_colour":str(request.args.get('hm_col')),
+				"metagene_pos":str(request.args.get('mg_pos')),
+				"metagene_minreadlen":str(request.args.get('mg_minreadlen')),
+				"metagene_maxreadlen":str(request.args.get('mg_maxreadlen')),
+				"replicate_minreads":str(request.args.get('rp_minreads')),
+				"mrna_dist_readlen_per":str(request.args.get('mdr_per')),
+				"transcriptome":str(transcriptome),
+				"maxscaleval":str(request.args.get('maxscaleval')),
+				"mrna_dist_readlen_smooth":str(request.args.get('mdr_smooth')),
+				"te_minreads":str(request.args.get('te_minreads')),
+				"include_first":str(request.args.get('include_first')),
+				"include_last":str(request.args.get('include_last')),
+				"exclude_first":str(request.args.get('exclude_first')),
+				"exclude_last":str(request.args.get('exclude_last')),
+				"custom_seq_list":str(request.args.get('custom_seq_list')),
+				"exclude_first_val":str(request.args.get('exclude_first_val')),
+				"exclude_last_val":str(request.args.get('exclude_last_val')),
+				"include_first_val":str(request.args.get('include_first_val')),
+				"include_last_val":str(request.args.get('include_last_val')),
+				"metagene_tranlist":str(request.args.get('metagene_tranlist')),
+				"te_tranlist":str(request.args.get('te_tranlist'))}
 	user_files = request.args.get('files')
 	if user_files != None:
 		user_files = user_files.split(",")
 		html_args["user_files"] = [str(x) for x in user_files]
 	else:
 		html_args["user_files"] = []
-
+	#print"html args", html_args
 	user_ribo_studies = request.args.get('ribo_studies')
 	if user_ribo_studies != None:
 		user_ribo_studies = user_ribo_studies.split(",")
@@ -99,10 +113,6 @@ def metainfo_plotpage(organism, transcriptome):
 		html_args["user_rna_studies"] = [str(x) for x in user_rna_studies]
 	else:
 		html_args["user_rna_studies"] = []
-
-
-
-
 	connection.close()
 	return render_template('metainfo_index.html', gwips_clade=gwips_clade, gwips_org=gwips_org, gwips_db=gwips_db,transcriptome=transcriptome,organism=organism,default_tran=default_tran,current_username=user,local=local,
 						   studies_dict=accepted_studies,accepted_files=accepted_files,html_args=html_args,user_files=user_files,user_ribo_studies=user_ribo_studies, user_rna_studies=user_rna_studies,
@@ -111,28 +121,33 @@ def metainfo_plotpage(organism, transcriptome):
 
 
 # Used to create custom metagene plots on the metainformation plot page
-def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist,metagene_frame):
+def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist,metagene_frame,transcriptome):
 	print "create custom metagene called"
 	custom_metagene_id = "cmgc_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format((custom_seq_list.upper()).replace(" ","").replace("T","U").replace(",","_"), custom_search_region, exclude_first, exclude_last, include_first, include_last,exclude_first_val,exclude_last_val,include_first_val,include_last_val,metagene_tranlist)
 	#try:
 	#	mgc = sqlite_db[custom_metagene_id]
 	#except:
 	#	pass
-	transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+	offsets = sqlite_db["offsets"]
+	#print"offsets",offsets
+	if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+		transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+	else:
+		return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	cursor = transhelve.cursor()
 	if metagene_tranlist == "":
-		print "selecting principal transcripts"
+		#print"selecting principal transcripts"
 		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE principal = 1")
 	else:
 		metagene_tranlist = metagene_tranlist.split(",")
 		cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]")))
-		
+
 	result = cursor.fetchall()
 	mgc = {"fiveprime":{},"threeprime":{}}
 	iupac_dict =   {"R":"[AG]","Y":"[CU]","S":"[GC]","W":"[AU]","K":"[GU]",
 					"M":"[AC]","B":"[CGU]","D":"[AGU]","D":"[AGU]",
 					"H":"[ACU]","V":"[ACG]","N":"[AUGC]"}
-	
+
 	subseq_list = []
 	for subseq in custom_seq_list.split(","):
 		subseq = subseq.upper()
@@ -144,18 +159,23 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 	for row in result:
 		#print "row", row
 		tran = row[0]
-		cds_start = int(row[1])
-		cds_stop = int(row[2])
+		#print "tran", tran
+		if custom_search_region != "whole_gene":
+			try:
+				cds_start = int(row[1])
+				cds_stop = int(row[2])
+			except:
+				continue
 		seq = row[3].replace("T","U")
 		if custom_search_region == "whole_gene":
 			min_pos = 0
-			max_pos = len(seq) 
+			max_pos = len(seq)
 		if custom_search_region == "five_leader":
 			min_pos = 0
 			max_pos = cds_start
 		if custom_search_region == "cds":
 			min_pos = cds_start
-			max_pos = cds_stop
+			max_pos = cds_stop+3
 		if custom_search_region == "three_trailer":
 			min_pos = cds_stop
 			max_pos = len(seq)
@@ -167,19 +187,23 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 			min_pos = min_pos + exclude_first_val
 		if exclude_last == True:
 			max_pos = max_pos-exclude_last_val
-			
+
 		if cds_start != "NULL" and cds_start != None:
 			seq_positions = []
 			for subseq in subseq_list:
+				#print "subseq",subseq
 				pattern = re.compile(r"{}".format(subseq))
 				m = ""
-				search_pos = min_pos
+				search_pos = min_pos-1
+				
 				while m != None:
-					m = pattern.search(seq,search_pos,max_pos+1)
+					#print "search pos, max_pos", search_pos, max_pos, seq[search_pos:max_pos]
+					m = pattern.search(seq,search_pos,max_pos)
 					if m != None:
 						position = m.span()[0]
 						seq_positions.append(position)
 						search_pos = position+1
+						#print"cds_start, search_pos",cds_start, search_pos
 		if seq_positions != []:
 			#print "seq positions", seq_positions
 			profile = {"fiveprime":{},"threeprime":{}}
@@ -188,12 +212,13 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 			except:
 				tran_reads = {"unambig":{}}
 			#print "tran reads", tran_reads[25]
-			offsets = sqlite_db["offsets"]
+			
 			for readlen in tran_reads:
 				if readlen in offsets["fiveprime"]["offsets"]:
 					offset = offsets["fiveprime"]["offsets"][readlen]
 				else:
 					offset = 15
+				#print "offset", offset
 				profile["fiveprime"][readlen] = {}
 				profile["threeprime"][readlen] = {}
 				for pos in tran_reads[readlen]:
@@ -269,7 +294,7 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 							#		count = 0
 							#print "rsp, count", relative_seq_position%3, count
 							mgc["fiveprime"][readlen][relative_seq_position] += count
-						
+
 			for readlen in profile["threeprime"]:
 				if readlen not in mgc["threeprime"]:
 					mgc["threeprime"][readlen] = {}
@@ -280,9 +305,12 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 					for seq_position in seq_positions:
 						if seq_position >= pos-600 and seq_position <= pos+600:
 							relative_seq_position = pos-seq_position
-							mgc["threeprime"][readlen][relative_seq_position] += count						
-	sqlite_db[custom_metagene_id] = mgc 
+							mgc["threeprime"][readlen][relative_seq_position] += count
+		else:
+			print "No valid sequence positions"
+	sqlite_db[custom_metagene_id] = mgc
 	sqlite_db.commit()
+	#print"returning mgc"
 	return mgc
 
 
@@ -295,20 +323,26 @@ metainfoquery_blueprint = Blueprint("metainfoquery", __name__, template_folder="
 @metainfoquery_blueprint.route('/metainfoquery', methods=['POST'])
 def metainfoquery():
 	global user_short_passed
-
 	tran_dict = {}
 	gene_dict = {}
 	data = ast.literal_eval(request.data)
 	plottype = data["plottype"]
 	minreadlen = int(data['minreadlen'])
 	maxreadlen = int(data['maxreadlen'])
-	single_tran_de_transcript = data['single_tran_de_transcript']
 	
+	sw_diff_group1 = (data['sw_diff_group1'].strip(",")).split(",")
+	sw_diff_group2 = (data['sw_diff_group2'].strip(",")).split(",")
+	sw_diff_window_size = int(data['sw_diff_window_size'])
+	sw_diff_step_size = int(data['sw_diff_step_size'])
+	sw_diff_min_diff = int(data['sw_diff_min_diff'])
+	
+	
+	single_tran_de_transcript = data['single_tran_de_transcript']
+
 	tran_corr_transcript1 = data['tran_corr_transcript1']
 	tran_corr_transcript2 = data['tran_corr_transcript2']
-	
+
 	single_tran_de_range1 = data['single_tran_de_range1']
-	single_tran_de_rge2 = data['single_tran_de_range2']
 	custom_seq_list = data["custom_seq_list"]
 	exclude_first_val = int(data["exclude_first_val"])
 	exclude_last_val = int(data["exclude_last_val"])
@@ -357,11 +391,11 @@ def metainfoquery():
 	nuc_comp_frame = data["nuc_comp_frame"]
 	nuc_comp_direction = data["nuc_comp_direction"]
 	heatmap_direction = data["heatmap_direction"]
-	smooth_amount = int(data["smooth_amount"])
 	html_args = data["html_args"]
 	all_seq_types = data["all_seq_types"]
 	nuccomp_reads = data["nuccomp_reads"]
 	corr_type = data["corr_type"]
+	count_type = data["count_type"]
 
 	try:
 		user = current_user.name
@@ -405,7 +439,7 @@ def metainfoquery():
 		subheading_size = result[9]
 		axis_label_size = result[10]
 		marker_size = result[11]
-		
+
 	if "readlen_ambig" in data:
 		readlen_ambig = True
 	else:
@@ -430,22 +464,22 @@ def metainfoquery():
 		metagene_normalise = True
 	else:
 		metagene_normalise = False
-		
+
 	if "exclude_first" in data:
 		exclude_first = True
 	else:
 		exclude_first = False
-		
+
 	if "exclude_last" in data:
 		exclude_last = True
 	else:
 		exclude_last = False
-		
+
 	if "include_first" in data:
 		include_first = True
 	else:
 		include_first = False
-		
+
 	if "include_last" in data:
 		include_last = True
 	else:
@@ -463,23 +497,23 @@ def metainfoquery():
 		log_scale = True
 	else:
 		log_scale = False
-		
+
 	if "mrna_dist_per" in data:
 		mrna_dist_per = True
 	else:
-		mrna_dist_per = False		
-		
+		mrna_dist_per = False
+
 	if "md_start" in data:
 		md_start = True
 	else:
 		md_start = False
-		
+
 	if "md_stop" in data:
 		md_stop = True
 	else:
-		md_stop = False	
-		
-		
+		md_stop = False
+
+
 	if "mrna_readlen_per" in data:
 		mrna_readlen_per = True
 	else:
@@ -488,16 +522,14 @@ def metainfoquery():
 		count_agg = True
 	else:
 		count_agg = False
-
+	if "apply_offset" in data:
+		apply_offset = True
+	else:
+		apply_offset = False
 	if "mismatch_agg" in data:
 		mismatch_agg = True
 	else:
 		mismatch_agg = False
-
-	if "count_gc" in data:
-		count_gc = True
-	else:
-		count_gc = False
 
 	if "reverse_scale" in data:
 		reverse_scale = True
@@ -509,11 +541,201 @@ def metainfoquery():
 	else:
 		short_code = html_args["user_short"]
 		user_short_passed = True
+	if plottype == "sw_diff":
+		curr_time = time.time()
+		filename = "SW_Diff_{}".format(curr_time)
+		outfile = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
+		outfile.write("Gene,Tran,Window_start,Grp1_count,Grp2_count,Ratio,Difference\n")
+		trandict = {}
+		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{2}.sqlite".format(organism,transcriptome))
+		traninfo_cursor = traninfo_connection.cursor()
+		codon_dict = {}
+		principal_transcripts = {}
+		traninfo_cursor.execute("SELECT transcript,cds_start,cds_stop,length,gene FROM transcripts WHERE principal = 1;")
+		result = traninfo_cursor.fetchall()
+		gene_dict = {}
+		for row in result:
+			trandict[row[0]] = {"cds_start":row[1],"cds_stop":row[2],"length":row[3]}
+			gene_dict[row[0]] = row[4]
+					
+					
+		grp1_profile_dict = {}
+		grp2_profile_dict = {}
+		grp1_file_paths_dict = fetch_file_paths(sw_diff_group1,organism)
+		#printgrp1_file_paths_dict
+		grp2_file_paths_dict = fetch_file_paths(sw_diff_group2,organism)
+		for file_id in sw_diff_group1:
+			#printgrp1_file_paths_dict["riboseq"]
+			sqlite_db = SqliteDict(grp1_file_paths_dict["riboseq"][int(file_id)])
+			offsets = sqlite_db["offsets"]["fiveprime"]["offsets"]
+			#print"offsets", offsets
+			for transcript in trandict.keys():
+				if transcript not in grp1_profile_dict:
+					grp1_profile_dict[transcript] = {}
+				try:
+					counts = sqlite_db[transcript]
+				except:
+					continue
+				subprofile = build_profile(counts, offsets,False)
+				for pos in subprofile:
+					try:
+						grp1_profile_dict[transcript][pos] += subprofile[pos]
+					except:
+						grp1_profile_dict[transcript][pos] = subprofile[pos]
+			sqlite_db.close()
+			
+			
+			
+		for file_id in sw_diff_group2:
+			
+			sqlite_db = SqliteDict(grp2_file_paths_dict["riboseq"][int(file_id)])
+			offsets = sqlite_db["offsets"]["fiveprime"]["offsets"]
+			#print"offsets", offsets
+			for transcript in trandict.keys():
+				if transcript not in grp2_profile_dict:
+					grp2_profile_dict[transcript] = {}
+				try:
+					counts = sqlite_db[transcript]
+				except:
+					continue
+				subprofile = build_profile(counts, offsets,False)
+				for pos in subprofile:
+					try:
+						grp2_profile_dict[transcript][pos] += subprofile[pos]
+					except:
+						grp2_profile_dict[transcript][pos] = subprofile[pos]
+			sqlite_db.close()
+		for tran in grp1_profile_dict:
+			#if tran != "ENSMUST00000018470":
+			#	continue
+			#print grp1_profile_dict[tran]
+			#print "\n\n\n"
+			#print grp2_profile_dict[tran]
+			if tran in grp2_profile_dict:
+				tranlen = trandict[tran]["length"]
+				startpoint = 0
+				endpoint = tranlen
+				if custom_search_region != "whole_gene":
+					try:
+						cds_start = int(trandict[tran]["cds_start"])
+						cds_stop = int(trandict[tran]["cds_stop"])
+					except:
+						continue
+					if custom_search_region == "five_leader":
+						startpoint = 0
+						endpoint = cds_start
+					elif custom_search_region == "cds":
+						startpoint = cds_start
+						endpoint = cds_stop
+					elif custom_search_region == "three_trailer":
+						startpoint = cds_stop
+						endpoint = tranlen
+				for i in range(startpoint,endpoint, sw_diff_step_size):
+					#if i != 690:
+					#	continue
+					grp1_count = 1.0
+					grp2_count = 1.0
+					for x in range(i,i+sw_diff_window_size):
+						#print "x",x
+						if x in grp1_profile_dict[tran]:
+							#print "adding for grp1",  grp1_profile_dict[tran][x]
+							grp1_count += grp1_profile_dict[tran][x]
+						if x in grp2_profile_dict[tran]:
+							#print "adding fro grp2", grp2_profile_dict[tran][x]
+							grp2_count += grp2_profile_dict[tran][x]
+					diff = abs(grp1_count-grp2_count)
+					if diff > sw_diff_min_diff:
+						#print "grp1 count grp2 coutn, i, "
+						ratio = grp1_count/grp2_count
+						gene = gene_dict[tran]
+						outfile.write("{},{},{},{},{},{},{}\n".format(gene,tran,i,grp1_count,grp2_count,ratio,(grp1_count-grp2_count)))
 
+		
+		return filename
 
+	if plottype == "bulk_dl":
+		curr_time = time.time()
+		transcripts = data["region"]
+		traninfo_dict = {}
+		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{2}.sqlite".format(organism,transcriptome))
+		traninfo_cursor = traninfo_connection.cursor()
+		if transcripts == "custom":
+			traninfo_cursor.execute("SELECT transcript,gene,cds_start,cds_stop,length FROM transcripts WHERE transcript IN ({})".format(str(te_tranlist).strip("[]").replace('"','')))
+		elif transcripts == "principal":
+			traninfo_cursor.execute("SELECT transcript,gene,cds_start,cds_stop,length FROM transcripts WHERE principal = 1")
+		elif transcripts == "all":
+			traninfo_cursor.execute("SELECT transcript,gene,cds_start,cds_stop,length FROM transcripts")
+		result = traninfo_cursor.fetchall()
+		for row in result:
+			#print "length", row[4]
+			traninfo_dict[row[0]] = {"gene":row[1], "cds_start":row[2], "cds_stop":row[3], "length":int(row[4])}
+		identifiers = []
+		filepaths = []
+		map_types = ["unambig"]
+		if readlen_ambig == True:
+			map_types.append("ambig")
+		for transcript in traninfo_dict:
+			outfile = open("{}/static/tmp/{}_{}".format(config.SCRIPT_LOC,transcript,curr_time),"w")
+			filepaths.append("{}_{}".format(transcript,curr_time))
+			count_dict = {}
+			for filetype in file_paths_dict:
+				for file_id in file_paths_dict[filetype]:
+					filepath = file_paths_dict[filetype][file_id]
+					cursor.execute("SELECT file_name, file_description FROM files WHERE file_id = {}".format(file_id))
+					result = cursor.fetchone()
+					file_name = result[0]
+					file_desc = result[1]
+					identifier = "{}_({})".format(file_name, file_desc)
+					identifiers.append(identifier)
+					count_dict[identifier] = {}
+					for i in range(0,traninfo_dict[transcript]["length"]):
+						count_dict[identifier][i] = 0
+					if os.path.isfile(filepath):
+						sqlite_db = SqliteDict(filepath, autocommit=False)
+						offsets = sqlite_db["offsets"]["fiveprime"]["offsets"]
+					else:
+						return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath)
+					if transcript in sqlite_db:
+						for map_type in map_types:
+							counts = sqlite_db[transcript][map_type]
+							for readlen in counts:
+								if readlen > minreadlen and readlen < maxreadlen:
+									if readlen in offsets:
+										offset = offsets[readlen]
+									else:
+										offset = 15
+									for pos in counts[readlen]:
+										if apply_offset == True:
+											try:
+												count_dict[identifier][pos+offset] += counts[readlen][pos]
+											except:
+												pass
+										else:
+											count_dict[identifier][pos] += counts[readlen][pos]
+			if traninfo_dict[transcript]["cds_start"] != None:
+				outfile.write("#{}_{}_{}_{}\n".format(transcript, traninfo_dict[transcript]["gene"],traninfo_dict[transcript]["cds_start"],traninfo_dict[transcript]["cds_stop"]))
+			else:
+				outfile.write("#{}_{}_noncoding\n".format(transcript, traninfo_dict[transcript]["gene"]))
+			outfile.write("Pos,")
+			for identifier in identifiers:
+				outfile.write("{},".format(identifier))
+			outfile.write("Total\n")
+			for i in range(0,traninfo_dict[transcript]["length"]):
+				outfile.write(str(i)+",")
+				pos_total = 0 
+				for identifier in identifiers:
+					outfile.write("{},".format(count_dict[identifier][i]))
+					pos_total += count_dict[identifier][i]
+				outfile.write("{}\n".format(pos_total))
+			
+		#print "tar -czvf {1}/static/tmp/bulk_dl_{0}.tar.gz -C  {2}".format(curr_time,config.SCRIPT_LOC, str(filepaths).strip("[]").replace(",","").replace("'",""))
+		subprocess.call("tar -C {1}/static/tmp/ -czvf {1}/static/tmp/bulk_dl_{0}.tar.gz {2}".format(curr_time,config.SCRIPT_LOC, str(filepaths).strip("[]").replace(",","").replace("'","")),shell=True)
+				
+		return  "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/static/tmp/bulk_dl_{1}.tar.gz' target='_blank' ><button class='button centerbutton' type='submit'><b>Download result</b></button></a> </div>".format(config.SCRIPT_LOC, curr_time)
+		
 	if plottype == "readlen_dist":
-		print "readlength dist called, custom_search_region is ", custom_search_region
-		print "metagene_tranlist is", metagene_tranlist
+		#print"readlength dist called, custom_search_region is ", custom_search_region
+		#print"metagene_tranlist is", metagene_tranlist
 		master_dict = {}
 		if metagene_tranlist != "":
 			metagene_tranlist = metagene_tranlist.split(",")
@@ -549,15 +771,15 @@ def metainfoquery():
 							else:
 								master_dict[i] = read_lengths[i]
 				else:
-					traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.v2.sqlite".format(organism))
+					traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{2}.sqlite".format(organism,transcriptome))
 					traninfo_cursor = traninfo_connection.cursor()
 					if metagene_tranlist == "":
-						print "metagene tranlist is", metagene_tranlist
+						#print"metagene tranlist is", metagene_tranlist
 						traninfo_cursor.execute("SELECT transcript,sequence,cds_start,cds_stop FROM transcripts WHERE principal = 1;")
 						result = traninfo_cursor.fetchall()
 					else:
-						print "metagene tranlist is", metagene_tranlist
-						
+						#print"metagene tranlist is", metagene_tranlist
+
 						#print "SELECT transcript,sequence,cds_start,cds_stop FROM transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]"))
 						traninfo_cursor.execute("SELECT transcript,sequence,cds_start,cds_stop FROM transcripts WHERE transcript IN ({})".format(str(metagene_tranlist).strip("[]").replace('"','')))
 						result = traninfo_cursor.fetchall()
@@ -578,14 +800,14 @@ def metainfoquery():
 											master_dict[readlen] += cnt
 										elif custom_search_region == "five_leader":
 											if pos < cds_start:
-												master_dict[readlen] += cnt 
+												master_dict[readlen] += cnt
 										elif custom_search_region == "cds":
 											if pos > cds_start and pos < cds_stop:
-												master_dict[readlen] += cnt 
+												master_dict[readlen] += cnt
 										elif custom_search_region == "three_trailer":
 											if pos > cds_stop:
-												master_dict[readlen] += cnt 
-					
+												master_dict[readlen] += cnt
+
 		title = "Readlength distribution"
 		connection.close()
 		return metainfo_plots.readlen_dist(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size)
@@ -616,21 +838,34 @@ def metainfoquery():
 		return metainfo_plots.mismatch_pos(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size)
 	elif plottype == "single_tran_de":
 		range1 = single_tran_de_range1.split("_")
-		range2 = single_tran_de_range2.split("_")
+		range1_kbp = (float(int(range1[1]) - int(range1[0])))/1000
 		master_list = []
 		master_dict = {}
 		for filetype in file_paths_dict:
 			for file_id in file_paths_dict[filetype]:
 				range1_count = 1.001
-				range2_count = 1.001
 				filepath = file_paths_dict[filetype][file_id]
 				filename = filepath.split("/")[-1]
+				cursor.execute("SELECT file_description from files WHERE file_id = {};".format(file_id))
+				result = (cursor.fetchone())
+				file_desc = result[0]
 				study = filepath.split("/")[-2]
 				if study not in master_dict:
-					master_dict[study] = {"range1_count":0, "range2_count":0}
+					master_dict[study] = {"range1_count":0}
 				if os.path.isfile(filepath):
 					#Add the counts to the profile
 					sqlite_db = SqliteDict(filepath, autocommit=False)
+					mapped_reads = 0
+					try:
+						mapped_reads += float(sqlite_db["noncoding_counts"])
+					except:
+						pass
+					try:				
+						mapped_reads += float(sqlite_db["coding_counts"])
+					except:
+						pass
+					if mapped_reads < 100000:
+						return "ERROR: File {} has less than 100,000 mapped reads".format(filename)
 					if "offsets" in sqlite_db:
 						offsets = sqlite_db["offsets"]["fiveprime"]["offsets"]
 					else:
@@ -652,34 +887,20 @@ def metainfoquery():
 					for x in range(int(range1[0]), int(range1[1])):
 						if x in profile:
 							range1_count += profile[x]
-					for x in range(int(range2[0]), int(range2[1])):
-						if x in profile:
-							range2_count += profile[x]
-				max_count = max(range1_count, range2_count)
+					#print"range1_count, range1_len, mapped reads",range1_count, range1_kbp, mapped_reads
+					range1_tpm = (range1_count/range1_kbp)
+					range1_tpm = range1_tpm/(mapped_reads/1000000)
+					#print"range1_tpm", range1_tpm
 				master_dict[study]["range1_count"] += range1_count
-				master_dict[study]["range2_count"] += range2_count
-				try:
-					ratio = log((range1_count/range2_count),2)
-				except:
-					ratio = 0
-				#if ratio != 0:
-				#	ratio = log(ratio,2)
-				master_list.append((file_id, filename, range1_count, range2_count,max_count, ratio ))
+				master_list.append((file_id, filename, range1_tpm,mapped_reads,file_desc))
 		study_master_list = []
 		for study in master_dict:
 			range1_count = master_dict[study]["range1_count"]
-			range2_count = master_dict[study]["range2_count"]
-			max_count = max(range1_count, range2_count)
-			try:
-				ratio = log((range1_count/range2_count),2)
-			except:
-				ratio = 0
-			study_master_list.append((0, study, range1_count, range2_count,max_count, ratio ))
-		
-		sorted_master_list = sorted(master_list, key=lambda x:x[4])
+			study_master_list.append((0, study, range1_count))
+		sorted_master_list = sorted(master_list, key=lambda x:x[1])
 		return metainfo_plots.single_tran_de(single_tran_de_transcript, sorted_master_list,study_master_list,organism, transcriptome)
 	elif plottype == "codon_usage":
-		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.v2.sqlite".format(organism))
+		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{2}.sqlite".format(organism,transcriptome))
 		traninfo_cursor = traninfo_connection.cursor()
 		codon_dict = {}
 		principal_transcripts = {}
@@ -688,7 +909,7 @@ def metainfoquery():
 		for row in result:
 			if row[2] != "None" and row[2] != "" and row[2] != None:
 				principal_transcripts[str(row[0])] = {"seq":str(row[1]),"cds_start":int(row[2]),"cds_stop":int(row[3])}
-		
+
 		if file_paths_dict["riboseq"] == {} and file_paths_dict["rnaseq"] == {}:
 			flash("Error no files selected")
 			return "Error no files selected"
@@ -703,11 +924,11 @@ def metainfoquery():
 				offset_dict[file_id] = {}
 			sqlite_db.close()
 		tran_count = 0
-		
+
 
 		for file_id in file_paths_dict["riboseq"]:
 			sqlite_db = SqliteDict(file_paths_dict["riboseq"][file_id])
-			if "codon_usage_dict" in sqlite_db:
+			if "codon_usage_dict2" in sqlite_db:
 				codon_usage_dict = sqlite_db["codon_usage_dict"]
 				for codon in codon_usage_dict:
 					if codon not in codon_dict:
@@ -715,33 +936,41 @@ def metainfoquery():
 					codon_dict[codon]["ribo_count"] += codon_usage_dict[codon]["ribo_count"]
 					codon_dict[codon]["codon_count"] = codon_usage_dict[codon]["codon_count"]
 			else:
-				#codon_dict is the main dict that holds counts from all files, codon_usage_dict is file specific and will be saved for quick access later. 
+				#codon_dict is the main dict that holds counts from all files, codon_usage_dict is file specific and will be saved for quick access later.
 				codon_usage_dict = {}
+				offsets = offset_dict[file_id]
+				#print"old offsets", offsets
+				poffsets = {}
+				for offset in offsets:
+					value = offsets[offset]
+					new_value = value - 3
+					poffsets[offset] = new_value
+				#print"new offsets", poffsets
 				for transcript in principal_transcripts:
 					tran_count += 1
 					if tran_count%1000 == 0:
-						print "tran_count", tran_count
+						print"tran_count", tran_count
 					profile = {}
 					if transcript not in sqlite_db:
 						continue
-					offsets = offset_dict[file_id]
-					subprofile = build_profile(sqlite_db[transcript], offsets,"unambig")
+					
+					subprofile = build_profile(sqlite_db[transcript], poffsets,"unambig")
 					for pos in subprofile:
 						if pos not in profile:
 							profile[pos] = 0
 						profile[pos] += subprofile[pos]
 					seq = principal_transcripts[transcript]["seq"]
-					for i in range(principal_transcripts[transcript]["cds_start"], principal_transcripts[transcript]["cds_stop"],3):
+					for i in range(principal_transcripts[transcript]["cds_start"]-1,principal_transcripts[transcript]["cds_start"]+30):
 						codon = seq[i:i+3]
 						if len(codon) != 3:
 							continue
 						count = 0
 						if i in profile:
 							count += profile[i]
-						if i+1 in profile:
-							count += profile[i+1]
-						if i+2 in profile:
-							count += profile[i+2]
+						#if i+1 in profile:
+						#	count += profile[i+1]
+						#if i+2 in profile:
+						#	count += profile[i+2]
 						if codon not in codon_dict:
 							codon_dict[codon] = {"ribo_count":0,"codon_count":0.0}
 						if codon not in codon_usage_dict:
@@ -756,7 +985,7 @@ def metainfoquery():
 			sqlite_db.close()
 		return metainfo_plots.codon_usage(codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
 	elif plottype == "diff_codon_usage":
-		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.v2.sqlite".format(organism))
+		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{2}.sqlite".format(organism,transcriptome))
 		traninfo_cursor = traninfo_connection.cursor()
 		codon_dict_cond = {"condition1":{},"condition2":{}}
 		diff_codon_dict = {}
@@ -767,11 +996,11 @@ def metainfoquery():
 		for row in result:
 			if row[2] != "None" and row[2] != "" and row[2] != None:
 				principal_transcripts[str(row[0])] = {"seq":str(row[1]),"cds_start":int(row[2]),"cds_stop":int(row[3])}
-		
+
 		if file_paths_dict["riboseq"] == {} and file_paths_dict["rnaseq"] == {}:
 			flash("Error no files selected")
 			return "Error no files selected"
-		
+
 		condition_dict = {"condition1":[file_paths_dict["riboseq"].keys()[0]], "condition2":[file_paths_dict["riboseq"].keys()[1]]}
 
 		all_values = []
@@ -786,7 +1015,7 @@ def metainfoquery():
 					offset_dict[file_id] = {}
 				sqlite_db.close()
 			tran_count = 0
-			
+
 			for file_id in condition_dict[condition]:
 				sqlite_db = SqliteDict(file_paths_dict["riboseq"][file_id])
 				if "codon_usage_dict" in sqlite_db:
@@ -798,7 +1027,7 @@ def metainfoquery():
 						condition_totals[condition] += codon_usage_dict[codon]["ribo_count"]
 						codon_dict_cond[condition][codon]["codon_count"] = codon_usage_dict[codon]["codon_count"]
 				else:
-					#codon_dict_cond is the main dict that holds counts from all files, codon_usage_dict is file specific and will be saved for quick access later. 
+					#codon_dict_cond is the main dict that holds counts from all files, codon_usage_dict is file specific and will be saved for quick access later.
 					codon_usage_dict = {}
 					for transcript in principal_transcripts:
 						tran_count += 1
@@ -829,7 +1058,7 @@ def metainfoquery():
 								codon_dict_cond[condition][codon] = {"ribo_count":0,"codon_count":0.0}
 							#codon_dict_cond[codon]["ribo_count"] += count
 							#codon_dict_cond[codon]["codon_count"] += 1
-							
+
 							if codon not in codon_usage_dict:
 								codon_usage_dict[codon] = {"ribo_count":0,"codon_count":0.0}
 							codon_usage_dict[codon]["ribo_count"] += count
@@ -859,7 +1088,7 @@ def metainfoquery():
 				filename = filepath.split("/")[-1]
 				study = filepath.split("/")[-2]
 				if filename not in master_dict:
-					master_dict[filename] = {"tran1_count":0, 
+					master_dict[filename] = {"tran1_count":0,
 											"tran2_count":0}
 				if os.path.isfile(filepath):
 					#Add the counts to the profile
@@ -961,10 +1190,10 @@ def metainfoquery():
 				mismatch_profile = {"A":{},"T":{},"G":{},"C":{}}
 				for filetype in file_paths_dict:
 					for file_id in file_paths_dict[filetype]:
-						
+
 						filepath = file_paths_dict[filetype][file_id]
 						if os.path.isfile(filepath):
-							
+
 							#Add the counts to the profile
 							sqlite_db = SqliteDict(filepath, autocommit=False)
 							if transcript in sqlite_db:
@@ -976,7 +1205,7 @@ def metainfoquery():
 											if x not in profile:
 												profile[x] = 0
 											profile[x] += count
-											
+
 								#Add the mismatch to the profile
 								sqlite_db_seqvar = dict(sqlite_db[transcript]["seq"])
 								for pos in sqlite_db_seqvar:
@@ -987,11 +1216,11 @@ def metainfoquery():
 											if fixed_pos not in mismatch_profile[char]:
 												mismatch_profile[char][fixed_pos] = 0
 											count = sqlite_db_seqvar[pos][char]
-											mismatch_profile[char][fixed_pos] += count			
+											mismatch_profile[char][fixed_pos] += count
 						else:
 							return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath)
 						sqlite_db.close()
-				
+
 				for pos in profile:
 					if pos < minpos or pos > maxpos:
 						continue
@@ -1034,8 +1263,8 @@ def metainfoquery():
 				elif mismatch_region == "cds_stop":
 					minpos = cds_stop-0
 					maxpos = cds_stop+2
-				
-				
+
+
 				if positive_hits > mismatch_maxhit:
 					break
 				sequence = traninfo_dict[transcript]["seq"]
@@ -1045,7 +1274,7 @@ def metainfoquery():
 						file_string += "{},".format(file_id)
 						filepath = file_paths_dict[filetype][file_id]
 						if os.path.isfile(filepath):
-							
+
 							#Add the counts to the profile
 							sqlite_db = SqliteDict(filepath, autocommit=False)
 							profile = {}
@@ -1059,7 +1288,7 @@ def metainfoquery():
 											if x not in profile:
 												profile[x] = 0
 											profile[x] += count
-											
+
 								#Add the mismatch to the profile
 								sqlite_db_seqvar = dict(sqlite_db[transcript]["seq"])
 								for pos in sqlite_db_seqvar:
@@ -1070,11 +1299,11 @@ def metainfoquery():
 											if fixed_pos not in mismatch_profile[char]:
 												mismatch_profile[char][fixed_pos] = 0
 											count = sqlite_db_seqvar[pos][char]
-											mismatch_profile[char][fixed_pos] += count			
+											mismatch_profile[char][fixed_pos] += count
 						else:
 							return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath)
 						sqlite_db.close()
-				
+
 						for pos in profile:
 							if pos < minpos or pos > maxpos:
 								continue
@@ -1090,7 +1319,7 @@ def metainfoquery():
 											#return "Mismatch in transcript {} at position {}, read count:{}, mismatch count {}, transition {}".format(transcript, pos, profile[pos], mismatch_count, transition)
 											trips_link = '<a href="https://trips.ucc.ie/'+organism+'/'+transcriptome+'/interactive_plot/?&hili='+str(pos-10)+'_'+str(pos+10)+'&tran='+transcript+'&cov=T&nuc=T&files='+file_string+'" target="_blank_" >View on trips-viz</a>'
 											result_list.append([transcript, pos, profile[pos], mismatch_count, transition, int(per),trips_link,(filepath.split("/"))[-1]  ])
-											positive_hits += 1			
+											positive_hits += 1
 
 		table_str = "<table class='prediction_table hover'><tr><th>Transcript</th><th>Position</th><th>Filename</th><th>Read Count</th><th>Mismatch Count</th><th>Percentage</th><th>Transition</th><th>View</th></td>"
 		for item in result_list:
@@ -1099,99 +1328,70 @@ def metainfoquery():
 		return table_str
 	elif plottype == "te":
 		#traninfo_dict = shelve.open("{0}{1}/{1}.shelf".format(config.ANNOTATION_DIR,organism))
+		region = data["region"]
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
 		if owner == 1:
 			#transhelve = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
-			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+			if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+				transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+			else:
+				return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 		else:
 			#print "getting tran data", "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome)
 			#transhelve = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome), autocommit=False)
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
+			print "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome)
 		cursor = transhelve.cursor()
 		#print " this is the te tranlist :{}:".format(te_tranlist)
+		
 		if te_tranlist == "" or te_tranlist == ['']:
-			#print "selecting all principal transcripts"
-			cursor.execute("SELECT * from transcripts WHERE principal = 1")
+			te_tranlist = None
+		if count_type != "tpm":
+			if te_tranlist == None:
+				if region == "all":
+					cursor.execute("SELECT * from transcripts WHERE principal = 1")
+				else:
+					cursor.execute("SELECT * from transcripts WHERE principal = 1 and tran_type = 1")
+			else:
+				#print "SELECT * from transcripts WHERE transcript IN ('{}')".format(str(te_tranlist).strip("[]"))
+				cursor.execute("SELECT * from transcripts WHERE transcript IN ({})".format(str(te_tranlist).strip("[]")))
 		else:
-			#print "SELECT * from transcripts WHERE transcript IN ('{}')".format(str(te_tranlist).strip("[]"))
-			cursor.execute("SELECT * from transcripts WHERE transcript IN ({})".format(str(te_tranlist).strip("[]")))
+			print "SELECTING EVERY TRASNSCIPRT"
+			cursor.execute("SELECT * from transcripts")
 
-		if total_files >= 31 and count_agg == False:
-			return "Error: A maximum of 30 files can be selected if not aggregating counts. Reduce number of selected files or click the 'Aggregate counts' checkbox at the top right of the page."
-			
+		if count_type == "tpm":
+			if total_files > 200:
+				return "Error: A maximum of 200 files can be used when TPM is selected."
+
+				
+		if te_tranlist == None:
+			if total_files >= 31 and count_agg == False:
+				return "Error: A maximum of 30 files can be selected if not aggregating counts and using all transcripts. Reduce number of selected files or click the 'Aggregate counts' checkbox at the top right of the page. Alternatively input a list of transcripts in the 'Transcript list' box."
+
 		te_minimum_reads = int(te_minimum_reads)
 		transcript_list =  cursor.fetchall()
 		#print transcript_list
 		# User may have passed list of genes instead of transcripts
-		if transcript_list == [] and te_tranlist != "" and te_tranlist != ['']:
+		if transcript_list == [] and te_tranlist != None:
 			#print "SELECT * from transcripts WHERE gene IN ({}) AND principal = 1".format(str(te_tranlist).strip("[]"))
 			cursor.execute("SELECT * from transcripts WHERE gene IN ({}) AND principal = 1".format(str(te_tranlist).strip("[]")))
 			transcript_list =  cursor.fetchall()
-		region = data["region"]
+		
 		traninfo_dict = {}
 		for result in transcript_list:
-			traninfo_dict[result[0]] = {"transcript":result[0] , "gene":result[1].replace(",","_").replace(";","_"), "length":result[2] , "cds_start":result[3] , "cds_stop":result[4] , "seq":result[5].upper() ,
+			if result[0] != "":
+				traninfo_dict[result[0]] = {"transcript":result[0] , "gene":result[1].replace(",","_").replace(";","_"), "length":result[2] , "cds_start":result[3] , "cds_stop":result[4] , "seq":result[5].upper() ,
 					"strand":result[6], "stop_list":result[7].split(","),"start_list":result[8].split(","), "exon_junctions":result[9].split(","),
 					"tran_type":result[10], "principal":result[11]}
 
 		transhelve.close()
-		
-		print "len traninfo_dict", len(traninfo_dict.keys())
-		
-		if count_gc == True:
-			#print "COUNT GC IS TRUE"
-			table_str = ""
-			filename = organism+"_translation_efficiencies_"+str(time.time())+".csv"
-			table_str += filename+"?~"
-			tmp_te_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-			tmp_te_file.write("Region,Gene,Transcript,A count, T count, G count, C count, GC%, Sequence length, Seqeunce\n")
-			gc_list = []
-			for transcript in traninfo_dict:
-				traninfo = traninfo_dict[transcript]
-				if region == "all":
-					seq = traninfo_dict[transcript]["seq"]
-					seqlen = len(seq)
-					nuc_count = calc_gc(seq)
-				elif region == "cds":
-					seq = traninfo_dict[transcript]["seq"][traninfo_dict[transcript]["cds_start"]:traninfo_dict[transcript]["cds_stop"]]
-					seqlen = len(seq)
-					nuc_count = calc_gc(seq)
-				elif region == "fiveprime":
-					seq = traninfo_dict[transcript]["seq"][:traninfo_dict[transcript]["cds_start"]]
-					seqlen = len(seq)
-					nuc_count = calc_gc(seq)
-				elif region == "threeprime":
-					seq = traninfo_dict[transcript]["seq"][traninfo_dict[transcript]["cds_stop"]:]
-					seqlen = len(seq)
-					nuc_count = calc_gc(seq)
-				if seqlen == 0:
-					gc = 0
-				else:
-					gc = round((nuc_count["G"]+nuc_count["C"])/(nuc_count["A"]+nuc_count["T"]+nuc_count["G"]+nuc_count["C"]),2)*100
-				gc_list.append([region,traninfo_dict[transcript]["gene"],transcript,nuc_count["A"],nuc_count["T"],nuc_count["G"],nuc_count["C"],gc,seqlen,seq])
-			all_sorted_rows = sorted(gc_list, key=lambda x: x[7],reverse=True)
-			total_rows =0
-			#print "all sorted rows", all_sorted_rows[:10]
-			for row in all_sorted_rows:
-				tmp_te_file.write("{},{},{},{},{},{},{},{},{},{}\n".format(row[0], row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9]))
-				total_rows += 1
-				if total_rows <= 1000:
-					input_str = ""
-					for item in row:
-						input_str += "{}.;".format(item)
-					input_str += "?~"
-					table_str += input_str
-			table_str = "TE?~"+str(total_rows)+"?~"+table_str
-			print "returning table str", table_str[:100]
-			return table_str
-		
-		
 		longest_tran_list = traninfo_dict.keys()
+		print "Transcripts NUMBER", len(longest_tran_list)
 		if count_agg == True:
-			table_str = aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism,all_seq_types, te_minimum_reads, html_args)
+			table_str = aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism,all_seq_types, te_minimum_reads, html_args,count_type,te_tranlist)
 		elif count_agg == False:
-			table_str = sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism,all_seq_types, te_minimum_reads, html_args)
+			table_str = sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism,all_seq_types, te_minimum_reads, html_args,count_type,te_tranlist)
 		return table_str
 
 	elif plottype == "mrna_dist":
@@ -1200,32 +1400,19 @@ def metainfoquery():
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
 		if owner == 1:
-			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+			if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+				transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+			else:
+				return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
-			
 		cursor = transhelve.cursor()
-		cursor.execute("SELECT transcript,cds_start,cds_stop from transcripts where principal = 1;")
+		cursor.execute("SELECT transcript,cds_start,cds_stop from transcripts where principal = 1 and tran_type = 1;")
 		result = cursor.fetchall()
-		
 		for row in result:
 			longest_tran_list.append(str(row[0]))
 			cds_dict[str(row[0])] = {"cds_start":int(row[1]),"cds_stop":int(row[2])}
-		#if organism == "homo_sapiens" or organism == "homo_sapiens_polio":
-		#	longest_tran_db = SqliteDict("{0}homo_sapiens/principal_isoforms_5ldr3tlr_rnaseq.sqlite".format(config.ANNOTATION_DIR), autocommit=False)
-		#	longest_tran_list = longest_tran_db["transcripts"]
-		#	longest_tran_db.close()
-		#	if organism == "homo_sapiens_polio":
-		#		longest_tran_list.append("POLIO")
-		#else:
-		#	longest_tran_list = traninfo_dict.keys()
-		
-		
-		
-		
-		
 		mrna_dist_dict = {}
-		
 		for filetype in file_paths_dict:
 			for file_id in file_paths_dict[filetype]:
 				filepath = file_paths_dict[filetype][file_id]
@@ -1234,29 +1421,27 @@ def metainfoquery():
 											"start_codon":0,
 											"cds":0,
 											"stop_codon":0,
-											"3_trailer":0}
+											"3_trailer":0,
+											"total":0}
 				if os.path.isfile(filepath):
 					sqlite_db = SqliteDict(filepath, autocommit=False)
-					#opendict = dict(sqlite_db)
-					#sqlite_db.close()
 				else:
 					return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath)
 				if "mrna_dist_dict" in sqlite_db:
-					print "getting old mrna dist dict"
+					print "loading old results"
 					mrna_dist_dict[filename]["5_leader"] = sqlite_db["mrna_dist_dict"]["5_leader"]
 					mrna_dist_dict[filename]["start_codon"] = sqlite_db["mrna_dist_dict"]["start_codon"]
 					mrna_dist_dict[filename]["cds"] = sqlite_db["mrna_dist_dict"]["cds"]
 					mrna_dist_dict[filename]["stop_codon"] = sqlite_db["mrna_dist_dict"]["stop_codon"]
 					mrna_dist_dict[filename]["3_trailer"] = sqlite_db["mrna_dist_dict"]["3_trailer"]
 					mrna_dist_dict[filename]["total"] = float(sqlite_db["mrna_dist_dict"]["5_leader"]+sqlite_db["mrna_dist_dict"]["start_codon"]+sqlite_db["mrna_dist_dict"]["cds"]+sqlite_db["mrna_dist_dict"]["stop_codon"]+sqlite_db["mrna_dist_dict"]["3_trailer"])
-				else:
-					print "going trhought transcript list", longest_tran_list[:10]
+				if mrna_dist_dict[filename]["total"] == 0:
+					print "calculating new results"
 					for transcript in longest_tran_list:
 						try:
 							transcript_dict = sqlite_db[transcript]["unambig"]
 						except:
 							continue
-							
 						try:
 							cds_start = cds_dict[transcript]["cds_start"]
 							cds_stop = cds_dict[transcript]["cds_stop"]
@@ -1284,38 +1469,33 @@ def metainfoquery():
 					sqlite_db.commit()
 				sqlite_db.close()
 		connection.close()
-		
-		print "returining mrna dist_dict, ",mrna_dist_dict
 		return metainfo_plots.mrna_dist(mrna_dist_dict,short_code, background_col,title_size, axis_label_size, subheading_size,marker_size,mrna_dist_per,md_start,md_stop)
 	elif plottype == "mrna_dist_readlen":
 		minreadlen = 15
 		maxreadlen = 100
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
-		
 		if owner == 1:
 			traninfo_dict = SqliteDict("{0}{1}/{1}.sqlite".format(config.ANNOTATION_DIR,organism), autocommit=False)
 		else:
 			traninfo_dict = SqliteDict("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome), autocommit=False)
-
 		longest_tran_list = []
 		cds_dict = {}
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
 		if owner == 1:
-			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+			if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+				transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+			else:
+				return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
-			
 		cursor = transhelve.cursor()
-		cursor.execute("SELECT transcript,cds_start,cds_stop from transcripts where principal = 1;")
+		cursor.execute("SELECT transcript,cds_start,cds_stop from transcripts where principal = 1 and tran_type = 1;")
 		result = cursor.fetchall()
-		
 		for row in result:
 			longest_tran_list.append(str(row[0]))
 			cds_dict[str(row[0])] = {"cds_start":int(row[1]),"cds_stop":int(row[2])}
-			
-			
 		mrna_dist_dict = {"5_leader":collections.OrderedDict(),
 						  "start_codon":collections.OrderedDict(),
 						  "cds":collections.OrderedDict(),
@@ -1348,8 +1528,6 @@ def metainfoquery():
 						mrna_dist_dict['stop_codon'][readlen] += sqlite_db["mrna_dist_readlen_dict"]["stop_codon"][readlen]
 						mrna_dist_dict['3_trailer'][readlen] += sqlite_db["mrna_dist_readlen_dict"]["3_trailer"][readlen]
 						mrna_dist_dict['total'][readlen] += sqlite_db["mrna_dist_readlen_dict"]["total"][readlen]
-						
-					
 				else:
 					file_specific_mrna_dist_dict = {"5_leader":{},
 													"start_codon":{},
@@ -1357,7 +1535,6 @@ def metainfoquery():
 													"stop_codon":{},
 													"3_trailer":{},
 													"total":{}}
-					
 					for readlen in range(minreadlen,maxreadlen+1):
 							file_specific_mrna_dist_dict['5_leader'][readlen]=0
 							file_specific_mrna_dist_dict['start_codon'][readlen]=0
@@ -1365,20 +1542,16 @@ def metainfoquery():
 							file_specific_mrna_dist_dict['stop_codon'][readlen]=0
 							file_specific_mrna_dist_dict['3_trailer'][readlen]=0
 							file_specific_mrna_dist_dict['total'][readlen]=0
-
 					for transcript in longest_tran_list:
-						#if transcript != "YLR044C":
-						#    continue
 						try:
 							transcript_dict = sqlite_db[transcript]["unambig"]
 						except:
-							continue 
+							continue
 						try:
 							cds_start = cds_dict[transcript]["cds_start"]
 							cds_stop = cds_dict[transcript]["cds_stop"]
 						except:
-							continue 
-
+							continue
 						for readlen in range(minreadlen,maxreadlen+1):
 							if readlen not in mrna_dist_dict["5_leader"]:
 								mrna_dist_dict['5_leader'][readlen]=0
@@ -1389,7 +1562,6 @@ def metainfoquery():
 								mrna_dist_dict['total'][readlen]=0
 							if readlen not in transcript_dict:
 								continue
-
 							for five_pos in transcript_dict[readlen]:
 								three_pos = five_pos+readlen
 								if three_pos <= cds_start+3:
@@ -1410,18 +1582,7 @@ def metainfoquery():
 					sqlite_db["mrna_dist_readlen_dict"] = file_specific_mrna_dist_dict
 					sqlite_db.commit()
 				sqlite_db.close()
-		if smooth_amount != 0:
-			smoothed_mrna_dist_dict = {}
-			for read_type in ["5_leader","start_codon","cds","stop_codon","3_trailer"]:
-				smoothed_mrna_dist_dict[read_type] = {}
-				for i in range(minreadlen,maxreadlen+1):
-					tot = 0
-					for x in range(i-smooth_amount,i+smooth_amount):
-						if x in mrna_dist_dict[read_type]:
-							tot += (mrna_dist_dict[read_type][x])
-					avg = tot/(smooth_amount*2)
-					smoothed_mrna_dist_dict[read_type][i] = avg
-			mrna_dist_dict = smoothed_mrna_dist_dict
+
 
 		# If mrna_readlen_per is true normalize everything over the max in it's category
 		if mrna_readlen_per == True:
@@ -1555,7 +1716,7 @@ def metainfoquery():
 							if master_sequence[x+y] != read[y]:
 								mismatches += 1
 							if mismatches > 2:
-								break 
+								break
 						if mismatches <= 2:
 							count_dict[filename]["unique_reads"] += 1
 							count_dict[filename]["count"] += count
@@ -1581,7 +1742,10 @@ def metainfoquery():
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 		owner = (cursor.fetchone())[0]
 		if owner == 1:
-			transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+			if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+				transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+			else:
+				return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		trancursor = transhelve.cursor()
@@ -1601,7 +1765,7 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 					mapped_reads = sqlite_db["coding_counts"]
 					if mapped_reads == None or mapped_reads == 0:
-						return "Error: Mapped reads info missing for one or more files, cannot normalise" 
+						return "Error: Mapped reads info missing for one or more files, cannot normalise"
 					mapped_reads_dict[file_id] = float(mapped_reads)
 			minval = min(mapped_reads_dict.values())
 			for file_id in mapped_reads_dict:
@@ -1874,7 +2038,7 @@ def metainfoquery():
 		for primetype in ["fiveprime","threeprime"]:
 			for i in range(minpos,maxpos+1):
 				count_dict[primetype][i] = 0
-				
+
 		if metagene_aggregate == True:
 			fiveprime_counts = []
 			threeprime_counts = []
@@ -1883,7 +2047,7 @@ def metainfoquery():
 				return "Can only choose a maximum of 6 files if not using aggregate option"
 			fiveprime_counts = {}
 			threeprime_counts = {}
-			
+
 		for filetype in file_paths_dict:
 			for file_id in file_paths_dict[filetype]:
 				cursor.execute("SELECT file_description from files where file_id = '{}';".format(file_id))
@@ -1942,9 +2106,9 @@ def metainfoquery():
 							if readlen in mgc[primetype]:
 								if i in mgc[primetype][readlen]:
 									count_dict[primetype][i] += (mgc[primetype][readlen][i])
-				
+
 				if metagene_aggregate == False:
-					
+
 					fiveprime_counts[file_desc] = []
 					threeprime_counts[file_desc] = []
 					for i in pos_list:
@@ -1954,7 +2118,7 @@ def metainfoquery():
 					for primetype in ["fiveprime","threeprime"]:
 						for i in range(minpos,maxpos+1):
 							count_dict[primetype][i] = 0
-				
+
 		if metagene_normalise == True and metagene_aggregate == False:
 			min_mapped_reads = 1000000000
 			for file_desc in mapped_reads_dict:
@@ -1978,16 +2142,16 @@ def metainfoquery():
 				for count in threeprime_counts[file_desc]:
 					norm_counts.append(count*mapped_reads_dict[file_desc])
 				threeprime_counts[file_desc] = norm_counts
-					
+
 		if metagene_aggregate == True:
 			for i in pos_list:
 				fiveprime_counts.append(count_dict["fiveprime"][i])
 				threeprime_counts.append(count_dict["threeprime"][i])
 		title = "Metagene profile"
 		connection.close()
-		
 
-			
+
+
 		return metainfo_plots.metagene_plot(pos_list,fiveprime_counts,threeprime_counts,metagene_type,title,minpos, maxpos,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end,metagene_aggregate)
 
 	elif plottype == "trip_periodicity":
@@ -2081,7 +2245,7 @@ def metainfoquery():
 					rrna_removed.append(sqlite_db["rrna_removed"])
 				else:
 					rrna_removed.append(0)
-				
+
 				if "pcr_duplicates" in sqlite_db:
 					pcr_duplicates.append(sqlite_db["pcr_duplicates"])
 				else:
@@ -2090,8 +2254,8 @@ def metainfoquery():
 
 		connection.close()
 		labels.append("")
-				
-		#Append a 0 to the end of every list so that there will be an empty space on the plot at the right hand side	
+
+		#Append a 0 to the end of every list so that there will be an empty space on the plot at the right hand side
 		for listname in [unmapped, mapped_coding, mapped_noncoding, ambiguous, cutadapt_removed, rrna_removed,pcr_duplicates]:
 			listname.append(0)
 		return metainfo_plots.mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels,ambiguous,cutadapt_removed,rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,breakdown_per,pcr_duplicates)
@@ -2101,12 +2265,14 @@ def metainfoquery():
 		max_readlen = heatmap_maxreadlen
 		min_pos = heatmap_startpos
 		max_pos = heatmap_endpos
-		count_list = []
-		positions = []
-		readlengths = []
+		master_count_list = []
+		
 
 		for filetype in file_paths_dict:
 			for file_id in file_paths_dict[filetype]:
+				positions = []
+				readlengths = []
+				count_list = []
 				filepath = file_paths_dict[filetype][file_id]
 				if os.path.isfile(filepath):
 					sqlite_db = SqliteDict(filepath, autocommit=False)
@@ -2115,9 +2281,15 @@ def metainfoquery():
 				if "metagene_counts" not in sqlite_db:
 					return "No metagene counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page."
 				if heatmap_metagene_type == "metagene_start":
-					mgc = sqlite_db["metagene_counts"]
+					if metagene_tranlist == "":
+						mgc = sqlite_db["metagene_counts"]
+					else:
+						mgc = create_custom_metagene("AUG", 0, 0, 3, 0, "cds", False, False, True, False,sqlite_db, organism,metagene_tranlist,"All",transcriptome)
 				elif heatmap_metagene_type == "metagene_stop":
-					mgc = sqlite_db["stop_metagene_counts"]
+					if metagene_tranlist == "":
+						mgc = sqlite_db["stop_metagene_counts"]
+					else:
+						mgc = create_custom_metagene("UAG,UAA,UGA", 0, 0, 0, 3, "cds", False, False, False, True,sqlite_db, organism,metagene_tranlist,"All",transcriptome)
 				elif heatmap_metagene_type == "metagene_second_aug":
 					mgc = sqlite_db["secondary_metagene_counts"]
 				sqlite_db.close()
@@ -2128,23 +2300,41 @@ def metainfoquery():
 							if readlen in mgc[primetype]:
 								if i in mgc[primetype][readlen]:
 									if mgc[primetype][readlen][i] != 0:
-										if log_scale == True:
-											count_list.append(log(mgc[primetype][readlen][i],2))
-										else:
-											count_list.append(mgc[primetype][readlen][i])
+										count_list.append(mgc[primetype][readlen][i])
 									else:
-										count_list.append(None)
+										count_list.append(0)
 								else:
-									count_list.append(None)
+									count_list.append(0)
 								readlengths.append(readlen)
 								positions.append(i)
 							else:
 								readlengths.append(readlen)
 								positions.append(i)
-								count_list.append(None)
+								count_list.append(0)
+				if master_count_list == []:
+					master_count_list = count_list
+				else:
+					for i in range(0,len(count_list)):
+						master_count_list[i] = master_count_list[i] + count_list[i]
+								
+								
+								
+								
+								
 		title = "Heatmap"
 		connection.close()
-		return metainfo_plots.heatplot(min_readlen, max_readlen, min_pos, max_pos, positions, readlengths,count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt")
+		#Replace 0 values with None in master_count_list and apply log transformation if applicable
+		fixed_master_count_list = []
+		for i in range(0,len(master_count_list)):
+			if master_count_list[i] == 0:
+				fixed_master_count_list.append(None)
+			else:
+				if log_scale == True:
+					fixed_master_count_list.append(log(master_count_list[i],2))
+				else:
+					fixed_master_count_list.append(master_count_list[i])
+			
+		return metainfo_plots.heatplot(min_readlen, max_readlen, min_pos, max_pos, positions, readlengths,fixed_master_count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt")
 
 	else:
 		if plottype not in ["replicate_comp"]:
@@ -2155,13 +2345,16 @@ def metainfoquery():
 
 
 def get_nuc_comp_reads(sqlite_db, nuccomp_reads, organism, transcriptome):
-	transhelve = sqlite3.connect("{0}{1}/{1}.v2.sqlite".format(config.ANNOTATION_DIR,organism))
+	if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+		transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+	else:
+		return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	cursor = transhelve.cursor()
 	cursor.execute("SELECT transcript,cds_start,cds_stop,sequence from transcripts WHERE principal = 1")
 	result = cursor.fetchall()
 	master_dict = {}
 	offsets = sqlite_db["offsets"]["fiveprime"]["offsets"]
-	
+
 	for row in result:
 		tran = row[0]
 		cds_start = int(row[1])
@@ -2175,26 +2368,26 @@ def get_nuc_comp_reads(sqlite_db, nuccomp_reads, organism, transcriptome):
 					for i in range(0,int(readlen)):
 						master_dict[readlen][i] = {"A":0,"T":0,"G":0,"C":0,"N":0}
 				for pos in counts[readlen]:
-					
+
 					count = counts[readlen][pos]
 					if readlen in offsets:
 						offset_pos = pos+offsets[readlen]
 					else:
 						offset_pos = pos+15
-					
+
 					if offset_pos >= cds_start and offset_pos <= cds_stop:
-						
+
 						readframe = offset_pos%3
 						cds_frame = (cds_start+2)%3
-					
-						
+
+
 						if readframe == cds_frame:
 							inframe = True
 						else:
 							inframe = False
-						
+
 						if nuccomp_reads == "inframe" and inframe == False:
-							continue						
+							continue
 						if nuccomp_reads == "offrame" and inframe == True:
 							continue
 						readseq = seq[pos:pos+readlen]
@@ -2204,22 +2397,24 @@ def get_nuc_comp_reads(sqlite_db, nuccomp_reads, organism, transcriptome):
 	#save results so they won't have to be computed again later
 	if "nuc_counts" in sqlite_db:
 		new_nuc_counts = sqlite_db["nuc_counts"]
-		new_nuc_counts[nuccomp_reads] = master_dict 
+		new_nuc_counts[nuccomp_reads] = master_dict
 		sqlite_db["nuc_counts"] = new_nuc_counts
 	else:
 		sqlite_db["nuc_counts"] = {nuccomp_reads:master_dict}
-	
-	
+
+
 	sqlite_db.commit()
 	return master_dict
 
 # Groups together counts from different filepaths for the metainformation counts table
-def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism, all_seq_types, te_minimum_reads, html_args):
+def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism, all_seq_types, te_minimum_reads, html_args,count_type,te_tranlist):
+	print "aggregate counts called"
 	file_list = ""
 	transcript_dict = {}
 	table_str = ""
 	filename = organism+"_translation_efficiencies_"+str(time.time())+".csv"
 	table_str += filename+"?~"
+	mapped_reads = 0.0
 	for seq_type in file_paths_dict:
 		for file_id in file_paths_dict[seq_type]:
 			file_list += "{},".format(file_id)
@@ -2228,6 +2423,11 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 				sqlite_db = SqliteDict(filepath, autocommit=False)
 			else:
 				return "File not found, please report this to tripsvizsite@gmail.com or via the contact page."
+			try:
+				mapped_reads += sqlite_db["coding_counts"]
+				mapped_reads += sqlite_db["noncoding_counts"]
+			except:
+				pass
 			if region == "all":
 				opendict = sqlite_db["unambiguous_all_totals"]
 			elif region == "cds":
@@ -2237,6 +2437,7 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 			elif region == "threeprime":
 				opendict = sqlite_db["unambiguous_threeprime_totals"]
 			sqlite_db.close()
+			#print"opendict", opendict
 			for transcript in longest_tran_list:
 				if transcript not in transcript_dict:
 					transcript_dict[transcript] = {}
@@ -2244,6 +2445,54 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 					transcript_dict[transcript][seq_type] = 0
 				if transcript in opendict:
 					transcript_dict[transcript][seq_type] += opendict[transcript]
+
+	#If count_type is rpkm or tpm, transform the raw counts
+	if count_type == "rpkm":
+		if mapped_reads == 0.0:
+			return "Cannot calculate RPKM. No mapped reads data available"
+		#per million scaling factor
+		pmsf = mapped_reads/1000000
+		for transcript in longest_tran_list:
+			tranlength = float(traninfo_dict[transcript]["length"])
+			if traninfo_dict[transcript]["cds_start"] != None:
+				if region == "fiveprime":
+					tranlength = float(traninfo_dict[transcript]["cds_start"]-1)
+				elif region == "cds":
+					tranlength = float((traninfo_dict[transcript]["cds_stop"]+3)-(traninfo_dict[transcript]["cds_start"]-1))
+				elif region == "threeprime":
+					tranlength = float(traninfo_dict[transcript]["length"]-(traninfo_dict[transcript]["cds_stop"]+3))
+			# get tranlength in kilobases
+			tranlength = tranlength/1000
+			#print"AGGREGATE,pmsf, tranlength",pmsf, tranlength
+			for seq_type in transcript_dict[transcript]:
+				#print"COUNT ", transcript_dict[transcript][seq_type]
+				transcript_dict[transcript][seq_type] = round((transcript_dict[transcript][seq_type]/pmsf)/tranlength,2)
+	#If count_type is rpkm or tpm, transform the raw counts
+	if count_type == "tpm":
+		total_rpk = 0.0
+
+		for transcript in longest_tran_list:
+			tranlength = float(traninfo_dict[transcript]["length"])
+			if traninfo_dict[transcript]["cds_start"] != None:
+				if region == "fiveprime":
+					tranlength = float(traninfo_dict[transcript]["cds_start"]-1)
+				elif region == "cds":
+					tranlength = float((traninfo_dict[transcript]["cds_stop"]+3)-(traninfo_dict[transcript]["cds_start"]-1))
+				elif region == "threeprime":
+					tranlength = float(traninfo_dict[transcript]["length"]-traninfo_dict[transcript]["cds_stop"]+3)
+			# get tranlength in kilobases
+			tranlength = tranlength/1000
+			for seq_type in transcript_dict[transcript]:
+				rpk = transcript_dict[transcript][seq_type]/tranlength
+				transcript_dict[transcript][seq_type] = rpk 
+				total_rpk += rpk 
+		pmsf = total_rpk/1000000
+		for transcript in transcript_dict:
+			for seq_type in transcript_dict[transcript]:
+				transcript_dict[transcript][seq_type] = round(transcript_dict[transcript][seq_type]/pmsf,2)
+		print "total rpk", total_rpk
+
+
 	total_rows = 0
 	tmp_te_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
 	tmp_te_file.write("Filename, Gene,Transcript,Region,Riboseq count, Rnaseq count, Translation efficiency")
@@ -2252,8 +2501,14 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 			tmp_te_file.write(",{}".format(seq_type))
 	tmp_te_file.write("\n")
 	all_rows = []
-
-	for transcript in transcript_dict:
+	if te_tranlist != None:
+		final_tranlist = te_tranlist
+		print "'''final tranlist is te tranlist"
+	else:
+		final_tranlist = transcript_dict.keys()
+		print "final tranlist is transcript dict.keys)("
+	for transcript in final_tranlist:
+		#print "FINAL TRANSCRIPT", final_tranlist
 		seq_count_dict = {}
 		for seq_type in transcript_dict[transcript]:
 			try:
@@ -2323,29 +2578,50 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 
 
 
-def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism, all_seq_types, te_minimum_reads, html_args):
+def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism, all_seq_types, te_minimum_reads, html_args,count_type,te_tranlist):
 	file_list = ""
 	transcript_dict = {}
 	table_str = ""
 	filename = organism+"_translation_efficiencies_"+str(time.time())+".csv"
 	table_str += filename+"?~"
+	mapped_reads_dict = {}
 	for seq_type in file_paths_dict:
 		for file_id in file_paths_dict[seq_type]:
 			file_list += "{},".format(file_id)
 			filepath = file_paths_dict[seq_type][file_id]
 			inputfilename = (filepath.split("/")[-1]).replace(".sqlite","")
+			if inputfilename not in mapped_reads_dict:
+				mapped_reads_dict[inputfilename] = 0
+			
 			if os.path.isfile(filepath):
 				sqlite_db = SqliteDict(filepath, autocommit=False)
 			else:
 				return "File not found, please report this to tripsvizsite@gmail.com or via the contact page."
+			try:
+				mapped_reads_dict[inputfilename] += sqlite_db["coding_counts"]
+				mapped_reads_dict[inputfilename] += sqlite_db["noncoding_counts"]
+			except:
+				pass
 			if region == "all":
-				opendict =sqlite_db["unambiguous_all_totals"]
+				try:
+					opendict = sqlite_db["unambiguous_all_totals"]
+				except:
+					return "No unambigous totals availabel for file: {}".format("/".join(filepath.split("/")[-2:]))
 			elif region == "cds":
-				opendict =sqlite_db["unambiguous_cds_totals"]
+				try:
+					opendict = sqlite_db["unambiguous_cds_totals"]
+				except:
+					return "No unambigous totals availabel for file: {}".format("/".join(filepath.split("/")[-2:]))
 			elif region == "fiveprime":
-				opendict =sqlite_db["unambiguous_fiveprime_totals"]
+				try:
+					opendict = sqlite_db["unambiguous_fiveprime_totals"]
+				except:
+					return "No unambigous totals availabel for file: {}".format("/".join(filepath.split("/")[-2:]))
 			elif region == "threeprime":
-				opendict =sqlite_db["unambiguous_threeprime_totals"]
+				try:
+					opendict = sqlite_db["unambiguous_threeprime_totals"]
+				except:
+					return "No unambigous totals availabel for file: {}".format("/".join(filepath.split("/")[-2:]))
 			sqlite_db.close()
 			for transcript in longest_tran_list:
 				if transcript not in transcript_dict:
@@ -2356,21 +2632,99 @@ def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, org
 					transcript_dict[transcript][seq_type][inputfilename] = {"count":opendict[transcript],"file_id":str(file_id)}
 				else:
 					transcript_dict[transcript][seq_type][inputfilename] = {"count":0,"file_id":str(file_id)}
+					
+					
+					
+	#If count_type is rpkm or tpm, transform the raw counts
+	if count_type == "rpkm":
+		for transcript in longest_tran_list:
+			tranlength = float(traninfo_dict[transcript]["length"])
+			if traninfo_dict[transcript]["cds_start"] != None:
+				if region == "fiveprime":
+					tranlength = float(traninfo_dict[transcript]["cds_start"]-1)
+				elif region == "cds":
+					tranlength = float((traninfo_dict[transcript]["cds_stop"]+3)-(traninfo_dict[transcript]["cds_start"]-1))
+				elif region == "threeprime":
+					tranlength = float(traninfo_dict[transcript]["length"]-(traninfo_dict[transcript]["cds_stop"]+3))
+			# get tranlength in kilobases
+			tranlength = tranlength/1000
+			for seq_type in transcript_dict[transcript]:
+				for inputfilename in transcript_dict[transcript][seq_type]:
+					mapped_reads = float(mapped_reads_dict[inputfilename])
+					if mapped_reads == 0.0:
+						return "No mapped reads data for file {}".format(inputfilename)
+					#per million scaling factor
+					pmsf = mapped_reads/1000000
+					transcript_dict[transcript][seq_type][inputfilename]["count"] = round((transcript_dict[transcript][seq_type][inputfilename]["count"]/pmsf)/tranlength,2)
+	#skipped_files = []
+	#If count_type is rpkm or tpm, transform the raw counts
+	if count_type == "tpm":
+		total_rpk_dict = {}
+		for transcript in longest_tran_list:
+			tranlength = float(traninfo_dict[transcript]["length"])
+			if traninfo_dict[transcript]["cds_start"] != None:
+				if region == "fiveprime":
+					tranlength = float(traninfo_dict[transcript]["cds_start"]-1)
+				elif region == "cds":
+					tranlength = float((traninfo_dict[transcript]["cds_stop"]+3)-(traninfo_dict[transcript]["cds_start"]-1))
+				elif region == "threeprime":
+					tranlength = float(traninfo_dict[transcript]["length"]-(traninfo_dict[transcript]["cds_stop"]+3))
+			# get tranlength in kilobases
+			tranlength = tranlength/1000
+			for seq_type in transcript_dict[transcript]:
+				for inputfilename in transcript_dict[transcript][seq_type]:
+					if inputfilename not in total_rpk_dict:
+						total_rpk_dict[inputfilename] = 0
+					rpk = transcript_dict[transcript][seq_type][inputfilename]["count"]/tranlength
+					transcript_dict[transcript][seq_type][inputfilename]["count"] = rpk 
+					total_rpk_dict[inputfilename] += rpk 
+
+		for transcript in transcript_dict:
+			for seq_type in transcript_dict[transcript]:
+				for inputfilename in transcript_dict[transcript][seq_type]:
+					pmsf = total_rpk_dict[inputfilename]/1000000
+					transcript_dict[transcript][seq_type][inputfilename]["count"] = round(transcript_dict[transcript][seq_type][inputfilename]["count"]/pmsf,2)
+						#except Exception as e:
+						#	print "Error:",e,pmsf, total_rpk_dict[inputfilename],inputfilename, transcript,transcript_dict[transcript][seq_type][inputfilename]["count"]
+		print "total rpk", total_rpk_dict
 	total_rows = 0
 	tmp_te_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-	tmp_te_file.write("Filename,Gene,Transcript,Region,Riboseq count, Rnaseq count, Translation efficiency")
-	for seq_type in all_seq_types:
-		if seq_type != "riboseq" and seq_type != "rnaseq":
-			tmp_te_file.write(",{}".format(seq_type))
+	tmp_te_file.write("Gene,Transcript,Region,")
+	#write out headers to tmp_te_file
+	transcript = transcript_dict.keys()[0]
+	for seq_type in transcript_dict[transcript]:
+		for inputfilename in transcript_dict[transcript][seq_type]:
+			#if inputfilename not in skipped_files:
+			tmp_te_file.write("{}_{},".format(inputfilename,seq_type))
 	tmp_te_file.write("\n")
+				
 	all_rows = []
 
-	for transcript in transcript_dict:
-		seq_count_dict = {}
+	if te_tranlist != None:
+		final_tranlist = te_tranlist
+	else:
+		final_tranlist = transcript_dict.keys()
+	for transcript in final_tranlist:
+		try:
+			gene = traninfo_dict[transcript]["gene"]
+		except:
+			gene = "Unknown"
+		tmp_te_file.write("{},{},{},".format(gene,transcript,region))
+		for seq_type in transcript_dict[transcript]:
+			for inputfilename in transcript_dict[transcript][seq_type]:
+				#if inputfilename not in skipped_files:
+				count = transcript_dict[transcript][seq_type][inputfilename]["count"]
+				tmp_te_file.write("{},".format(count))
+		tmp_te_file.write("\n")
+
+
+
+	for transcript in final_tranlist:
 		for seq_type in transcript_dict[transcript]:
 			if seq_type not in file_paths_dict:
 				continue
 			for inputfilename in transcript_dict[transcript][seq_type]:
+				#if inputfilename not in skipped_files:
 				count = transcript_dict[transcript][seq_type][inputfilename]["count"]
 				file_id = transcript_dict[transcript][seq_type][inputfilename]["file_id"]
 				if count < te_minimum_reads:
@@ -2389,14 +2743,14 @@ def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, org
 					te = riboseq_count/rnaseq_count
 				except:
 					te = 0
-				tmp_te_file.write("{},{},{},{},{},{},{}".format(inputfilename,gene,transcript,region, riboseq_count, rnaseq_count, te))
+				#tmp_te_file.write("{},{},{},{},{},{},{}".format(inputfilename,gene,transcript,region, riboseq_count, rnaseq_count, te))
 				input_list = [inputfilename, gene,transcript,region, riboseq_count, rnaseq_count, te]
 				if seq_type != "riboseq" and seq_type != "rnaseq":
 					input_list.append(count)
 				input_list.append("<a href='http://trips.ucc.ie/"+organism+"/"+html_args["transcriptome"]+"/interactive_plot/?tran="+transcript+"&files="+file_id+"' target='_blank_' >View plot</a>")
 				all_rows.append(input_list)
-				tmp_te_file.write("\n")
-	tmp_te_file.close()
+				#tmp_te_file.write("\n")
+	#tmp_te_file.close()
 	os.chmod("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename), 0777)
 	#if both rnaseq and riboseq files, sort by te, else sort by the relevant count
 	anyfile = False
