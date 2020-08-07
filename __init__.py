@@ -11,20 +11,25 @@ import stats_plots
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.exceptions import BadRequest
 import config
-import riboflask_datasets
 from werkzeug import secure_filename
 from sqlitedict import SqliteDict
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 import smtplib
 from core_functions import fetch_file_paths,generate_short_code,base62_to_integer,build_profile,User
-from gene_reg_routes import gene_regulation_page, gene_regulation_query
 from metainfo_routes import metainfo_plotpage_blueprint, metainfoquery_blueprint
-from traninfo_routes import traninfo_plotpage_blueprint, traninfoquery_blueprint
 from comparison_routes import comparison_plotpage_blueprint, comparisonquery_blueprint
 from single_transcript_routes import single_transcript_plotpage_blueprint, single_transcript_query_blueprint
 from diff_exp_routes import diff_plotpage_blueprint,diffquery_blueprint
-from orfquery_routes import translated_orf_blueprint,orfquery_blueprint
+
+try:
+	from orfquery_routes import translated_orf_blueprint,orfquery_blueprint
+	import riboflask_datasets
+	from gene_reg_routes import gene_regulation_page, gene_regulation_query
+	from traninfo_routes import traninfo_plotpage_blueprint, traninfoquery_blueprint	
+except:
+	pass
+
 from threading import Lock
 lock = Lock()
 
