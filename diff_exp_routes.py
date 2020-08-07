@@ -131,6 +131,7 @@ def diffquery():
 	global user_short_passed
 	data = ast.literal_eval(request.data)
 	plottype = data["plottype"]
+
 	genetype = data["genetype"]
 	region = data["region"] #can be all, cds,fiveprime, or threeprime
 	if genetype != "coding" and region != "all":
@@ -141,6 +142,7 @@ def diffquery():
 	store_de_results = data["store_de_results"]
 	cond_desc = data["cond_desc"]
 	gene_list = data["gene_list"]
+	minreads = float(data["minreads"])
 	transcript_list = ((data["transcript_list"].strip(" ")).replace(" ",",")).split(",")
 	if data["min_cov"] != "undefined":
 		min_cov = float(data["min_cov"])
@@ -236,14 +238,16 @@ def diffquery():
 		mapped_reads_norm = True
 	else:
 		mapped_reads_norm = False
-
+	#DESeq2 requires all genes be included
+	if plottype == "deseq2":
+		minreads = 0
 	if data["minreads"].lower() == "anota2seq":
 		anota2seq = True
 		minreads = 0
 		mapped_reads_norm = False
 	else:
 		anota2seq = False
-		minreads = float(data["minreads"])
+		
 	if "ambiguous" in data:
 		ambiguous = True
 	else:
@@ -317,7 +321,6 @@ def diffquery():
 	if plottype == "deseq2":
 		if no_groups <= 1:
 			return "At least two replicates are required when using DESeq2"
-		minreads = 0
 		mapped_reads_norm = False
 		for i in range(1,no_groups+1):
 			if label in ["TE","Riboseq"]:
