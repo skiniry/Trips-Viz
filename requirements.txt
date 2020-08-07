@@ -1,0 +1,5 @@
+flask_recaptcha==0.4.2
+flask_login==0.4.1
+flask_security==3.0.0
+email_validator==1.1.0
+bokeh==0.12.14
