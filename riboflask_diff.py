@@ -702,8 +702,14 @@ def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 					teup_basemeans.append(basemean)
 					teup_lfcses.append(lfcSE)
 			else:
-				highlight_y_values.append(log(ribo_rna_dict[gene]["ribo1"],2))
-				highlight_x_values.append(log(ribo_rna_dict[gene]["ribo2"],2))
+				if ribo_rna_dict[gene]["ribo1"] != 0:
+					highlight_y_values.append(log(ribo_rna_dict[gene]["ribo1"],2))
+				else:
+					highlight_y_values.append(0)
+				if ribo_rna_dict[gene]["ribo2"] != 0:
+					highlight_x_values.append(log(ribo_rna_dict[gene]["ribo2"],2))
+				else:
+					highlight_x_values.append(0)
 				highlight_basemeans.append(basemean)
 				highlight_lfcses.append(lfcSE)
 				highlight_genes.append(gene)
@@ -747,8 +753,14 @@ def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 					teup_basemeans.append(basemean)
 					teup_lfcses.append(lfcSE)
 			else:
-				highlight_y_values.append(log(ribo_rna_dict[gene]["rna1"],2))
-				highlight_x_values.append(log(ribo_rna_dict[gene]["rna2"],2))
+				if ribo_rna_dict[gene]["rna1"] != 0:
+					highlight_y_values.append(log(ribo_rna_dict[gene]["rna1"],2))
+				else:
+					highlight_y_values.append(0)
+				if ribo_rna_dict[gene]["rna2"] != 0:
+					highlight_x_values.append(log(ribo_rna_dict[gene]["rna2"],2))
+				else:
+					highlight_x_values.append(0)
 				highlight_basemeans.append(basemean)
 				highlight_lfcses.append(lfcSE)
 				highlight_genes.append(gene)

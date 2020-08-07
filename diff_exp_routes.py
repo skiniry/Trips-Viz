@@ -241,6 +241,7 @@ def diffquery():
 	#DESeq2 requires all genes be included
 	if plottype == "deseq2":
 		minreads = 0
+		mapped_reads_norm = False
 	if data["minreads"].lower() == "anota2seq":
 		anota2seq = True
 		minreads = 0
@@ -441,9 +442,11 @@ def diffquery():
 		#DELETE GENES FROM DESEQ_DICT THAT DON'T HAVE A padj for either rna and ribo (these have low counts)
 		del_list = []
 		for gene in deseq_dict:
+			if gene == "PRX":
+				print "deseq_dict[prx]",deseq_dict[gene]
 			if deseq_dict[gene]["rna_padj"] == "NA" and  deseq_dict[gene]["ribo_padj"] == "NA":
 				del_list.append(gene)
-
+		
 		for gene in del_list:
 			del deseq_dict[gene]
 
