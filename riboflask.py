@@ -12,6 +12,8 @@ from fetch_shelve_reads2 import get_reads,get_seq_var,get_readlength_breakdown
 import sqlite3
 import os
 import config
+from new_plugins import InteractiveLegendPlugin,PointHTMLTooltip,TopToolbar,DownloadProfile,DownloadPNG
+
 
 # CSS for popup tables that appear when hovering over aug codons
 point_tooltip_css = """
@@ -103,7 +105,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	#This is a list of booleans that decide if the interactive legends boxes are filled in or not.Needs to be same length as labels
 	stop_codons = ["TAG","TAA","TGA"]
 	frame_orfs = {1:[],2:[],3:[]}
-	connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
