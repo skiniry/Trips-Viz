@@ -359,9 +359,9 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		frame3_subsequences = ax_f3.plot(near_cog_starts[2], [0.25]*len(near_cog_starts[2]), 'o', color='b',mec='k', ms=12, mew=1, alpha=0, zorder=4)
 
 		#Attach the labels to the subsequences plotted above
-		signaltooltip1 = plugins.PointHTMLTooltip(frame1_subsequences[0], signalhtml[0], voffset=10, hoffset=10, css=point_tooltip_css)
-		signaltooltip2 = plugins.PointHTMLTooltip(frame2_subsequences[0], signalhtml[1], voffset=10, hoffset=10, css=point_tooltip_css)
-		signaltooltip3 = plugins.PointHTMLTooltip(frame3_subsequences[0], signalhtml[2], voffset=10, hoffset=10, css=point_tooltip_css)
+		signaltooltip1 = PointHTMLTooltip(frame1_subsequences[0], signalhtml[0], voffset=10, hoffset=10, css=point_tooltip_css)
+		signaltooltip2 = PointHTMLTooltip(frame2_subsequences[0], signalhtml[1], voffset=10, hoffset=10, css=point_tooltip_css)
+		signaltooltip3 = PointHTMLTooltip(frame3_subsequences[0], signalhtml[2], voffset=10, hoffset=10, css=point_tooltip_css)
 	for axisname in (ax_f1, ax_f2, ax_f3,ax_nucseq,ax_cds):
 		axisname.tick_params(top=False, bottom=False, labelleft=False, labelright=False, labelbottom=False)
 	for label in ax_main.xaxis.get_majorticklabels():
@@ -419,7 +419,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	if leg_offset <0:
 		leg_offset = 0
 
-	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=legend_size,xoffset=leg_offset)
+	ilp = InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=legend_size,xoffset=leg_offset)
 	htmllabels = {1:[],2:[],3:[]}
 	all_start_points = {1:[],2:[],3:[]}
 	try:
@@ -492,9 +492,9 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	points2 =ax_f2.plot(all_start_points[2], [0.75]*len(all_start_points[2]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 	points3 =ax_f3.plot(all_start_points[3], [0.75]*len(all_start_points[3]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 
-	tooltip1 = plugins.PointHTMLTooltip(points1[0], htmllabels[1],voffset=10, hoffset=10, css=point_tooltip_css)
-	tooltip2 = plugins.PointHTMLTooltip(points2[0], htmllabels[2],voffset=10, hoffset=10, css=point_tooltip_css)
-	tooltip3 = plugins.PointHTMLTooltip(points3[0], htmllabels[3],voffset=10, hoffset=10, css=point_tooltip_css)
+	tooltip1 = PointHTMLTooltip(points1[0], htmllabels[1],voffset=10, hoffset=10, css=point_tooltip_css)
+	tooltip2 = PointHTMLTooltip(points2[0], htmllabels[2],voffset=10, hoffset=10, css=point_tooltip_css)
+	tooltip3 = PointHTMLTooltip(points3[0], htmllabels[3],voffset=10, hoffset=10, css=point_tooltip_css)
 
 	ax_f3.axes.get_yaxis().set_ticks([])
 	ax_f2.axes.get_yaxis().set_ticks([])
@@ -517,9 +517,9 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		returnstr += "{},{},{},{},{},{}\n".format(i+1,seq[i],f1_count, f2_count, f3_count,rna_count)
 
 	if seqhili == ['']:
-		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, TopToolbar(yoffset=100),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
 	else:
-		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, signaltooltip1,signaltooltip2,signaltooltip3, plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, signaltooltip1,signaltooltip2,signaltooltip3, TopToolbar(yoffset=100),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
 
 	ax_main.set_axis_bgcolor(background_col)
 	# This changes the size of the tick markers, works on both firefox and chrome.
