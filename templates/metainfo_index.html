@@ -895,6 +895,7 @@ $("#metainfoquery").click(function() {
 });
 
 if (html_args["user_plot_type"] != "None") {
+		console.log("user plot not none updating settings")
 		//console.log("user_plot_type1 "+html_args["user_plot_type"])
 		$('.'+html_args["user_plot_type"]+'').attr('checked', true);
 		update_settings(html_args["user_plot_type"]);
@@ -1140,6 +1141,7 @@ $("#options").on("change","input[name=metagene_type]",function(){
 
 //Update the options box on page load and load files in file box
 $(document).ready(function(){
+	console.log("Page loaded updating settings")
 	sortalltables()
 	var plottype = document.querySelector('input[name=plottype]:checked').value;
 	update_settings(plottype);

@@ -48,6 +48,7 @@ window.onload = function() {
 		newDiv.innerHTML += "<a class='plot' href="+"comparison"+">Single transcript comparison plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_plotdesc'>  (Whats this?) </a></br>";
 		newDiv.innerHTML += "<a class='plot' href="+"metainfo_plot"+">Meta-Information</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_metainfo_plotdesc'>  (Whats this?) </a></br>";
 		newDiv.innerHTML += "<a class='plot' href="+"differential"+">Differential plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_diff_plotdesc'>  (Whats this?) </a></br>";
+		newDiv.innerHTML += "<a class='plot' href="+"traninfo_plot"+">Transcriptome info</a></br>";
 		if (username ==  "developer") {
 				newDiv.innerHTML += "<a href="+"proteomics"+">Proteomics</a></br>";
 				newDiv.innerHTML += "<a href="+"orf_translation"+">Orf translation</a></br>";
@@ -55,7 +56,6 @@ window.onload = function() {
 		if (username ==  "master" || username == "114224403@umail.ucc.ie" || username == "audreymannion@gmail.com" || username == "darren" || username == "michal.swirski@student.uw.edu.pl") {
 			newDiv.innerHTML += "<a class='plot' href="+"orf_translation"+">Translated ORF detection</a></br>";
 			newDiv.innerHTML += "<a class='plot' href="+"gene_regulation"+">Gene regulation</a></br>";
-			newDiv.innerHTML += "<a class='plot' href="+"traninfo_plot"+">Transcriptome info</a></br>";
 			}
 		if (username ==  "yaroslavsolovev78@gmail.com" || username == "testuser") {
 			newDiv.innerHTML += "<a class='plot' href="+"orf_translation"+">Translated ORF detection</a></br>";

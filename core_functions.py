@@ -261,8 +261,36 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 		else:
 			url += "&crd=F"
 
+	if plot_type == "traninfo_plot":
+		url += "&plot={}".format(data['plottype'])
+		#nuc_comp_single, nuc_comp_multi, lengths_plot, gene_count, codon_usage, nuc_freq_plot, orfstats
+		if data["plottype"] == "nuc_comp_single":
+			url += "&metagene_tranlist={}".format(data["metagene_tranlist"])
+		if data["plottype"] == "nuc_comp_multi":
+			url += "&gc_tranlist={}".format(data["gc_tranlist"])
+			url += "&gc_tranlist2={}".format(data["gc_tranlist2"])
+			url += "&gc_tranlist3={}".format(data["gc_tranlist3"])
+			url += "&gc_tranlist4={}".format(data["gc_tranlist4"])
+			url += "&gc_location={}".format(data["gc_location"])
+			url += "&nucleotide={}".format(data["nucleotide"])
+			url += "&plot_type={}".format(data["plot_type"])
+		if data["plottype"] == "lengths_plot":
+			url += "&gc_tranlist={}".format(data["gc_tranlist"])
+			url += "&gc_tranlist2={}".format(data["gc_tranlist2"])
+			url += "&gc_tranlist3={}".format(data["gc_tranlist3"])
+			url += "&gc_tranlist4={}".format(data["gc_tranlist4"])
+			url += "&gc_location={}".format(data["gc_location"])
+			url += "&plot_type={}".format(data["plot_type"])
+		if data["plottype"] == "codon_usage":
+			url += "&gc_tranlist={}".format(data["gc_tranlist"])
+		if data["plottype"] == "nuc_freq_plot":
+			url += "&nuc_freq_plot_anchor={}".format(data["nuc_freq_plot_anchor"])
+			url += "&nuc_freq_plot_window={}".format(data["nuc_freq_plot_window"])
+			url += "&nuc_freq_plot_tranlist={}".format(data["nuc_freq_plot_tranlist"])
+			
 	if plot_type == "metainfo_plot":
 		url += "&plot={}".format(data['plottype'])
+		
 
 		# Nuc comp plot
 		if data["plottype"] == "nuc_comp":

@@ -852,3 +852,8 @@ div #files
 	width : 99%;
 	
 }
+
+
+.hidden_element {
+	visibility: hidden;
+}

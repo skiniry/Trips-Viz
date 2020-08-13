@@ -22,25 +22,31 @@ from comparison_routes import comparison_plotpage_blueprint, comparisonquery_blu
 from single_transcript_routes import single_transcript_plotpage_blueprint, single_transcript_query_blueprint
 from diff_exp_routes import diff_plotpage_blueprint,diffquery_blueprint
 
+
+
+app = Flask(__name__, static_folder='static')
+
 try:
-	from orfquery_routes import translated_orf_blueprint,orfquery_blueprint
+	
 	import riboflask_datasets
 	from gene_reg_routes import gene_regulation_page, gene_regulation_query
 	from traninfo_routes import traninfo_plotpage_blueprint, traninfoquery_blueprint	
+	from orfquery_routes import translated_orf_blueprint,orfquery_blueprint
 	app.register_blueprint(gene_regulation_page)
 	app.register_blueprint(gene_regulation_query)
 	app.register_blueprint(translated_orf_blueprint)
 	app.register_blueprint(orfquery_blueprint)
 	app.register_blueprint(traninfo_plotpage_blueprint)
 	app.register_blueprint(traninfoquery_blueprint)
-except:
+except Exception as e:
+	print "E: CANT IMPORT SUBMODULES: ",e
 	pass
 
 from threading import Lock
 lock = Lock()
 
 user_short_passed = False
-app = Flask(__name__, static_folder='static')
+
 app.register_blueprint(metainfo_plotpage_blueprint)
 app.register_blueprint(metainfoquery_blueprint)
 app.register_blueprint(single_transcript_plotpage_blueprint)
