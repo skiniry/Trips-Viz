@@ -121,7 +121,7 @@ def metainfo_plotpage(organism, transcriptome):
 
 
 # Used to create custom metagene plots on the metainformation plot page
-def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist,metagene_frame,transcriptome):
+def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val, include_first_val, include_last_val, custom_search_region, exclude_first, exclude_last, include_first, include_last,sqlite_db, organism,metagene_tranlist,metagene_frame,transcriptome,transhelve):
 	print "create custom metagene called"
 	custom_metagene_id = "cmgc_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format((custom_seq_list.upper()).replace(" ","").replace("T","U").replace(",","_"), custom_search_region, exclude_first, exclude_last, include_first, include_last,exclude_first_val,exclude_last_val,include_first_val,include_last_val,metagene_tranlist)
 	#try:
@@ -130,10 +130,11 @@ def create_custom_metagene(custom_seq_list, exclude_first_val, exclude_last_val,
 	#	pass
 	offsets = sqlite_db["offsets"]
 	#print"offsets",offsets
-	if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
-		transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
-	else:
-		return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+	#if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+	#	print "{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)
+	#	transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+	#else:
+	#	return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	cursor = transhelve.cursor()
 	if metagene_tranlist == "":
 		#print"selecting principal transcripts"
@@ -2028,6 +2029,15 @@ def metainfoquery():
 
 
 	elif plottype == "metagene_plot":
+		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
+		owner = (cursor.fetchone())[0]
+		if owner == 1:
+			if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+				transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+			else:
+				return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+		else:
+			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		minpos = -300
 		maxpos = 300
 		pos_list = []
@@ -2068,7 +2078,7 @@ def metainfoquery():
 				elif metagene_type == "metagene_second_aug":
 					mgc = sqlite_db["secondary_metagene_counts"]
 				elif metagene_type == "metagene_custom":
-					mgc = create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,organism,metagene_tranlist,metagene_frame)
+					mgc = create_custom_metagene(custom_seq_list,exclude_first_val,exclude_last_val,include_first_val,include_last_val,custom_search_region,exclude_first, exclude_last, include_first, include_last,sqlite_db,organism,metagene_tranlist,metagene_frame,transhelve)
 
 				if metagene_offsets == True:
 					new_mgc = {"fiveprime":{},"threeprime":{}}
@@ -2261,6 +2271,15 @@ def metainfoquery():
 		return metainfo_plots.mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels,ambiguous,cutadapt_removed,rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,breakdown_per,pcr_duplicates)
 
 	elif plottype == "heatmap":
+		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
+		owner = (cursor.fetchone())[0]
+		if owner == 1:
+			if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
+				transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+			else:
+				return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+		else:
+			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		min_readlen = heatmap_minreadlen
 		max_readlen = heatmap_maxreadlen
 		min_pos = heatmap_startpos
@@ -2284,12 +2303,12 @@ def metainfoquery():
 					if metagene_tranlist == "":
 						mgc = sqlite_db["metagene_counts"]
 					else:
-						mgc = create_custom_metagene("AUG", 0, 0, 3, 0, "cds", False, False, True, False,sqlite_db, organism,metagene_tranlist,"All",transcriptome)
+						mgc = create_custom_metagene("AUG", 0, 0, 3, 0, "cds", False, False, True, False,sqlite_db, organism,metagene_tranlist,"All",transcriptome,transhelve)
 				elif heatmap_metagene_type == "metagene_stop":
 					if metagene_tranlist == "":
 						mgc = sqlite_db["stop_metagene_counts"]
 					else:
-						mgc = create_custom_metagene("UAG,UAA,UGA", 0, 0, 0, 3, "cds", False, False, False, True,sqlite_db, organism,metagene_tranlist,"All",transcriptome)
+						mgc = create_custom_metagene("UAG,UAA,UGA", 0, 0, 0, 3, "cds", False, False, False, True,sqlite_db, organism,metagene_tranlist,"All",transcriptome,transhelve)
 				elif heatmap_metagene_type == "metagene_second_aug":
 					mgc = sqlite_db["secondary_metagene_counts"]
 				sqlite_db.close()

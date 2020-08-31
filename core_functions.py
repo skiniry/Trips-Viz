@@ -41,25 +41,29 @@ def fetch_studies(username, organism, transcriptome):
 		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchall())
 		for row in result:
-			#print "result row", row
+			print "result row", row
 			study_access_list.append(int(row[0]))
 			
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	result = (cursor.fetchone())
 	if result:
 		organism_id = int(result[0])
-
+	print "organism id", organism_id
 	#keys are converted from int to str as javascript will not accept a dictionary with ints for keys.
 	cursor.execute("SELECT study_id,study_name,private from studies WHERE organism_id = '{}';".format(organism_id))
 	result = (cursor.fetchall())
 	if result != []:
 		if result[0]:
 			for row in result:
+				print "STARTING STUDY_ID", row[0]
 				if row[2] == 0:
 					accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 				elif row[2] == 1:
+					print "study is private", row[0]
 					if row[0] in study_access_list:
 						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
+					else:
+						print "study not in study_access_list"
 	connection.close()
 	#print "returning accepted studies", accepted_studies
 	return accepted_studies
@@ -652,7 +656,7 @@ def calculate_coverages(sqlite_db,longest_tran_list,ambig_type, region, traninfo
 
 
 # Builds a profile, applying offsets
-def build_profile(trancounts, offsets, ambig):
+def build_profile(trancounts, offsets, ambig,minscore=None,scores=None):
 	#print "build profile called wth trancounts", trancounts
 	minreadlen = 15
 	maxreadlen = 150
@@ -666,6 +670,17 @@ def build_profile(trancounts, offsets, ambig):
 	except:
 		ambig_trancounts = {}
 	for readlen in unambig_trancounts:
+		if minscore != None:
+			#print "minscore not None", minscore
+			if readlen in scores:
+				#print "readlen", readlen
+				#print "scores[readlen]", scores[readlen]
+				if scores[readlen] < minscore:
+					#print "score is less than minscore skipping"
+					continue
+			else:
+				#print "readlen not in scores, skipping", readlen
+				continue
 		if readlen < minreadlen or readlen > maxreadlen:
 			continue
 		try:
@@ -682,6 +697,12 @@ def build_profile(trancounts, offsets, ambig):
 	
 	if ambig == True:
 		for readlen in ambig_trancounts:
+			if minscore != None:
+				if readlen in scores:
+					if scores[readlen] < minscore:
+						continue
+				else:
+					continue
 			if readlen < minreadlen or readlen > maxreadlen:
 				continue
 			try:
