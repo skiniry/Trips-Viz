@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, abort, request
+from flask import Blueprint, render_template, abort, request, jsonify, url_for
+from flask import current_app as app
 import sqlite3
 from sqlitedict import SqliteDict
 import ast
 import os
 import config
-from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_file_paths,generate_short_code
+from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_file_paths,generate_short_code,fetch_user
 import riboflask_compare
 import collections
 from flask_login import current_user
@@ -15,21 +16,22 @@ from flask_login import current_user
 comparison_plotpage_blueprint = Blueprint("comparisonpage", __name__, template_folder="templates")
 @comparison_plotpage_blueprint.route('/<organism>/<transcriptome>/comparison/')
 def comparisonpage(organism, transcriptome):
-	global user_short_passed
+	#global user_short_passed
 	user_short_passed = False
 	global local
 	try:
 		print local
 	except:
 		local = False
-	try:
-		user = current_user.name
-	except:
-		user = None
+
 	organism = str(organism)
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
+	user,logged_in = fetch_user()
+	
+	
+	
 	cursor.execute("SELECT gwips_clade,gwips_organism,gwips_database,default_transcript from organisms WHERE organism_name = '{}';".format(organism))
 	result = (cursor.fetchone())
 	gwips_clade = result[0]
@@ -94,25 +96,29 @@ def comparisonpage(organism, transcriptome):
 comparisonquery_blueprint = Blueprint("comparequery", __name__, template_folder="templates")
 @comparisonquery_blueprint.route('/comparequery', methods=['POST'])
 def comparequery():
-	global user_short_passed
+	#global user_short_passed
+	user_short_passed = False
 	tran_dict = {}
 	data = ast.literal_eval(request.data)
 	tran = data['transcript'].upper().strip()
 	organism = data['organism']
 	transcriptome = data['transcriptome']
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
-	connection.text_factory = str
-	cursor = connection.cursor()
-	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	
-	owner = (cursor.fetchone())[0]
+	user,logged_in = fetch_user()
+	
+	trips_connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	trips_connection.text_factory = str
+	trips_cursor = trips_connection.cursor()
+	
+	trips_cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
+	owner = (trips_cursor.fetchone())[0]
 	if owner == 1:
 		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
 			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
 		else:
 			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	else:
-		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
+		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
 	cursor.execute("SELECT * from transcripts WHERE transcript = '{}'".format(tran))
 	result = cursor.fetchone()
@@ -146,9 +152,11 @@ def comparequery():
 						cdslen = cds_stop-cds_start
 						threeutrlen = tranlen - cds_stop
 					return_str += (":{},{},{},{},{},{}".format(transcript[0], tranlen, cds_start, cdslen, threeutrlen,principal))
-				return return_str
+				tot_prog = 100
+				return jsonify({'current': 400, 'total': tot_prog, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
 		else:
-			return "ERROR! Could not find any transcript corresponding to {}".format(tran)
+			return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
+			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 	transhelve.close()
 	minread = int(data['minread'])
 	maxread = int(data['maxread'])
@@ -158,11 +166,10 @@ def comparequery():
 	master_file_dict = data['master_file_dict']
 	# This section is purely to sort by label alphabetically
 	if master_file_dict == {}:
-		return "Error: No files in the File list box. To add files to the file list box click on a study in the studies section above. This will populate the Ribo-seq and RNA-Seq sections with a list of files. Click on one of the files and then press the  Add button in the studies section. This will add the file to the File list box. Selecting another file and clicking Add again will add the new file to the same group in the File list. Alternatively to add a new group simply change the selected colour (by clicking on the coloured box in the studies section) and then click the Add file button."
+		return_str =  "Error: No files in the File list box. To add files to the file list box click on a study in the studies section above. This will populate the Ribo-seq and RNA-Seq sections with a list of files. Click on one of the files and then press the  Add button in the studies section. This will add the file to the File list box. Selecting another file and clicking Add again will add the new file to the same group in the File list. Alternatively to add a new group simply change the selected colour (by clicking on the coloured box in the studies section) and then click the Add file button."
+		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
-	connection.text_factory = str
-	cursor = connection.cursor()
+
 
 	for color in master_file_dict:
 		master_filepath_dict[color] = {"filepaths":[],"file_ids":[],"file_names":[],"file_descs":[],"mapped_reads":0,"minread":minread,"maxread":maxread}
@@ -175,8 +182,8 @@ def comparequery():
 			master_filepath_dict[color]["maxread"] = int(master_file_dict[color]["maxread"])
 			
 		for file_id in master_file_dict[color]["file_ids"]:
-			cursor.execute("SELECT file_name,file_description,file_type from files WHERE file_id = {};".format(file_id))
-			result = (cursor.fetchone())
+			trips_cursor.execute("SELECT file_name,file_description,file_type from files WHERE file_id = {};".format(file_id))
+			result = (trips_cursor.fetchone())
 			file_name = master_file_dict[color]["label"] 
 			file_paths = fetch_file_paths([file_id],organism)
 
@@ -186,7 +193,8 @@ def comparequery():
 					if os.path.isfile(filepath):
 						sqlite_db = SqliteDict(filepath, autocommit=False)
 					else:
-						return "File not found, please report this to tripsvizsite@gmail.com or via the contact page."
+						return_str =  "File not found, please report this to tripsvizsite@gmail.com or via the contact page."
+						return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 					#if maxread != 150:
 					#	read_lengths = sqlite_db["read_lengths"]
 					#	for i in range(master_filepath_dict[color]["minread"],master_filepath_dict[color]["maxread"]+1):
@@ -197,7 +205,8 @@ def comparequery():
 						master_filepath_dict[color]["mapped_reads"] += float(sqlite_db["coding_counts"])
 					else:
 						if "normalize" in data:
-							return "One or more selected files is missing values for 'coding_counts' and 'non_coding_counts' so cannot normalize with these files, please report this to tripsvizsite@gmail.com or via the contact page."
+							return_str = "One or more selected files is missing values for 'coding_counts' and 'non_coding_counts' so cannot normalize with these files, please report this to tripsvizsite@gmail.com or via the contact page."
+							return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 					master_filepath_dict[color]["filepaths"].append(filepath)
 					master_filepath_dict[color]["file_ids"].append(file_id)
 					master_filepath_dict[color]["file_names"].append(file_name)
@@ -224,10 +233,7 @@ def comparequery():
 		short_code = html_args["user_short"]
 		user_short_passed = True
 
-	try:
-		user = current_user.name
-	except:
-		user = None
+
 	#set colours to default values, if user logged in these will be overwritten
 	background_col = config.BACKGROUND_COL
 	comp_uga_col = config.UGA_COL
@@ -241,12 +247,12 @@ def comparequery():
 	cds_marker_colour = config.CDS_MARKER_COLOUR
 	legend_size = config.LEGEND_SIZE
 	if user != None:
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
-		result = (cursor.fetchone())
+		trips_cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+		result = (trips_cursor.fetchone())
 		user_id = result[0]
 		#get a list of organism id's this user can access
-		cursor.execute("SELECT background_col,comp_uga_col,comp_uag_col,comp_uaa_col,title_size,subheading_size,axis_label_size,marker_size,cds_marker_width,cds_marker_colour,legend_size from user_settings WHERE user_id = '{}';".format(user_id))
-		result = (cursor.fetchone())
+		trips_cursor.execute("SELECT background_col,comp_uga_col,comp_uag_col,comp_uaa_col,title_size,subheading_size,axis_label_size,marker_size,cds_marker_width,cds_marker_colour,legend_size from user_settings WHERE user_id = '{}';".format(user_id))
+		result = (trips_cursor.fetchone())
 		background_col = result[0]
 		uga_col = result[1]
 		uag_col = result[2]
@@ -258,15 +264,24 @@ def comparequery():
 		cds_marker_size = result[8]
 		cds_marker_colour = result[9]
 		legend_size = result[10]
-		connection.close()
+	trips_connection.close()
 		
 	if tran != "":
-		x = riboflask_compare.generate_plot(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, ribocoverage, organism,normalize,short_code,background_col,hili_start,
+		if app.debug == True or celery_availability == None:
+			task = riboflask_compare.generate_compare_plot(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
+											ribocoverage, organism,normalize,short_code,background_col,hili_start,
 											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,config.ANNOTATION_DIR,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
 											legend_size,transcriptome)
+			return task["result"], "NO_CELERY", {'Location': None}
+		else:
+			task = riboflask_compare.generate_compare_plot.delay(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
+											ribocoverage, organism,normalize,short_code,background_col,hili_start,
+											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,config.ANNOTATION_DIR,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
+											legend_size,transcriptome)
+			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	else:
-		x = "ERROR! Could not find any transcript corresponding to whatever you entered"
-	return x
+		return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
+		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 
 
 

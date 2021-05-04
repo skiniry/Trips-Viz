@@ -8,10 +8,10 @@ import os
 import re
 import subprocess
 import shelve
-import mpld3
-from mpld3 import plugins,utils
+import mpld4
+from mpld4 import plugins,utils
 import collections
-from mpld3.utils import get_id
+from mpld4.utils import get_id
 import pandas as pd
 from math import log
 from bokeh.plotting import figure, show, output_file
@@ -36,8 +36,8 @@ from bokeh.models import (
 	PrintfTickFormatter,
 	ColorBar
 )
-
-
+from celery_app import celery_application
+import logging
 
 #import seaborn
 
@@ -156,8 +156,12 @@ def get_near_cog_starts(seq):
 			near_cog_starts[(i+1)%3].append(i+1)
 	return near_cog_starts
 
-def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_color, short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list):
+@celery_application.task(bind=True)
+def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_color, short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list):
 	#Convert gene_list from string to list
+	logging.debug("generate plot called")
+	#logging.debug("sorted_min_exp_list: {}".format(sorted_min_exp_list))
+	logging.debug("bin_list: {}".format(bin_list))
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
 		split_list = gene_list.split(" ")
@@ -214,10 +218,10 @@ def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,rib
 			lower_thresholds_x.append(sorted_min_exp_list[(bin_count)*300][1])
 			lower_thresholds_y.append(bin_list[bin_count-1][3])
 			lower_thresholds_y.append(bin_list[bin_count][3])
-		#print i
-		#print "smel", sorted_min_exp_list[i]
-		#print "bin count", bin_list[bin_count]
+		if bin_list[bin_count][1] == 0.0:
+			continue
 		z_score = (sorted_min_exp_list[i][2]-bin_list[bin_count][0])/(bin_list[bin_count][1])
+		
 		#print bin_list[bin_count], sorted_min_exp_list[i][1], z_score
 		#print bin_list[bin_count][2]
 
@@ -370,11 +374,13 @@ def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,rib
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return graph
+	logging.debug("Returning plot")
+	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
+	#return graph
 
 
-
-def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label):
+@celery_application.task(bind=True)
+def ribo_vs_rna(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label):
 	#Convert gene_list from string to list
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
@@ -533,13 +539,14 @@ def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return graph
+	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
+	#return graph
 
 
 
 
-
-def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore):
+@celery_application.task(bind=True)
+def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore):
 	#Convert gene_list from string to list
 	#print ("gene list passed to deseq2_plot", gene_list)
 	if gene_list != "":
@@ -887,7 +894,8 @@ def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return graph
+	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
+	#return graph
 
 
 
@@ -895,10 +903,12 @@ def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 
 
 
-
-def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore,sig_translated,sig_rna,sig_buffering):
+@celery_application.task(bind=True)
+def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore,sig_translated,sig_rna,sig_buffering):
 	#Convert gene_list from string to list
 	# ("gene list passed to deseq2_plot", gene_list)
+	print "sig translated", sig_translated
+	print "len)sig_translated",len(sig_translated)
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
 		split_list = gene_list.split(" ")
@@ -1027,14 +1037,14 @@ def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq
 								rnadown_trans.append(ribo_rna_dict[gene]["tran"])
 					elif gene in sig_buffering:
 						#If no change in ribo, then this is buffered
-						if x > 0 :
+						if x > 0:
 							bufferedup_y_values.append(y)
 							bufferedup_x_values.append(x)
 							bufferedup_basemeans.append(basemean)
 							bufferedup_lfcses.append(lfcSE)
 							bufferedup_genes.append(gene)
 							bufferedup_trans.append(ribo_rna_dict[gene]["tran"])
-						elif x < 0 :
+						else:
 							buffereddown_y_values.append(y)
 							buffereddown_x_values.append(x)
 							buffereddown_basemeans.append(basemean)
@@ -1050,79 +1060,7 @@ def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq
 					highlight_lfcses.append(lfcSE)
 					highlight_genes.append(gene)
 					highlight_trans.append(ribo_rna_dict[gene]["tran"])
-		elif label == "Riboseq":
-			ribo_padj = ribo_rna_dict[gene]["ribo_padj"]
-			basemean = ribo_rna_dict[gene]["ribo_basemean"]
-			lfcSE = ribo_rna_dict[gene]["ribo_lfcSE"]
-			
-			if "NA" in ribo_padj:
-				ribo_padj = 1
-			ribo_padj = float(ribo_padj)
-			#print "ribo padj", ribo_padj
-			if ribo_padj > (minzscore/100):
-				#print "ribo padj is greater than minzscore/100",str(minzscore/100)
-				if ribo_rna_dict[gene]["ribo1"] != 0:
-					y_values.append(log(ribo_rna_dict[gene]["ribo1"],2))
-				else:
-					y_values.append(0)
-				if ribo_rna_dict[gene]["ribo2"] != 0:
-					x_values.append(log(ribo_rna_dict[gene]["ribo2"],2))
-				else:
-					x_values.append(0)
-				genes.append(gene)
-				trans.append(ribo_rna_dict[gene]["tran"])
-				basemeans.append(basemean)
-				lfcses.append(lfcSE)
-			else:
-				if ribo_rna_dict[gene]["ribo1"] != 0:
-					teup_y_values.append(log(ribo_rna_dict[gene]["ribo1"],2))
-				else:
-					teup_y_values.append(0)
-					
-				if ribo_rna_dict[gene]["ribo2"] != 0:
-					teup_x_values.append(log(ribo_rna_dict[gene]["ribo2"],2))
-				else:
-					teup_x_values.append(0)
-				teup_genes.append(gene)
-				teup_trans.append(ribo_rna_dict[gene]["tran"])
-				teup_basemeans.append(basemean)
-				teup_lfcses.append(lfcSE)
-		elif label == "Rnaseq":
-			rna_padj = ribo_rna_dict[gene]["rna_padj"]
-			basemean = ribo_rna_dict[gene]["rna_basemean"]
-			lfcSE = ribo_rna_dict[gene]["rna_lfcSE"]
-			
-			if "NA" in rna_padj:
-				rna_padj = 1
-			rna_padj = float(rna_padj)
-			if rna_padj > (minzscore/100):
-				basemeans.append(basemean)
-				lfcses.append(lfcSE)
-				#print "rna_padj {} is greather than the cutoff {}".format(rna_padj, minzscore/100)
-				if ribo_rna_dict[gene]["rna1"] != 0:
-					y_values.append(log(ribo_rna_dict[gene]["rna1"],2))
-				else:
-					y_values.append(0)
-				if ribo_rna_dict[gene]["rna2"] != 0:
-					x_values.append(log(ribo_rna_dict[gene]["rna2"],2))
-				else:
-					x_values.append(0)
-				genes.append(gene)
-				trans.append(ribo_rna_dict[gene]["tran"])
-			else:
-				#print "rna_padj {} is lesser than the cutoff {}".format(rna_padj, minzscore/100)
-				if ribo_rna_dict[gene]["rna1"] != 0:
-					teup_y_values.append(log(ribo_rna_dict[gene]["rna1"],2))
-				else:
-					teup_y_values.append(0)
-				if ribo_rna_dict[gene]["rna2"] != 0:
-					teup_x_values.append(log(ribo_rna_dict[gene]["rna2"],2))
-				else:
-					teup_x_values.append(ribo_rna_dict[gene]["rna2"])
-				teup_genes.append(gene)
-				teup_trans.append(ribo_rna_dict[gene]["tran"])
-				teup_basemeans.append(basemean)
-				teup_lfcses.append(lfcSE)
+	print "te up genes", teup_genes
 	#print "y values", y_values[:10]
 	#print "x values", x_values[:10]
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes,'basemeans':basemeans,'lfcses':lfcses})
@@ -1153,7 +1091,7 @@ def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq
 		source = ColumnDataSource({'x':highlight_x_values, 'y':highlight_y_values, 'trans':highlight_trans,'genes':highlight_genes,'basemeans':highlight_basemeans,'lfcses':highlight_lfcses})
 		p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#000000',legend="Highlighted Genes")
 	
-	
+	print "teup x vals, teup y vals", teup_x_values, teup_y_values
 	source = ColumnDataSource({'x':teup_x_values, 'y':teup_y_values, 'trans':teup_trans,'genes':teup_genes,'basemeans':teup_basemeans,'lfcses':teup_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#00ff99',legend="Translation up")
 	source = ColumnDataSource({'x':tedown_x_values, 'y':tedown_y_values, 'trans':tedown_trans,'genes':tedown_genes,'basemeans':tedown_basemeans,'lfcses':tedown_lfcses})
@@ -1164,9 +1102,11 @@ def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq
 	source = ColumnDataSource({'x':buffereddown_x_values, 'y':buffereddown_y_values, 'trans':buffereddown_trans,'genes':buffereddown_genes,'basemeans':buffereddown_basemeans,'lfcses':buffereddown_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#ffcc66',legend="Buffered down")
 	
+	print "rnaup genes", len(rnaup_genes)
+	print "rnadown genes", len(rnadown_genes)
 	source = ColumnDataSource({'x':rnaup_x_values, 'y':rnaup_y_values, 'trans':rnaup_trans,'genes':rnaup_genes,'basemeans':rnaup_basemeans,'lfcses':rnaup_lfcses})
-	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#cc0099',legend="mRNA abundance up")
-	source = ColumnDataSource({'x':teup_x_values, 'y':teup_y_values, 'trans':teup_trans,'genes':teup_genes,'basemeans':teup_basemeans,'lfcses':teup_lfcses})
+	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#cc0099',legend="mRNA abundacne up")
+	source = ColumnDataSource({'x':rnadown_x_values, 'y':rnadown_y_values, 'trans':rnadown_trans,'genes':rnadown_genes,'basemeans':rnadown_basemeans,'lfcses':rnadown_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#ffff00',legend="mRNA abundance down")
 	
 	#legend_label=name)
@@ -1237,7 +1177,8 @@ def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return graph
+	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
+	#return graph
 
 
 

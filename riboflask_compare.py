@@ -8,6 +8,7 @@ import sqlite3
 import config
 import os
 import config
+from celery_app import celery_application
 
 def merge_dict(dict1,dict2):
 	master_dict = dict1
@@ -22,7 +23,11 @@ def merge_dict(dict1,dict2):
 color_dict = {'frames': ['#FF4A45', '#64FC44', '#5687F9']}
 
 
-def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, offset_dict,ribocoverage,organism,normalize, short_code, background_col, hili_start, 
+
+
+
+@celery_application.task(bind=True)
+def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_dict,lite, offset_dict,ribocoverage,organism,normalize, short_code, background_col, hili_start, 
 				 hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,trips_annotation_location, title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,
 				 cds_marker_colour, legend_size,transcriptome):
 	labels = []
@@ -43,9 +48,10 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
 			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
 		else:
-			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 	else:
-		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
+		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()
 	cursor.execute("SELECT * from transcripts WHERE transcript = '{}'".format(tran))
 	result = cursor.fetchone()
@@ -178,10 +184,25 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 	
 	ax_main.set_ylim(0, y_max)
 	# draw cds start
-	plt.plot((cds_start,cds_start), (0, y_max), cds_marker_colour,linestyle = ':',linewidth=cds_marker_size)
+	#plt.plot((cds_start,cds_start), (0, y_max), cds_marker_colour,linestyle = ':',linewidth=cds_marker_size)
 
 	# draw cds end
-	plt.plot((cds_stop, cds_stop), (0, y_max), cds_marker_colour,linestyle = ':',linewidth=cds_marker_size)
+	#plt.plot((cds_stop, cds_stop), (0, y_max), cds_marker_colour,linestyle = ':',linewidth=cds_marker_size)
+	
+	
+	cds_markers = ax_main.plot((cds_start,cds_start), (0, y_max*0.97), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
+	ax_main.text(cds_start,y_max*0.97,"CDS start",fontsize=18,color="black",ha="center")
+	#ax_main.annotate('axes fraction',xy=(3, 1), xycoords='data',xytext=(0.8, 0.95), textcoords='axes fraction',arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='right', verticalalignment='top')
+	#trans = blended_transform_factory(ax_main.transData, ax_main.transAxes)
+	#ax_main.annotate('CDS RELATIVE START',(100,100),transform=trans)
+	#tform = blended_transform_factory(ax_main.transData, ax_main.transAxes)
+	#r=10
+	#ax_main.text(cds_start, 0.9, "CDS START OR WHATEVER", fontsize='xx-large', color='r', transform=tform)
+	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max*0.97), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
+	ax_main.text(cds_stop,y_max*0.97,"CDS stop",fontsize=18,color="black",ha="center")
+	line_collections.append(cds_markers)
+	start_visible.append(True)
+	labels.append("CDS Markers")
 	ax_f1 = plt.subplot2grid((30,1), (27,0),rowspan=1,sharex=ax_main)
 	ax_f1.set_axis_bgcolor('lightgray')
 	ax_f2 = plt.subplot2grid((30,1), (28,0),rowspan=1,sharex=ax_main)
@@ -223,7 +244,7 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 	if leg_offset <0:
 		leg_offset = 0
 	leg_offset += 230
-	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0.05, xoffset=leg_offset, yoffset=20,start_visible=start_visible,fontsize=legend_size)
+	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85, xoffset=leg_offset, yoffset=20,start_visible=start_visible,fontsize=legend_size)
 	plugins.connect(fig, ilp,plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
 	ax_main.set_axis_bgcolor(background_col)
 	# This changes the size of the tick markers, works on both firefox and chrome.
@@ -232,6 +253,7 @@ def generate_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, off
 	ax_main.yaxis.set_major_locator(plt.MaxNLocator(3))
 	ax_main.grid(color="white", linewidth=20,linestyle="solid")
 	graph = "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
-
+	tot_prog = 100
 	graph +=  mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 400, 'total': tot_prog, 'status': 'Complete','result': graph}
+	#return graph

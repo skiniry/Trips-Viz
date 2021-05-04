@@ -12,12 +12,17 @@ import re
 import subprocess
 import shelve
 import mpld3
+import operator
+import logging
+from sqlitedict import SqliteDict
+from math import log
 from mpld3 import plugins,utils
 import collections
 from mpld3.utils import get_id
 import pandas as pd
 import numpy as np
 from flask import make_response
+from celery_app import celery_application
 from scipy.stats.stats import spearmanr,pearsonr
 import matplotlib.cm as cm
 from bokeh.plotting import figure, show, output_file
@@ -70,7 +75,8 @@ line_tooltip_css = """
 
 
 
-def mismatches(master_dict, title, short_code, background_col,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def mismatches(self, master_dict, title, short_code, background_col,title_size, axis_label_size, subheading_size,marker_size):
 	print "mismatches plot called"
 	fig, ax = plt.subplots( figsize=(23,12))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
@@ -99,15 +105,29 @@ def mismatches(master_dict, title, short_code, background_col,title_size, axis_l
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
+
+def calc_factor(master_dict):
+	maxval = max(master_dict.values())
+	string_maxval = str(maxval)
+	zeroes = len(string_maxval)-1
+	zeroes_string = "0"*zeroes
+	factor = int("1"+zeroes_string)
+	print "factor", factor
+	for key in master_dict:
+		master_dict[key] = float(master_dict[key])/factor
+	return master_dict, zeroes
+	
 
 
-def readlen_dist(master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size):
-	print "readlen plot called"
+@celery_application.task(bind=True)
+def readlen_dist(self, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,celery_availability):
+	print "readlen plot called", celery_availability
+	master_dict, factor = calc_factor(master_dict)
 	returnstr = "Readlen,Count\n"
 	for key in master_dict:
 		returnstr += "{},{}\n".format(key, master_dict[key])
-	fig, ax = plt.subplots( figsize=(23,12))
+	fig, ax = plt.subplots( figsize=(22,13))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
 	ax.set_xlabel('Read Length', fontsize="26")
 	ax.set_ylabel('Count',fontsize="26",labelpad=50)
@@ -120,23 +140,28 @@ def readlen_dist(master_dict,title,short_code,background_col,readlength_col,titl
 	ax = plt.subplot(111)
 	title_str = "{} ({})".format(title,short_code)
 	ax.set_title(title_str,y=1.05,fontsize=title_size)
-	ax.bar(master_dict.keys(), master_dict.values(), width, color=readlength_col, linewidth=0, align="center")
+	logging.warn("Width is ", width)
+	read_length_list = test_list = [int(i) for i in master_dict.keys()]
+	print read_length_list, master_dict.values(), width, readlength_col, 0, "center"
+	ax.bar(read_length_list, master_dict.values(), width, color=readlength_col, linewidth=0, align="center")
 	ax.set_axis_bgcolor(background_col)
 	ax.tick_params('both', labelsize=marker_size)
-	ax.set_ylabel('Count', labelpad=100,fontsize=axis_label_size)
-	ax.set_xlabel('Readlength',fontsize=axis_label_size)
+	#ax.set_ylabel('Count', labelpad=100,fontsize=axis_label_size)
+	ax.set_ylabel('Count (x10 {})'.format(factor), labelpad=100,fontsize=axis_label_size)
+	ax.set_xlabel('Readlength',labelpad=-15,fontsize=axis_label_size)
 	#ax.xaxis.set_major_locator(plt.MaxNLocator(3))
 	#ax.yaxis.set_major_locator(plt.MaxNLocator(3))
 	#plt.rc('axes', linewidth=40,edgecolor="green")
 	plt.grid(color="white", linewidth=2,linestyle="solid")
-	plugins.connect(fig, plugins.TopToolbar(xoffset=-13, yoffset=135),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+	plugins.connect(fig, plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
-def mismatch_pos(master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def mismatch_pos(self, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size):
 	print "readlen plot called"
 	fig, ax = plt.subplots( figsize=(23,12))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
@@ -166,51 +191,81 @@ def mismatch_pos(master_dict,title,short_code,background_col,readlength_col,titl
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
-def nuc_comp(master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def nuc_comp(self, master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size,legend_size):
 	#print "readlen plot called"
+	#issue when using celery, seems to convert the integers to strings, change them back here
+	fixed_master_dict = {}
+	for nuc in master_dict:
+		fixed_master_dict[nuc] = {}
+		for readlen in master_dict[nuc]:
+			int_readlen = int(readlen)
+			fixed_master_dict[nuc][int_readlen] = master_dict[nuc][readlen]
+	master_dict = fixed_master_dict
 	labels = ["A","T","G","C"]
 	returnstr = "Position,A,T,G,C\n"
+	print "master_dict", master_dict
+	
 	for i in range(0,maxreadlen):
 		returnstr += "{},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(i,master_dict["A"][i],master_dict["T"][i],master_dict["G"][i],master_dict["C"][i])
-	fig, ax = plt.subplots( figsize=(23,12))
+	fig, ax = plt.subplots( figsize=(22,13))
+	ax = plt.subplot(111)
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
-	ax.set_xlabel('Position (nucleotides)',fontsize=axis_label_size)
-
+	ax.set_xlabel('Position (nucleotides)',labelpad=-10,fontsize=axis_label_size)
+	print "nuc comp type", nuc_comp_type
 	if nuc_comp_type == "nuc_comp_per":
-		ax.set_ylim(0,1)
-		ax.set_ylabel('Percent',fontsize=axis_label_size,labelpad=50)
+		ax.set_ylim(0,100)
+		ax.set_ylabel('Percent %',fontsize=axis_label_size,labelpad=50)
 	elif nuc_comp_type == "nuc_comp_count":
 		maxheight = max(max(master_dict["A"].values()),max(master_dict["T"].values()),max(master_dict["G"].values()),max(master_dict["C"].values()))
 		ax.set_ylim(0,maxheight)
-		ax.set_ylabel('Count',fontsize=axis_label_size,labelpad=100)
+		ax.set_ylabel('Count',fontsize=axis_label_size,labelpad=0)
 	if nuc_comp_direction == "nuc_comp_five":
 		ax.set_xlim(0,maxreadlen)
 	elif nuc_comp_direction == "nuc_comp_three":
 		ax.set_xlim((maxreadlen*-1),-1)
 	width = 0.95
 	#plot it
-	ax = plt.subplot(111)
+	
 	print "NUC COMP", short_code
 	title_str = "{} ({})".format(title,short_code)
 	ax.set_title(title_str, y=1.05,fontsize=title_size)
-	a_line = ax.plot(master_dict["A"].keys(), master_dict["A"].values(), label=labels, color=a_col, linewidth=4)
-	t_line = ax.plot(master_dict["T"].keys(), master_dict["T"].values(), label=labels, color=t_col, linewidth=4)
-	g_line = ax.plot(master_dict["G"].keys(), master_dict["G"].values(), label=labels, color=g_col, linewidth=4)
-	c_line = ax.plot(master_dict["C"].keys(), master_dict["C"].values(), label=labels, color=c_col, linewidth=4)
+	a_line = ax.plot(master_dict["A"].keys(), master_dict["A"].values(), label=labels, color=a_col, linewidth=6)
+	t_line = ax.plot(master_dict["T"].keys(), master_dict["T"].values(), label=labels, color=t_col, linewidth=6)
+	g_line = ax.plot(master_dict["G"].keys(), master_dict["G"].values(), label=labels, color=g_col, linewidth=6)
+	c_line = ax.plot(master_dict["C"].keys(), master_dict["C"].values(), label=labels, color=c_col, linewidth=6)
 	ax.set_axis_bgcolor(background_col)
 	ax.tick_params('both', labelsize=marker_size)
 	plt.grid(color="white", linewidth=2,linestyle="solid")
-	ilp = plugins.InteractiveLegendPlugin([a_line, t_line, g_line, c_line], ["A","T","G","C"], alpha_unsel=0,alpha_sel=1,start_visible=True)
-	plugins.connect(fig, ilp,plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+	ilp = plugins.InteractiveLegendPlugin([a_line, t_line, g_line, c_line], ["A","T","G","C"], alpha_unsel=0,alpha_sel=1,start_visible=True,fontsize=legend_size)
+	plugins.connect(fig, ilp,plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	#return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
-def mrna_dist_readlen(mrna_dist_dict,mrna_readlen_per,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
+
+
+@celery_application.task(bind=True)
+def mrna_dist_readlen(self, mrna_dist_dict,mrna_readlen_per,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size):
+	#issue when using celery, seems to convert the integers to strings, change them back here
+	fixed_mrna_dist_dict = {}
+	print mrna_dist_dict
+	for label in mrna_dist_dict:
+		fixed_mrna_dist_dict[label] = {}
+		for readlen in mrna_dist_dict[label]:
+			int_readlen = int(readlen)
+			fixed_mrna_dist_dict[label][int_readlen] = mrna_dist_dict[label][readlen]
+			
+		
+	mrna_dist_dict = fixed_mrna_dist_dict
+	
+	if mrna_readlen_per == False:
+		mrna_dist_dict, factor = calc_mrnadist_factor(mrna_dist_dict)
 	print "mrna readlen plot called"
 	#print mrna_dist_dict
 	returnstr = "Readlength,5_leader,start_codon,cds,stop_codon,3_trailer\n"
@@ -226,9 +281,10 @@ def mrna_dist_readlen(mrna_dist_dict,mrna_readlen_per,short_code,background_col,
 			else:
 				returnstr += "0,"
 		returnstr += "\n"
-	fig, ax = plt.subplots( figsize=(23,12))
+	fig, ax = plt.subplots( figsize=(22,13))
+	ax = plt.subplot(111)
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
-	ax.set_xlabel('Readlengths',fontsize=axis_label_size)
+	ax.set_xlabel('Readlength',fontsize=axis_label_size,labelpad=-10)
 
 	maxheight = 0
 	for pos in mrna_dist_dict:
@@ -237,15 +293,15 @@ def mrna_dist_readlen(mrna_dist_dict,mrna_readlen_per,short_code,background_col,
 				maxheight = mrna_dist_dict[pos][readlen]
 
 	if mrna_readlen_per == False:
-		ax.set_ylim(0,maxheight+100)
-		ax.set_ylabel('Count',fontsize=axis_label_size,labelpad=100)
+		ax.set_ylim(0,maxheight*1.1)
+		ax.set_ylabel('Count (x 10 {})'.format(factor),fontsize=axis_label_size,labelpad=100)
 	elif mrna_readlen_per == True:
 		ax.set_ylim(0,100)
-		ax.set_ylabel('Percentage',fontsize=axis_label_size,labelpad=100)
+		ax.set_ylabel('Percent %',fontsize=axis_label_size,labelpad=100)
 	ax.set_xlim(15,100)
 	width = 0.95
 	#plot it
-	ax = plt.subplot(111)
+	
 	title_str = "mRNA distribution vs Readlengths ({})".format(short_code)
 	ax.set_title(title_str, y=1.05,fontsize=title_size)
 	print mrna_dist_dict["5_leader"].keys(), mrna_dist_dict["5_leader"].values()
@@ -259,15 +315,17 @@ def mrna_dist_readlen(mrna_dist_dict,mrna_readlen_per,short_code,background_col,
 	ax.tick_params('both', labelsize=marker_size)
 	plt.grid(color="white", linewidth=2,linestyle="solid")
 	ilp = plugins.InteractiveLegendPlugin([five_leader_line, start_codon_line, cds_line, stop_codon_line, three_trailer_line], labels, alpha_unsel=0,alpha_sel=0.75)
-	plugins.connect(fig, ilp,plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+	plugins.connect(fig, ilp,plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
-def dinuc_bias(master_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
-	fig, ax = plt.subplots(figsize=(23,12))
+@celery_application.task(bind=True)
+def dinuc_bias(self, master_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
+	master_count_dict,factor = calc_factor(master_count_dict)
+	fig, ax = plt.subplots(figsize=(24,13))
 	N = 16
 	bar_width = 0.35
 	bar_l = [i for i in range(16)]
@@ -276,24 +334,40 @@ def dinuc_bias(master_count_dict,short_code,background_col,title_size, axis_labe
 
 	print "ind", ind, tick_pos
 
-	p1 = plt.bar(ind, master_count_dict.values(), bar_width, color='#9ACAFF',linewidth=0)
+	p1 = plt.bar(ind, master_count_dict.values(), bar_width, color='#9ACAFF',linewidth=4,edgecolor='#9ACAFF')
 
-	plt.ylabel('Count',fontsize=axis_label_size,labelpad=100)
+	plt.ylabel('Count (x 10 {})'.format(factor),fontsize=axis_label_size,labelpad=100)
+	plt.xlabel('Dinculeotide',fontsize=axis_label_size,labelpad=-10)
 	title_str = "Dinucleotide composition ({})".format(short_code)
 	plt.title(title_str,fontsize=title_size)
 	plt.xticks(tick_pos, master_count_dict.keys())
 	ax.set_axis_bgcolor(background_col)
 	ax.tick_params('both', labelsize=marker_size)
-	plugins.connect(fig,plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadPNG(returnstr=title_str))
+	plugins.connect(fig,plugins.TopToolbar(xoffset=0, yoffset=215),plugins.DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
+def calc_meta_factor(inlist):
+	print inlist
+	maxval = max(inlist)
+	string_maxval = str(maxval)
+	zeroes = len(string_maxval)-1
+	zeroes_string = "0"*zeroes
+	factor = int("1"+zeroes_string)
+	print "factor", factor
+	for i in range(0,len(inlist)):
+		inlist[i] = float(inlist[i])/factor
+	return inlist, zeroes
+	
 
-def metagene_plot(readlen_list, fiveprime_list, threeprime_list,metagene_type,title,minreadlen, maxreadlen,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end, metagene_aggregate):
-	fig, ax = plt.subplots( figsize=(23,12))
+
+@celery_application.task(bind=True)
+def metagene_plot(self, readlen_list, fiveprime_list, threeprime_list,metagene_type,title,minreadlen, maxreadlen,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end, metagene_aggregate):
+	#print "fiveprime list", fiveprime_list
+	fig, ax = plt.subplots( figsize=(22,13))
 	ind = np.array(readlen_list)
 	file_colors = ["#FF4A45","#4286f4","#42f450","#f4f142","#ff9e16","#a800aa"]
 
@@ -301,13 +375,15 @@ def metagene_plot(readlen_list, fiveprime_list, threeprime_list,metagene_type,ti
 		width = 0.35       # the width of the bars
 		returnstr = "Position,Count\n"
 		if metagene_end == "metagene_five":
-			rects1 = ax.bar(ind, fiveprime_list, width, color=metagene_fiveprime_col, linewidth=0)
+			fiveprime_list,factor = calc_meta_factor(fiveprime_list)
+			rects1 = ax.bar(ind, fiveprime_list, width, color=metagene_fiveprime_col, linewidth=2,edgecolor=metagene_fiveprime_col)
 			start_pos = -300
 			for count in fiveprime_list:
 				returnstr += "{},{}\n".format(start_pos, count)
 				start_pos += 1
 		if metagene_end == "metagene_three":
-			rects2 = ax.bar(ind + width, threeprime_list, width, color=metagene_threeprime_col, linewidth=0)
+			threeprime_list,factor = calc_meta_factor(threeprime_list)
+			rects2 = ax.bar(ind + width, threeprime_list, width, color=metagene_threeprime_col, linewidth=2,edgecolor=metagene_threeprime_col)
 			start_pos = -300
 			for count in threeprime_list:
 				returnstr += "{},{}\n".format(start_pos, count)
@@ -327,12 +403,12 @@ def metagene_plot(readlen_list, fiveprime_list, threeprime_list,metagene_type,ti
 		returnstr = "Position,"
 		return_dict = {}
 		if metagene_end == "metagene_five":
+			
 			count_dict = fiveprime_list
 			labelend = " 5' ends"
 		elif metagene_end == "metagene_three":
 			count_dict = threeprime_list
 			labelend = " 3' ends"
-			
 		#Create the header for the output file
 		for file_id in count_dict:
 			returnstr += "{} counts,".format(file_id)
@@ -361,11 +437,14 @@ def metagene_plot(readlen_list, fiveprime_list, threeprime_list,metagene_type,ti
 				returnstr += "{},0\n".format(i)
 	#ilp = InteractiveLegendPlugin([rects1,rects2], ["5'","3'"], alpha_unsel=0,alpha_sel=0.75)
 	# add some text for labels, title and axes ticks
-	ax.set_ylabel('Count', labelpad=25,fontsize=axis_label_size)
+	if metagene_aggregate == True:	
+		ax.set_ylabel('Count x (10 x{})'.format(factor), labelpad=25,fontsize=axis_label_size)
+	else:
+		ax.set_ylabel('Count', labelpad=25,fontsize=axis_label_size)
 	if metagene_type == "metagene_start":
-		ax.set_xlabel("Position relative to cds start (nucleotides)",fontsize=axis_label_size)
+		ax.set_xlabel("Position relative to cds start (nucleotides)",labelpad=-10,fontsize=axis_label_size)
 	elif metagene_type == "metagene_stop":
-		ax.set_xlabel("Position relative to cds stop (nucleotides)",fontsize=axis_label_size)
+		ax.set_xlabel("Position relative to cds stop (nucleotides)",labelpad=-10,fontsize=axis_label_size)
 	title_str = "{} ({})".format(title,short_code)
 	ax.set_title(title_str, y=1,fontsize=title_size)
 	ax.tick_params('both', labelsize=marker_size)
@@ -373,19 +452,41 @@ def metagene_plot(readlen_list, fiveprime_list, threeprime_list,metagene_type,ti
 	
 	ax.set_axis_bgcolor(background_col)
 	if metagene_aggregate == True:
-		plugins.connect(fig, plugins.TopToolbar(xoffset=-13, yoffset=130),plugins.DownloadPNG(returnstr=title_str),plugins.DownloadProfile(returnstr=returnstr))
+		plugins.connect(fig, plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadPNG(returnstr=title_str),plugins.DownloadProfile(returnstr=returnstr))
 	else:
-		plugins.connect(fig, ilp, plugins.TopToolbar(xoffset=-13, yoffset=130),plugins.DownloadPNG(returnstr=title_str),plugins.DownloadProfile(returnstr=returnstr))
+		plugins.connect(fig, ilp, plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadPNG(returnstr=title_str),plugins.DownloadProfile(returnstr=returnstr))
 	plt.grid(color="white", linewidth=2,linestyle="solid")
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
+
+def calc_trip_factor(read_dict):
+	maxval = 0
+	for i in range(0,len(read_dict["frame1"])):
+		count_list = [read_dict["frame1"][i],read_dict["frame2"][i],read_dict["frame3"][i]]
+		for count in count_list:
+			if count > maxval:
+				maxval = int(count)
+	string_maxval = str(maxval)
+	print "stirng maxval", string_maxval
+	zeroes = len(string_maxval)-1
+	print "zeroes", zeroes
+	zeroes_string = "0"*zeroes
+	factor = int("1"+zeroes_string)
+	print "factor", factor
+	for i in range(0,len(read_dict["frame1"])):
+		read_dict["frame1"][i] = float(read_dict["frame1"][i])/factor
+		read_dict["frame2"][i] = float(read_dict["frame2"][i])/factor
+		read_dict["frame3"][i] = float(read_dict["frame3"][i])/factor
+	return read_dict, zeroes
 
 
 
-def trip_periodicity_plot(read_dict,title,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def trip_periodicity_plot(self, read_dict,title,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size):
 	#print "read dict",read_dict
+	read_dict, factor = calc_trip_factor(read_dict)
 	tot_high_count = 0.01
 	tot_low_count = 0.0
 	returnstr = "Readlength, Frame 1 Count, Frame 2 count, Frame 3 count\n"
@@ -400,7 +501,7 @@ def trip_periodicity_plot(read_dict,title,short_code,background_col,title_size, 
 	df = pd.DataFrame(read_dict, columns = ['frame1', 'frame2', 'frame3', 'readlengths'])
 	pos = list(range(len(df['frame1'])))
 	width = 0.25
-	fig, ax = plt.subplots( figsize=(23,12))
+	fig, ax = plt.subplots( figsize=(22,13))
 
 	plt.plot(0,0,alpha=0,label="score")
 	# Create a bar with frame1 data in position pos,
@@ -411,8 +512,9 @@ def trip_periodicity_plot(read_dict,title,short_code,background_col,title_size, 
 	plt.bar([p + width*2 for p in pos], df['frame3'],width,alpha=1,color=bluehex,linewidth=0, label="frame 2")
 
 	# Set the y axis label
-	ax.set_ylabel('Count', labelpad=38,fontsize=axis_label_size)
-	ax.set_xlabel('Readlength',fontsize=axis_label_size)
+	#ax.set_ylabel('Count', labelpad=38,fontsize=axis_label_size)
+	ax.set_ylabel('Count (x10 {})'.format(factor), labelpad=100,fontsize=axis_label_size)
+	ax.set_xlabel('Readlength',labelpad=-15,fontsize=axis_label_size)
 	# Set the chart's title
 	title_str = "{} ({})".format(title,short_code)
 	ax.set_title(title_str,y=1.05,fontsize=title_size)
@@ -428,16 +530,16 @@ def trip_periodicity_plot(read_dict,title,short_code,background_col,title_size, 
 	plt.ylim([0, max(max(df['frame1']),max(df['frame2']),max(df['frame3']))*1.1] )
 
 	# Adding the legend and showing the plot
-	leg = plt.legend(["Score: {}".format(trip_periodicity_score),'Frame 1', 'Frame 2', 'Frame 3'], loc='upper right', fontsize=21)
+	leg = plt.legend(["Score: {}".format(trip_periodicity_score),'Frame 1', 'Frame 2', 'Frame 3'], loc='upper right', fontsize=legend_size)
 	leg.get_frame().set_edgecolor('#D2D2EB')
 	ax.set_axis_bgcolor(background_col)
 	ax.tick_params('both', labelsize=marker_size)
 	plt.grid(color="white", linewidth=2,linestyle="solid")
-	plugins.connect(fig, plugins.TopToolbar(xoffset=-13, yoffset=135),plugins.DownloadPNG(returnstr=title_str),plugins.DownloadProfile(returnstr=returnstr))
+	plugins.connect(fig, plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadPNG(returnstr=title_str),plugins.DownloadProfile(returnstr=returnstr))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 def make_autopct(values):
 	def my_autopct(pct):
@@ -446,10 +548,13 @@ def make_autopct(values):
 		return '{p:.2f}% \nCount: ({v:d})'.format(p=pct,v=val)
 	return my_autopct
 
-def mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels, ambiguous,cutadapt_removed, rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size, breakdown_per, pcr_duplicates):
+
+
+@celery_application.task(bind=True)
+def mapped_reads_plot(self, unmapped, mapped_coding, mapped_noncoding, labels, ambiguous,cutadapt_removed, rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size, breakdown_per, pcr_duplicates,legend_size):
 	print "mapped noncoding", mapped_noncoding
 	print "ambiguous", ambiguous
-	fig, ax = plt.subplots(figsize=(23,12))
+	fig, ax = plt.subplots(figsize=(22,13))
 	N = len(unmapped)
 	bar_width = 0.35
 	bar_l = [i for i in range(len(unmapped))]
@@ -489,19 +594,6 @@ def mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels, ambiguo
 			totals.append(float(curr_total))
 		else:
 			totals.append(1)
-	print "totals",totals
-
-
-
-	# This is for point label tooltip which at the moment doesnt work, only line label does
-	#p1labels = []
-	#for i in unmapped:
-	#    datadict = {'unmapped': [i]}
-	#    df = pd.DataFrame(datadict, columns=(["unmapped"]))
-	#    label = df.ix[[0], :].T
-	#    label.columns = ["Start pos: {}".format(1)]
-	#    # .to_html() is unicode; so make leading 'u' go away with str()
-	#    p1labels.append(str(label.to_html()))
 	
 	cutadapt_removed_per = []
 	rrna_removed_per = []
@@ -554,7 +646,7 @@ def mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels, ambiguo
 		p7 = plt.bar(ind, pcr_duplicates, bar_width,color='#01541e', bottom=[i+j+z+q+b+y for i,j,z,q,b,y in zip(cutadapt_removed,rrna_removed, unmapped, ambiguous, mapped_noncoding,mapped_coding)],linewidth=0)
 		p8 = plt.bar(ind, totals, bar_width, color='#5e0003',linewidth=0,alpha=0)
 	else:
-		plt.ylabel('Percentage',fontsize=axis_label_size,labelpad=100)
+		plt.ylabel('Percent %',fontsize=axis_label_size,labelpad=100)
 		p1 = plt.bar(ind, cutadapt_removed_per, bar_width, color='#5e0003',linewidth=0)
 		p2 = plt.bar(ind, rrna_removed_per, bar_width,color='#b21c1c', bottom=cutadapt_removed_per,linewidth=0)
 		p3 = plt.bar(ind, unmapped_per, bar_width,color='#e5584b', bottom=[i+j for i,j in zip(cutadapt_removed_per,rrna_removed_per)],linewidth=0)
@@ -575,56 +667,11 @@ def mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels, ambiguo
 				'rRNA removed: {:,}'.format(sum(rrna_removed)),
 				'Cutadapt removed {:,}'.format(sum(cutadapt_removed)),
 				'Total reads: {:,}'.format(all_reads_count)
-				))
-
-	'''
-
-	for i, bar in enumerate(p1.get_children()):
-		per = int(round((cutadapt_removed[i]/totals[i])*100,0))
-		tooltip1 = plugins.LineLabelTooltip(bar, label="Cutadapt removed: {:,}  ({}%)".format(cutadapt_removed[i],per))
-		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		plugins.connect(fig, tooltip1)
-
-	for i, bar in enumerate(p2.get_children()):
-		per = int(round((rrna_removed[i]/totals[i])*100,0))
-		tooltip1 = plugins.LineLabelTooltip(bar, label="rRNA removed: {:,}  ({}%)".format(rrna_removed[i], per))
-		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		plugins.connect(fig, tooltip1)
-
-	for i, bar in enumerate(p3.get_children()):
-		per = int(round((unmapped[i]/totals[i])*100,0))
-		tooltip1 = plugins.LineLabelTooltip(bar, label="Unmapped: {:,}  ({}%)".format(unmapped[i], per))
-		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		plugins.connect(fig, tooltip1)
-
-	for i, bar in enumerate(p4.get_children()):
-		per = int(round((ambiguous[i]/totals[i])*100,0))
-		tooltip1 = plugins.LineLabelTooltip(bar, label="Ambiguous: {:,}  ({}%)".format(ambiguous[i], per))
-		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		plugins.connect(fig, tooltip1)
-
-	for i, bar in enumerate(p5.get_children()):
-		per = int(round((mapped_noncoding[i]/totals[i])*100,0))
-		tooltip1 = plugins.LineLabelTooltip(bar, label="Mapped noncoding: {:,}  ({}%)".format(mapped_noncoding[i], per))
-		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		plugins.connect(fig, tooltip1)
+				),fontsize=legend_size/1.5)
 
 
-	for i, bar in enumerate(p6.get_children()):
-		per = int(round((mapped_coding[i]/totals[i])*100,0))
-		tooltip1 = plugins.LineLabelTooltip(bar, label="Mapped coding: {:,}  ({}%)".format(mapped_coding[i], per))
-		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		plugins.connect(fig, tooltip1)
-	'''
 	for i, bar in enumerate(p8.get_children()):
 		per = int(round((pcr_duplicates[i]/totals[i])*100,0))
-		#datadict = {'Pcr duplicates': ["{:,}  ({}%)".format(pcr_duplicates[i], per)]}
-		#df = pd.DataFrame(datadict, columns=(["Pcr duplicates"]))
-		#print "datafarame",df
-		#print "dataframe ix",df.ix
-		#lab1 = df.ix[[0], :].T
-		#lab1.columns = ["Filename: {}".format(labels[i])]
-		# .to_html() is unicode; so make leading 'u' go away with str()
 		lab1 = '<div class="tooltip"><span class="tooltiptext">'
 		lab1 += '<b>Filename:</b> {}<br><br><b>Pcr duplicates:</b> {:,}  ({}%)'.format(labels[i],pcr_duplicates[i], per)
 		per = int(round((mapped_coding[i]/totals[i])*100,0))
@@ -643,29 +690,20 @@ def mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels, ambiguo
 		print bar
 		tooltip1 = plugins.LineHTMLTooltip(bar, lab1,voffset=10, hoffset=30,css=line_tooltip_css)
 		plugins.connect(fig, tooltip1)
-		
-		
-		
-		#per = int(round((pcr_duplicates[i]/totals[i])*100,0))
-		#tooltip1 = plugins.LineLabelTooltip(bar, label="PCR duplicates: {:,}  ({}%)".format(pcr_duplicates[i], per))
-		##tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
-		#plugins.connect(fig, tooltip1)
 
-
-
-
-
-	plugins.connect(fig, plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadPNG(returnstr=title_str))
+	plugins.connect(fig, plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
 
-def single_tran_de(single_tran_de_transcript, sorted_master_list, study_master_list, organism, transcriptome):
-	#print study_master_list
+@celery_application.task(bind=True)
+def single_tran_de(self, single_tran_de_transcript, sorted_master_list, study_master_list, organism, transcriptome,single_tran_de_study):
+	print study_master_list
 	#sorted_master_list = study_master_list
+	#master_list.append((file_id, filename, range1_count,range2_count,file_desc))
 	xvals = []
 	yvals = []
 	labels = []
@@ -673,17 +711,52 @@ def single_tran_de(single_tran_de_transcript, sorted_master_list, study_master_l
 	file_ids = []
 	mapped_reads = []
 	file_descs = []
-	x_val = 1
+	study_names = []
 	
-	for tup in sorted_master_list:
-		xvals.append(x_val)
-		yvals.append(tup[2])
-		labels.append(tup[1])
-		range1counts.append(tup[2])
-		file_ids.append(tup[0])
-		mapped_reads.append(tup[3])
-		file_descs.append(tup[4])
-		x_val += 1
+	if single_tran_de_study == False:
+		for tup in sorted_master_list:
+			file_id = tup[0]
+			filename = tup[1]
+			r1 = float(tup[2])
+			r2 = float(tup[3])
+			file_desc = tup[4]
+			study = tup[5]
+			
+			ratio = r1/r2
+			avg = (r1+r2)/2
+			
+			xvals.append(avg)
+			yvals.append(ratio)
+			labels.append(filename)
+			range1counts.append(r1)
+			file_ids.append(file_id)
+			mapped_reads.append(r2)
+			file_descs.append(file_desc)
+			study_names.append(study)
+	else:
+		for tup in study_master_list:
+			file_id = tup[0]
+			study = tup[1]
+			r1 = float(tup[2])
+			r2 = float(tup[3])
+
+			
+			ratio = log(r1/r2,2)
+			avg = (r1+r2)/2
+			
+			xvals.append(avg)
+			yvals.append(ratio)
+			labels.append(study)
+			range1counts.append(r1)
+			file_ids.append(file_id)
+			mapped_reads.append(r2)
+			file_descs.append(study)
+			study_names.append(study)
+		
+		
+		
+		
+	
 
 	full_title = "ORF TPMs ({})"
 	x_lab = ''
@@ -695,8 +768,8 @@ def single_tran_de(single_tran_de_transcript, sorted_master_list, study_master_l
 	p.ygrid.grid_line_color = "white"
 
 	hover = p.select(dict(type=HoverTool))
-	hover.tooltips = [("Ratio", "@y"),("Max count","@x"),("File name","@labels"),("Range 1 count","@range1counts"),("Mapped reads","@mapped_reads"),("Description","@file_descs")]
-	source = ColumnDataSource({'x':xvals,'y':yvals,'labels':labels,"range1counts":range1counts,"file_id":file_ids,"mapped_reads":mapped_reads,"file_descs":file_descs})
+	hover.tooltips = [("Ratio", "@y"),("Max count","@x"),("File name","@labels"),("Range 1 count","@range1counts"),("Mapped reads","@mapped_reads"),("Description","@file_descs"),("Study","@study")]
+	source = ColumnDataSource({'x':xvals,'y':yvals,'labels':labels,"range1counts":range1counts,"file_id":file_ids,"mapped_reads":mapped_reads,"file_descs":file_descs,"study":study_names})
 	p.scatter('x','y',source=source, alpha=1,color="grey",size=9)
 	output_file("scatter10k.html", title="Single transcript differential translation")
 	hover = p.select(dict(type=HoverTool))
@@ -724,7 +797,7 @@ def single_tran_de(single_tran_de_transcript, sorted_master_list, study_master_l
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 
 	graph = file_html(p,CDN)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
 
@@ -732,8 +805,8 @@ def single_tran_de(single_tran_de_transcript, sorted_master_list, study_master_l
 
 
 
-def tran_corr(tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,organism, transcriptome):
-
+@celery_application.task(bind=True)
+def tran_corr(self, tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,organism, transcriptome):
 	xvals = []
 	yvals = []
 	labels = []
@@ -793,7 +866,7 @@ def tran_corr(tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,or
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 
 	graph = file_html(p,CDN)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
 
@@ -803,7 +876,8 @@ def tran_corr(tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,or
 
 
 
-def explore_offsets(f0_counts, f1_counts, f2_counts, labels,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def explore_offsets(self, f0_counts, f1_counts, f2_counts, labels,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
 	width = 0.25
 	pos = list(range(len(f0_counts)))
 	fig, ax = plt.subplots(figsize=(23,12))
@@ -856,10 +930,11 @@ def explore_offsets(f0_counts, f1_counts, f2_counts, labels,short_code,backgroun
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
-def replicate_comp(labels, transcript_dict,min_log_val,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,corr_type):
+@celery_application.task(bind=True)
+def replicate_comp(self, labels, transcript_dict,min_log_val,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,corr_type):
 	list_dict = {}
 	corr_dict = {}
 	for lbl in labels:
@@ -906,9 +981,50 @@ def replicate_comp(labels, transcript_dict,min_log_val,short_code,background_col
 			tablehtml += "<td class='{}'>{}</td>".format(clss, val)
 		tablehtml += "</tr>"
 	tablehtml += "</tbody></table>"
-	return tablehtml
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': tablehtml}
 
-def heatplot(min_readlen, max_readlen, min_pos, max_pos, positions,readlengths,count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def most_freq_unmapped(self, file_paths_dict,short_code):
+	#self.update_state(state='PROGRESS',meta={'current': 0, 'total': 100,'status': "Most frequent unmapped reads"})
+	print "most freq unmapped called"
+	master_dict = {}
+	for filetype in file_paths_dict:
+		for file_id in file_paths_dict[filetype]:
+			filepath = file_paths_dict[filetype][file_id]
+			if os.path.isfile(filepath):
+				sqlite_db = SqliteDict(filepath, autocommit=False)
+			else:
+				return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1])
+			if "frequent_unmapped_reads" not in sqlite_db:
+				return "No unmapped reads data for {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1])
+			#unmapped reads list is a list of tuples of length 100, first item in tuple is a sequence second is a count
+			unmapped_reads_list = sqlite_db["frequent_unmapped_reads"]
+			sqlite_db.close()
+
+			for tup in unmapped_reads_list:
+				if tup[0] in master_dict:
+					master_dict[tup[0]] += tup[1]
+				else:
+					master_dict[tup[0]] = tup[1]
+	title = "Most frequent unmapped reads ({})".format(short_code)
+	studyname = ""
+	top_reads = (sorted(master_dict.items(), key=operator.itemgetter(1)))[-50:]
+	html_table = "<h1><center>{}</center></h1>".format(title)
+	html_table += """<table class="unmapped_table">
+	<thead><tr><th>Sequence</th><th>Frequency</th><th>Blast Link</th></tr></thead>"""
+	for tup in top_reads[::-1]:
+		html_table += ("<tr><td>{0}</td><td>{1}</td>    <td><a href='https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&LINK_LOC=blasthome&QUERY=%3E{2}_unmapped_sequence%0A{0}' target='_blank'>Blast</a></td></tr>".format(tup[0], tup[1],studyname))
+	html_table += ("</table>")
+	print "returning html_table"
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': html_table}
+
+
+@celery_application.task(bind=True)
+def te_table(self, table_str):
+	 return {'current': 100, 'total': 100, 'status': 'Complete_TE','result': table_str}
+
+@celery_application.task(bind=True)
+def heatplot(self, min_readlen, max_readlen, min_pos, max_pos, positions,readlengths,count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,title_size, axis_label_size, subheading_size,marker_size):
 	xlabs = []
 	ylabs = []
 	for i in range(min_readlen,max_readlen+1):
@@ -960,7 +1076,7 @@ def heatplot(min_readlen, max_readlen, min_pos, max_pos, positions,readlengths,c
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += file_html(p,CDN)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
 
@@ -969,7 +1085,8 @@ def ticker(tick):
 
 
 
-def rust_dwell(codon_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
+@celery_application.task(bind=True)
+def rust_dwell(self, codon_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size):
 	aa_color_dict = {"gly":"white",
 			"arg":"blue",
 			"ser":"green",
@@ -1067,11 +1184,12 @@ def rust_dwell(codon_count_dict,short_code,background_col,title_size, axis_label
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += file_html(p,CDN)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
 
 
 
-def codon_usage(codon_dict,short_code,title_size, axis_label_size, marker_size):
+@celery_application.task(bind=True)
+def codon_usage(self, codon_dict,short_code,title_size, axis_label_size, marker_size):
 	allxvals = []
 	allyvals = []
 	alllabels = []
@@ -1156,17 +1274,37 @@ def codon_usage(codon_dict,short_code,title_size, axis_label_size, marker_size):
 	hover.mode = 'mouse'
 
 	graph = file_html(p,CDN)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
+
+
+
+def calc_mrnadist_factor(mrna_dist_dict):
+	maxval = 0
+	for key in mrna_dist_dict:
+		for region in mrna_dist_dict[key]:
+			count = mrna_dist_dict[key][region]
+			if count > maxval:
+				maxval = int(count)
+	string_maxval = str(maxval)
+	print "stirng maxval", string_maxval
+	zeroes = len(string_maxval)-1
+	print "zeroes", zeroes
+	zeroes_string = "0"*zeroes
+	factor = int("1"+zeroes_string)
+	print "factor", factor
+	for key in mrna_dist_dict:
+		for region in mrna_dist_dict[key]:
+			mrna_dist_dict[key][region] = float(mrna_dist_dict[key][region])/factor
+	return mrna_dist_dict, zeroes
 
 
 
 
-
-
-
-
-def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label_size, subheading_size, marker_size, mrna_dist_per,md_start,md_stop):
-	fig, ax = plt.subplots(figsize=(23,12))
+@celery_application.task(bind=True)
+def mrna_dist(self, mrna_dist_dict, short_code, background_col, title_size, axis_label_size, subheading_size, marker_size, mrna_dist_per,md_start,md_stop,legend_size):
+	if mrna_dist_per == False:
+		mrna_dist_dict,factor = calc_mrnadist_factor(mrna_dist_dict)
+	fig, ax = plt.subplots(figsize=(22,13))
 	returnstr = "Sample, 5' leader, Start codon, CDS, Stop codon, 3' trailer\n"
 	
 	#Add two because we plot two empty bars at the beginning and end for aesthethics
@@ -1196,8 +1334,6 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 		#	total = float(mrna_dist_dict[key]["total"])
 		#except:
 		total = float(mrna_dist_dict[key]["5_leader"]+mrna_dist_dict[key]["start_codon"]+mrna_dist_dict[key]["cds"]+mrna_dist_dict[key]["stop_codon"]+mrna_dist_dict[key]["3_trailer"])
-		print "total", total
-		print "the rest", mrna_dist_dict[key]["5_leader"],mrna_dist_dict[key]["start_codon"],mrna_dist_dict[key]["cds"],mrna_dist_dict[key]["stop_codon"],mrna_dist_dict[key]["3_trailer"]
 		labels.append(key)
 		five_leaders.append(mrna_dist_dict[key]["5_leader"])
 		five_leaders_per.append((mrna_dist_dict[key]["5_leader"]/total)*100)
@@ -1208,7 +1344,6 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 			start_codons_per.append((mrna_dist_dict[key]["start_codon"]/total)*100)
 			cds.append(mrna_dist_dict[key]["cds"])
 			cds_per.append((mrna_dist_dict[key]["cds"]/total)*100)
-			print "appending {} divided by total {} and multiplied by 100 which is {}".format(mrna_dist_dict[key]["cds"],total,cds_per[-1])
 			stop_codons.append(mrna_dist_dict[key]["stop_codon"])
 			stop_codons_per.append((mrna_dist_dict[key]["stop_codon"]/total)*100)
 		elif md_start == True and md_stop == False:
@@ -1251,25 +1386,31 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 		p4 = plt.bar(ind, stop_codons, bar_width,color='#05bc27', bottom=[i+j+z for i,j,z in zip(five_leaders,start_codons, cds)],linewidth=0)
 		p5 = plt.bar(ind, three_trailers, bar_width,color='#ff77d4', bottom=[i+j+z+q for i,j,z,q in zip(five_leaders,start_codons, cds, stop_codons)],linewidth=0)
 	else:
-		print "CDS PER",cds_per
-		print "CDS", cds
 		p1 = plt.bar(ind, five_leaders_per, bar_width, color='#ff6d6d',linewidth=0)
 		p2 = plt.bar(ind, start_codons_per, bar_width,color='#a38b22', bottom=five_leaders_per,linewidth=0)
 		p3 = plt.bar(ind, cds_per, bar_width,color='#00d8cd', bottom=[i+j for i,j in zip(five_leaders_per,start_codons_per)],linewidth=0)
 		p4 = plt.bar(ind, stop_codons_per, bar_width,color='#05bc27', bottom=[i+j+z for i,j,z in zip(five_leaders_per,start_codons_per, cds_per)],linewidth=0)
 		p5 = plt.bar(ind, three_trailers_per, bar_width,color='#ff77d4', bottom=[i+j+z+q for i,j,z,q in zip(five_leaders_per,start_codons_per, cds_per, stop_codons_per)],linewidth=0)	
-	plt.ylabel('Count',fontsize=axis_label_size,labelpad=100)
+	if mrna_dist_per == False:
+		plt.ylabel('Count (x 10 {})'.format(factor),fontsize=axis_label_size,labelpad=100)
+	else:
+		plt.ylabel('Percent %',fontsize=axis_label_size,labelpad=100)
 	title_str = "Reads breakdown ({})".format(short_code)
 	plt.title(title_str,fontsize=title_size)
-	plt.xticks(tick_pos, labels,fontsize=marker_size)
+	if len(labels) <= 5:
+		xlabel_size = marker_size
+	else:
+		xlabel_size = marker_size/(len(labels)/5.0)
+
+	plt.xticks(tick_pos, labels,fontsize=xlabel_size)
 	if md_start == True and md_stop == True:
-		plt.legend((p5[0], p4[0],p3[0],p2[0],p1[0]), ('Three trailers','Stop codons','Cds','Start codons','Five leaders'))
+		plt.legend((p5[0], p4[0],p3[0],p2[0],p1[0]), ('Three trailers','Stop codons','Cds','Start codons','Five leaders'),fontsize=legend_size)
 	elif md_start == True and md_stop == False:
-		plt.legend((p5[0],p3[0],p2[0],p1[0]), ('Three trailers','Cds','Start codons','Five leaders'))
+		plt.legend((p5[0],p3[0],p2[0],p1[0]), ('Three trailers','Cds','Start codons','Five leaders'),fontsize=legend_size)
 	elif md_start == False and md_stop == True:
-		plt.legend((p5[0], p4[0],p3[0],p1[0]), ('Three trailers','Stop codons','Cds','Five leaders'))
+		plt.legend((p5[0], p4[0],p3[0],p1[0]), ('Three trailers','Stop codons','Cds','Five leaders'),fontsize=legend_size)
 	elif md_start == False and md_stop == False:
-		plt.legend((p5[0],p3[0],p1[0]), ('Three trailers','Cds','Five leaders'))
+		plt.legend((p5[0],p3[0],p1[0]), ('Three trailers','Cds','Five leaders'),fontsize=legend_size)
 
 	ax.set_axis_bgcolor(background_col)
 	ax.tick_params('y', labelsize=marker_size)
@@ -1287,7 +1428,7 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 			totals.append(float(curr_total))
 		else:
 			totals.append(1)
-	print "totals",totals
+
 
 	for i, bar in enumerate(p1.get_children()):
 		per = int(round((five_leaders[i]/totals[i])*100,0))
@@ -1319,7 +1460,7 @@ def mrna_dist(mrna_dist_dict, short_code, background_col, title_size, axis_label
 		#tooltip1 = plugins.PointHTMLTooltip(p1[i], p1labels[i],voffset=10, hoffset=10, css=point_tooltip_css)
 		plugins.connect(fig, tooltip1)
 
-	plugins.connect(fig, plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+	plugins.connect(fig, plugins.TopToolbar(xoffset=-70, yoffset=215),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
 	graph = "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)
-	return graph
+	return {'current': 100, 'total': 100, 'status': 'Complete','result': graph}
