@@ -61,18 +61,29 @@
 </div>
 
 
+<!-- If user is logged in show a change password tab in the accordion, if not still create the tab (to prevent errors when accessing those fields in the template), but hide it -->
+{% if current_user.is_authenticated %}
+		<h3>Change password</h3>
+		<div align="center">
+		<input type="password" placeholder="Enter new password" name="new_password" id="new_password" value=""><br>
+		<input type="password" placeholder="Re-type new Password" name="new_password2" id="new_password2" value=""><br>
+		<input type="password" placeholder="Current Password" name="curr_password" id="curr_password" value=""><br>
+		</div>
+		<!-- End of the accordion div -->
+		</div>
+	{% else %}
+		<!-- End the accordion div if not showing password tab, otherwise end up with a blank tab-->
+		</div>
+		<div class="hidden">
+		<input type="password" class="hidden" placeholder="Enter new password" name="new_password" id="new_password" value=""><br>
+		<input type="password" class="hidden" placeholder="Re-type new Password" name="new_password2" id="new_password2" value=""><br>
+		<input type="password" class="hidden" placeholder="Current Password" name="curr_password" id="curr_password" value=""><br>
+		</div>
+{% endif %}
 
-<h3>Change password</h3>
-<div align="center">
-<input type="password" placeholder="Enter new password" name="new_password" id="new_password" value=""><br>
-<input type="password" placeholder="Re-type new Password" name="new_password2" id="new_password2" value=""><br>
-<input type="password" placeholder="Current Password" name="curr_password" id="curr_password" value=""><br>
-</div>
 
 
 
-
-</div>
 
 
 
