@@ -12,6 +12,7 @@
 		<input type="text" placeholder="E-mail address" name="email" value="{{request.form.email }}"><br>
 		<input type="text" placeholder="Subject" name="subject" value="{{request.form.subject }}"><br>
 		<textarea type="text" placeholder="Message" name="message"  style="height:200px;width:230px;font-size:15px;" value="{{request.form.message }}"></textarea><br>
+		{{ recaptcha }}
 		<input class="btn btn-default" type="submit" value="Send">
 	</form>
 </div>
