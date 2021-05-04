@@ -44,27 +44,18 @@ var username = "{{ current_username|safe }}";
 window.onload = function() {
 		var newDiv = document.createElement('div');
 		document.getElementById('riboseq').appendChild(newDiv);
-		newDiv.innerHTML =  "<a class='plot' href="+"interactive_plot"+"/>Single transcript plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_single_plotdesc'>  (Whats this?) </a></br>";
-		newDiv.innerHTML += "<a class='plot' href="+"comparison"+">Single transcript comparison plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_plotdesc'>  (Whats this?) </a></br>";
-		newDiv.innerHTML += "<a class='plot' href="+"metainfo_plot"+">Meta-Information</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_metainfo_plotdesc'>  (Whats this?) </a></br>";
-		newDiv.innerHTML += "<a class='plot' href="+"differential"+">Differential plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_diff_plotdesc'>  (Whats this?) </a></br>";
-		newDiv.innerHTML += "<a class='plot' href="+"traninfo_plot"+">Transcriptome info</a></br>";
+		newDiv.innerHTML =  "<a class='plot' href="+"interactive_plot"+"/>Single transcript plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_single_gene&child_acc=child_single_plotdesc'>  &#9432; </a></br>";
+		newDiv.innerHTML += "<a class='plot' href="+"comparison"+">Single transcript comparison plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_plotdesc'>  &#9432; </a></br>";
+		newDiv.innerHTML += "<a class='plot' href="+"metainfo_plot"+">Meta-Information</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_metainfo&child_acc=child_metainfo_plotdesc'>  &#9432; </a></br>";
+		newDiv.innerHTML += "<a class='plot' href="+"differential"+">Differential plot</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_diff&child_acc=child_diff_plotdesc'>  &#9432; </a></br>";
+		newDiv.innerHTML += "<a class='plot' href="+"traninfo_plot"+">Transcriptome info</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_plotdesc'>  &#9432; </a></br>";
+		newDiv.innerHTML += "<a class='plot' href="+"orf_translation"+">Translated ORF detection</a><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_orfplot_plotdesc'>  &#9432; </a></br>";
 		if (username ==  "developer") {
 				newDiv.innerHTML += "<a href="+"proteomics"+">Proteomics</a></br>";
-				newDiv.innerHTML += "<a href="+"orf_translation"+">Orf translation</a></br>";
 				}
 		if (username ==  "master" || username == "114224403@umail.ucc.ie" || username == "audreymannion@gmail.com" || username == "darren" || username == "michal.swirski@student.uw.edu.pl") {
-			newDiv.innerHTML += "<a class='plot' href="+"orf_translation"+">Translated ORF detection</a></br>";
 			newDiv.innerHTML += "<a class='plot' href="+"gene_regulation"+">Gene regulation</a></br>";
-			}
-		if (username ==  "yaroslavsolovev78@gmail.com" || username == "testuser") {
-			newDiv.innerHTML += "<a class='plot' href="+"orf_translation"+">Translated ORF detection</a></br>";
-			}
-		
-		
-		
-		
-		
+			}		
 		
 		}
 </script>
