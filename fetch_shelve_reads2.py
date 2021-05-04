@@ -2,6 +2,7 @@ import os
 import collections
 from bokeh.palettes import all_palettes
 from sqlitedict import SqliteDict
+import time 
 
 # Merge two dictionaries
 def merge_dicts(dict1,dict2):
@@ -18,7 +19,9 @@ def merge_dicts(dict1,dict2):
 
 
 # Create dictionary of read counts at each position in a transcript
-def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, organism, subcodon, noisered, primetype, filetype, readscore, secondary_readscore=1,pcr=False,get_mismatches=False):
+def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, organism, subcodon, noisered, primetype, filetype, readscore, secondary_readscore=1,pcr=False,get_mismatches=False,self_obj=None):
+	start_time = time.time()
+	print ("GET_READS Checkpoint 1 {}".format((time.time()-start_time)))
 	mismatch_dict = collections.OrderedDict()
 	mismatch_dict["A"] = {}
 	mismatch_dict["T"] = {}
@@ -42,17 +45,14 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 	# first make a master dict consisting of all the read dicts from each filename
 	offset_dict = {}
 	secondary_offset_dict = {}
-
 	if read_type == "unambig":
 		if filetype in user_files:
 			for file_id in user_files[filetype]:
-				#print "fILE ID ", file_id
 				filename = user_files[filetype][file_id]
 				if os.path.isfile(filename):
 					sqlite_db = SqliteDict(filename, autocommit=False)
 				else:
-					return "File not found",filename.split("/")[-1]
-				#print "Filename", filename
+					return "Could not open file:",filename.split("/")[-1]
 				accepted_offsets = {}
 				accepted_secondary_offsets = {}
 				if "offsets" in sqlite_db:
@@ -173,7 +173,6 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 				except Exception as e:
 					#print "error: ", e
 					pass	
-
 	#Next check coverage, if that's true then calculate coverage for each rl and return dict
 	if coverage == True and subcodon == False:
 		for filename in master_file_dict:
@@ -208,7 +207,6 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 							master_dict[offset_pos+1] = 0
 		return master_dict, mismatch_dict
 	
-
 	#Fetching subcodon reads
 	if subcodon == True:
 		if coverage == False:
@@ -218,7 +216,7 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 				for readlen in master_file_dict[filename]:
 					if readlen >= min_read and readlen <= max_read:
 						if readlen in offset_dict[filename]:
-							offset = offset_dict[filename][readlen]
+							offset = offset_dict[filename][readlen]+1
 							for pos in master_file_dict[filename][readlen]:
 								count = master_file_dict[filename][readlen][pos]
 								if primetype == "threeprime":
@@ -236,7 +234,7 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 				for readlen in master_file_dict[filename]:
 					if readlen >= min_read and readlen <= max_read:
 						if readlen in offset_dict[filename]:
-							offset = offset_dict[filename][readlen]
+							offset = offset_dict[filename][readlen]+1
 							for pos in master_file_dict[filename][readlen]:
 								count = master_file_dict[filename][readlen][pos]
 								if primetype == "threeprime":
@@ -248,7 +246,6 @@ def get_reads(read_type, min_read, max_read, tran, user_files,tranlen,coverage, 
 									except Exception as e:
 										#print "Error tried adding to position {} but tranlen is only {}".format(e,tranlen)
 										pass
-	
 		return master_dict, mismatch_dict
 
 # Create dictionary of counts at each position, averged by readlength
