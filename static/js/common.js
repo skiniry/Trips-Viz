@@ -24,11 +24,40 @@ function addFileRow(rownum, innerHTML, studyname) {
 		x.innerHTML = innerHTML;
 }
 
+
 function populate_jquery_dialog(splitdata) {
+	var dialog_div = document.getElementById('dialog-2');
+	dialog_div.innerHTML = "";
+	
+	tablehtml = "<table id='myTable' class='tablesorter tran_select_box hover-highlight'>  <thead> <tr><th><b>Transcript</b></th> <th><b>Version</b></th>   <th><b>Length</b></th>    <th><b>5' Length</b></th>    <th><b>Cds length</b></th>    <th><b>3' Length</b></th>  <th>Type</th>  </tr></thead>"
+	for(var i = 1; i < splitdata.length; i++) {
+		var sublist = splitdata[i].split(",");
+		tablehtml += "<tr>"
+		// for item in sublist add an element to the table
+		for(var x = 0; x < sublist.length; x++) {
+			str_input = sublist[x];
+			//console.log("STR INPUT IS "+str_input);
+			if (x == 0) {
+				tablehtml += "<td><input type='radio' id='transcript_sel' value='"+str_input+"' name='transcript_sel' checked></input>"+str_input+"</td>"
+			}
+			else {
+				tablehtml += "<td>"+str_input+"</td>"
+			}
+		}
+		//finish this row
+		tablehtml += "</tr>";
+	}
+	//finish the table
+	tablehtml += "</table>";
+	dialog_div.innerHTML += tablehtml;
+}
+
+
+function populate_jquery_dialog_quant(splitdata) {
 		var dialog_div = document.getElementById('dialog-2');
 		dialog_div.innerHTML = "";
 
-		tablehtml = "<table id='myTable' class='tablesorter tran_select_box hover-highlight'>  <thead> <tr><th><b>Transcript</b></th> <th><b>Version</b></th>   <th><b>Length</b></th>    <th><b>5' Length</b></th>    <th><b>Cds length</b></th>    <th><b>3' Length</b></th>  <th>Type</th>  </tr></thead>"
+		tablehtml = "<table id='myTable' class='tablesorter tran_select_box hover-highlight'>  <thead> <tr><th><b>Transcript</b></th> <th><b>Version</b></th>   <th><b>Length</b></th>    <th><b>5' Length</b></th>    <th><b>Cds length</b></th>    <th><b>3' Length</b></th>  <th>OPM</th> <th>TPM Ribo-seq</th> <th>TPM RNA-Seq</th> </tr></thead>"
 		for(var i = 1; i < splitdata.length; i++) {
 				var sublist = splitdata[i].split(",");
 				tablehtml += "<tr>"
