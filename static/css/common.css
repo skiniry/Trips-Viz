@@ -103,24 +103,38 @@ div #wrapper
 
 /* used to style links under riboseq/rnaseq sections: unvisited link */
 a.whatsthis:link {
-		font-size: 10px;
+		font-size: 23px;
 		text-decoration: none;
-		color: #666666;
+		color: #858585;
 }
 
 /* visited link */
 a.whatsthis:visited {
-		font-size: 10px;
+		font-size: 23px;
 		text-decoration: none;
-		color: #666666;
+		color: #858585;
 }
 
 /* mouse over link */
 a.whatsthis:hover {
-		font-size: 10px;
+		font-size: 23px;
 		text-decoration: none;
-		color: #77abff;
+		color: #858585;
 }
+
+
+.nanobar {
+	width: 100%;
+	height: 40px;
+	z-index: 9999;
+	top:0
+	}
+.bar {
+	width: 0;
+	height: 400%;
+	transition: height .3s;
+	background:#000;
+	}
 
 button {
 		background-color: #ffffff;
@@ -137,6 +151,25 @@ button {
 		cursor: pointer;
 		border-radius: 16px;
 		width:250px;
+}
+
+
+
+.orf_save_button {
+	background-color: #ffffff;
+	color: black;
+	border: 2px solid #77abff;
+	padding: 0px 0px;
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+	font-size: 13px;
+	margin: 1px 1px;
+	-webkit-transition-duration: 0.4s; /* Safari */
+	transition-duration: 0.4s;
+	cursor: pointer;
+	border-radius: 16px;
+	width:90px;
 }
 
 study_button {
@@ -649,60 +682,13 @@ h3 {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#color .nanobar .bar {
+background: #38f;
+border-radius: 4px;
+box-shadow: 0 0 10px #59d;
+height: 6px;
+margin: 0 auto;
+}
 
 
 .message {
