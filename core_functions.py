@@ -5,9 +5,11 @@ from math import log,floor
 import sqlite3
 from sqlitedict import SqliteDict
 import numpy as np
+from flask import session,request,redirect, url_for
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
+import uuid
 import config
-
+import logging
 
 # User model
 class User(UserMixin):
@@ -22,48 +24,89 @@ class User(UserMixin):
 	def __repr__(self):
 		return "%d/%s/%s" % (self.id, self.name, self.password)
 
+
+
+def fetch_user():
+	consent = request.cookies.get("cookieconsent_status")
+	#If user rejects cookies then do not track them and delete all other cookies
+	if consent == "deny":
+		return (None, False)
+	logging.debug("fetch_user Connecting to trips.sqlite")
+	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection.text_factory = str
+	cursor = connection.cursor()
+	session.permanent = True
+	if "uid" not in session:
+		session["uid"] = uuid.uuid4()
+	session_id = session["uid"]
+	#Check if this session uid is already in the users table
+	cursor.execute("Select username from users where username = '{}';".format(session_id))
+	result = cursor.fetchone()
+	if result == None:
+		#Add session uid to user table
+		cursor.execute("INSERT INTO users VALUES (NULL,'{}',NULL,'-1','',0,1);".format(session_id))
+		cursor.execute("SELECT user_id FROM users WHERE username = '{}'".format(session_id))
+		user_id = cursor.fetchone()[0]
+		#marker_size, axis_label_size, subheading_size, title_size, user_id, background_col, readlength_col, metagene_fiveprime_col, metagene_threeprime_col, nuc_comp_a_col , 
+		#nuc_comp_t_col , nuc_comp_g_col , nuc_comp_c_col , uga_col , uag_col , uaa_col , comp_uga_col , comp_uag_col , comp_uaa_col , cds_marker_width , 
+		#cds_marker_colour VARCHAR, legend_size , ribo_linewidth
+		cursor.execute("INSERT INTO user_settings VALUES ('{0}','{1}','{2}','{3}',{4},'{5}','{6}','{7}','{8}','{9}','{10}','{11}','{12}','{13}','{14}','{15}','{16}','{17}','{18}',{19},'{20}',{21},{22});".format(config.MARKER_SIZE,config.AXIS_LABEL_SIZE,config.SUBHEADING_SIZE,config.TITLE_SIZE, user_id,config.BACKGROUND_COL, config.READLENGTH_COL, config.METAGENE_FIVEPRIME_COL, config.METAGENE_THREEPRIME_COL, config.A_COL, config.T_COL,config.G_COL,config.C_COL, config.UGA_COL , config.UAG_COL, config.UAA_COL, config.UGA_COL , config.UAG_COL, config.UAA_COL,config.CDS_MARKER_SIZE,config.CDS_MARKER_COLOUR,config.LEGEND_SIZE, config.RIBO_LINEWIDTH))
+		connection.commit()
+
+	#If user is logged in current_user.name will return a username, otherwise set the user to the session uid
+	try:
+		user = current_user.name
+		logged_in = True
+	except:
+		user = session_id
+		logged_in = False
+	logging.debug("fetch_user Closing trips.sqlite connection")
+	connection.close()
+	return (user, logged_in)
+	
+
 	
 # Given a username and an organism returns a list of relevant studies.
 def fetch_studies(username, organism, transcriptome):
+	logging.debug("fetch_studies Connecting to trips.sqlite")
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	accepted_studies = {}
 	study_access_list = []
-	print "username", username
+	#print "username", username
 	#get a list of organism id's this user can access
 	if username != None:
-		print "username is not none", username
+		#print "username is not none", username
 		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(username))
 		result = (cursor.fetchone())
 		user_id = result[0]
-		print "user_id", user_id
+		#print "user_id", user_id
 		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchall())
 		for row in result:
-			print "result row", row
+			#print "result row", row
 			study_access_list.append(int(row[0]))
 			
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	result = (cursor.fetchone())
 	if result:
 		organism_id = int(result[0])
-	print "organism id", organism_id
+	#print "organism id", organism_id
 	#keys are converted from int to str as javascript will not accept a dictionary with ints for keys.
 	cursor.execute("SELECT study_id,study_name,private from studies WHERE organism_id = '{}';".format(organism_id))
 	result = (cursor.fetchall())
 	if result != []:
 		if result[0]:
 			for row in result:
-				print "STARTING STUDY_ID", row[0]
+				#print "STARTING STUDY_ID", row[0]
 				if row[2] == 0:
 					accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 				elif row[2] == 1:
-					print "study is private", row[0]
+					#print "study is private", row[0]
 					if row[0] in study_access_list:
 						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
-					else:
-						print "study not in study_access_list"
+	logging.debug("Closing trips.sqlite connection")				
 	connection.close()
 	#print "returning accepted studies", accepted_studies
 	return accepted_studies
@@ -76,6 +119,7 @@ def fetch_studies(username, organism, transcriptome):
 
 # Create a dictionary of files seperated by type, this allows for file type grouping on the front end.
 def fetch_files(accepted_studies):
+	logging.debug("fetch_files Connecting to trips.sqlite")
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
@@ -105,7 +149,7 @@ def fetch_files(accepted_studies):
 		accepted_studies[str(row[1])]["filetypes"].append(row[4])
 		file_id_to_name_dict[str(row[0])] = row[2].replace(".shelf","")
 
-
+	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return file_id_to_name_dict,accepted_studies,accepted_files,seq_types
 
@@ -117,6 +161,7 @@ def fetch_files(accepted_studies):
 # Gets a list of all studies associated with an organism
 def fetch_study_info(organism):
 	studyinfo_dict = {}
+	logging.debug("fetch_study_info Connecting to trips.sqlite")
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
@@ -137,7 +182,8 @@ def fetch_study_info(organism):
 									"paper_title":row[8],
 									"description":row[9],
 									"study_name":row[10]}
-
+	logging.debug("Closing trips.sqlite connection")
+	connection.close()
 	return studyinfo_dict
 
 # Given a list of file id's as strings returns a list of filepaths to the sqlite files.
@@ -145,12 +191,16 @@ def fetch_file_paths(file_list,organism):
 	file_path_dict = {"riboseq":{},"rnaseq":{},"proteomics":{}}
 	#Convert to a tuple so it works with mysql
 	try:
+		#Remove empty strings from file list
+		file_list[:] = [x for x in file_list if x]
+		#Convert each string to an int
 		int_file_list = [int(x) for x in file_list]
 	except:
 		return {}
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
-	connection.text_factory = str
-	cursor = connection.cursor()
+	logging.debug("fetch_file_paths Connecting to trips.sqlite")
+	connection_ffp = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection_ffp.text_factory = str
+	cursor = connection_ffp.cursor()
 
 	study_dict ={}
 	cursor.execute("SELECT study_id,study_name from studies;")
@@ -170,7 +220,8 @@ def fetch_file_paths(file_list,organism):
 				file_path_dict[row[0]][row[3]] = ("{}{}/{}/{}/{}.sqlite".format(config.SQLITES_DIR,row[0],organism,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 			else:
 				file_path_dict[row[0]][row[3]] = ("{}/{}/{}.sqlite".format(config.UPLOADS_DIR,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
-	connection.close()
+	logging.debug("fetch_file_paths closing connection")
+	connection_ffp.close()
 	#for file_id in file_path_dict["riboseq"]:
 	#	print file_path_dict["riboseq"][file_id]
 	return file_path_dict
@@ -178,6 +229,7 @@ def fetch_file_paths(file_list,organism):
 
 # Builds a url and inserts it into sqlite database
 def generate_short_code(data,organism,transcriptome,plot_type):
+	logging.debug("generate_short_code Connecting to trips.sqlite")
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
@@ -187,6 +239,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 	# has all of its riboseq or rnaseq files checked. This part of the code determines which studies fall into that category.
 	riboseq_studies = []
 	rnaseq_studies = []
+	proteomics_studies = []
 
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}'".format(organism))
 	result = cursor.fetchone()
@@ -199,7 +252,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 		for row in result:
 			study_id = int(row[0])
 
-			#Now get all riboseq files that have this study_id, if all those ids are in file_list, add to riboseq studies and remove those files from file_list, do the same for rnaseq
+			#Now get all riboseq files that have this study_id, if all those ids are in file_list, add to riboseq studies and remove those files from file_list, do the same for rnaseq and proteomics
 			cursor.execute("SELECT file_id from files WHERE study_id = {} AND file_type = 'riboseq'".format(study_id))
 			result = cursor.fetchall()
 			all_present = True
@@ -224,6 +277,23 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 				rnaseq_studies.append(study_id)
 				for row in result:
 					data["file_list"].remove(str(row[0]))
+					
+					
+					
+			cursor.execute("SELECT file_id from files WHERE study_id = {} AND file_type = 'proteomics'".format(study_id))
+			result = cursor.fetchall()
+			all_present = True
+			# If there are no files of that type for that study then don't bother adding it to the list
+			if not result:
+				all_present=False
+			for row in result:
+				if str(row[0]) not in data["file_list"]:
+					all_present = False
+			if all_present == True:
+				proteomics_studies.append(study_id)
+				for row in result:
+					data["file_list"].remove(str(row[0]))
+					
 
 		for filenum in data["file_list"]:
 			url += filenum+","
@@ -234,6 +304,10 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 		if rnaseq_studies:
 			url += "&rna_studies="
 			for study_id in rnaseq_studies:
+				url += str(study_id)+","
+        if proteomics_studies:
+			url += "&proteomics_studies="
+			for study_id in proteomics_studies:
 				url += str(study_id)+","
 	if plot_type == "interactive_plot":
 		url += "&tran={}".format(data['transcript'].upper().strip())
@@ -495,7 +569,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 			start_codons.append("NONE")
 			
 		url += "&start_codons={}".format(str(start_codons).strip("[]").replace("'",""))
-		url += "&min_start_inc={}&max_start_inc={}&min_stop_dec={}&max_stop_dec={}&min_lfd={}&max_lfd={}&min_hfd={}&max_hfd={}".format(data["min_start_increase"],data["max_start_increase"],data["min_stop_decrease"],data["max_stop_decrease"],data["min_lowest_frame_diff"],data["max_lowest_frame_diff"],data["min_highest_frame_diff"],data["max_highest_frame_diff"])
+		#url += "&min_start_inc={}&max_start_inc={}&min_stop_dec={}&max_stop_dec={}&min_lfd={}&max_lfd={}&min_hfd={}&max_hfd={}".format(data["min_start_increase"],data["max_start_increase"],data["min_stop_decrease"],data["max_stop_decrease"],data["min_lowest_frame_diff"],data["max_lowest_frame_diff"],data["min_highest_frame_diff"],data["max_highest_frame_diff"])
 		url += "&min_cds={}&max_cds={}&min_len={}&max_len={}&min_avg={}&max_avg={}".format(data["min_cds"],data["max_cds"],data["min_len"],data["max_len"],data["min_avg"],data["max_avg"])
 		#url += "&region={}".format(data["region"])
 		url += "&tran_list={}".format(data["tran_list"])
@@ -538,6 +612,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 	cursor.execute("INSERT INTO urls VALUES({},'{}')".format(url_id, url))
 	connection.commit()
 	short_code = integer_to_base62(url_id)
+	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return short_code
 
@@ -684,7 +759,7 @@ def build_profile(trancounts, offsets, ambig,minscore=None,scores=None):
 		if readlen < minreadlen or readlen > maxreadlen:
 			continue
 		try:
-			offset = offsets[readlen]
+			offset = offsets[readlen]+1
 		except:
 			offset = 15
 		for pos in unambig_trancounts[readlen]:
@@ -706,7 +781,7 @@ def build_profile(trancounts, offsets, ambig,minscore=None,scores=None):
 			if readlen < minreadlen or readlen > maxreadlen:
 				continue
 			try:
-				offset = offsets[readlen]
+				offset = offsets[readlen]+1
 			except:
 				offset = 15
 			for pos in ambig_trancounts[readlen]:
@@ -746,23 +821,6 @@ def build_proteomics_profile(trancounts, ambig):
 					profile[x]  += count
 				except:
 					profile[x] = count
-	
-	if ambig == True:
-		for readlen in ambig_trancounts:
-			if readlen < minreadlen or readlen > maxreadlen:
-				continue
-			try:
-				offset = offsets[readlen]
-			except:
-				offset = 15
-			for pos in ambig_trancounts[readlen]:
-				
-				count = unambig_trancounts[readlen][pos]/float(readlen/3)
-				for x in range(pos, pos+readlen,3):
-					try:
-						profile[x]  += count
-					except:
-						profile[x] = count
 	return profile
 
 # Creates nucleotide composition counts if they don't already exist. 
@@ -814,6 +872,7 @@ def get_nuc_comp_reads(sqlite_db, nuccomp_reads, organism, transcriptome):
 	else:
 		sqlite_db["nuc_counts"] = {nuccomp_reads:master_dict}
 	sqlite_db.commit()
+	transhelve.close()
 	return master_dict
 
 # Creates a dictionary of readlength counts
