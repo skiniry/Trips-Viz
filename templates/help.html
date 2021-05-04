@@ -44,6 +44,115 @@
 <div id="accordion" class="top_header">
 
 
+<h3 id="parent_walkthrough" class="acc_headers" >Walkthrough Example</h3>
+<div id="walkthrough_div">
+<p class="center"> This is a basic walkthrough of the some of main features of Trips-Viz using an example dataset, for detailed information on each section see the relevant heading further down this page. <p>
+
+
+<p class="center" style="font-size:300%"><b>Visualising a individual transcript.</b></p>
+<p class="center"> From the homepage click on Saccharomyces cerevisiae, then sgd, then Single transcript plot.You will see the page shown in the screenshot below:
+
+<br><br><img width="95%"  src="/static/walkthrough_single_tran_top.png"></img></p>
+<p class="center"> Enter the transcript id "YAL002W" in the Gene/Transcript input box. Leave the other settings at their default values, you can read more about them in the single transcript plot section
+further down the page, or by clicking the information icon next to them.
+
+<br><br><img width="95%" src="/static/walkthrough_single_tran_bottom.png"></img> </p>
+<p class="center"> Scroll to the bottom of the page and click the box "Uncheck All Files with Selected Seq-Type", this will unselect all Ribo-Seq files (which are turned on by default). Then
+click on "Albert14", the Ribo-Seq files associated with this study will appear in the "Files box". Select each of the four files by clicking on the file name (the circle next to the file name will
+be filled in blue to indicate it is selected). Click the "View plot" button at the bottom of the page. 
+
+<br><br><img width="95%" src="/static/walkthrough_YAL002W.png"></img> </p>
+
+<p class="center">You will see the plot shown in the screenshot above of the gene VPS8 (transcript id YAL002W). In the main part of the plot inferred A-sites of Ribo-Seq reads from the study Albert14 are displayed. 
+These reads are coloured red/green/blue.These correspond to the open reading frame architecture shown beneath the plot, where each of the three reading frames are represented by a horizontal bar also coloured 
+red/green/blue. AUG codons are denoted by short white lines, while stop codons are longer black lines. <br><br>The annotated CDS start and CDS stop are denoted by vertical black lines on the main plot and 
+correspond to a start/stop codon in the first reading frame beneath the plot (red). As expected Ribo-Seq reads are mostly contained between the CDS start and CDS stop and biased toward the first
+reading frame (red). However there is also a region upstream of the CDS start that also has high Ribo-Seq density and is also biased toward the first reading frame. Click on the magnifying glass beneath the
+plot and draw a box around this region to zoom in. 
+
+<br><br><img width="95%" src="/static/walkthrough_YAL002W_zoomed.png"></img></p>
+<p class="center">We can see from the reading frames beneath the plot that there is an AUG codon (short white line) right where the read density increases, and a stop codon (longer black line) where the read density drops, 
+this ORF is in the first frame (red) and as the Ribo-Seq reads in this region are also mostly red it is likely that this is the start of a translated upstream open reading frame (uORF) in the first reading frame. </p>
+
+<p class="center">The above can be repeated to view the same gene with data from other studies to see if the uORF is also translated in other studies or is perhaps specific to a certain condition. This can also be done
+for other genes to find other uORFs or other cases of atypical translation. The single transcript plot page is useful for exploring these specific cases when you have a gene/transcript in mind that
+you want to explore. If you don't have a specific gene/transcript in mind and are looking specifically for cases of translated uORFs or other ORF types then see the translated ORF detection page. </p>
+
+<p class="center" style="font-size:300%"><b>Detecting translated ORFs.</b></p>
+<p class="center"> From the homepage click on Saccharomyces cerevisiae, then sgd, then Translated ORF detection. On that page you will various settings broken into the categories ORF Type, Features and Filters. 
+Leave these settings as default, for detailed information on these see the relevant section further down this page or click on the information icon next to the setting. Scroll down to the sequence types and studies section
+as on the Single transcript plot page. Click the box "Uncheck All Files with Selected Seq-Type" then click on "Albert14" and select the four Ribo-Seq files as before. Then click the Generate Table button.</p>
+
+
+<p class="center">After a short while (Note: Wait time will increase when more data is selected, and for organisms with more annotated transcripts) a table will be shown as in the screenshot below:
+<br><br><img width="95%" src="/static/walkthrough_orf_detection.png"></img>
+</p>
+
+<p class="center">
+Each row in the table corresponds to a different ORF, information shown for each ORF includes the start and stop position, the length the transcript id and the gene name. Each row also includes
+a link to the Single transcript plot page. Clicking on the link will open a separate tab where the transcript will be shown with the Albert14 data already loaded and the ORF will be highligted in yellow. 
+Clicking on the arrow on the bottom right of the table will show the next page of the table. This table can show up to 1000 cases of ORFs, in cases where there are more than 1000 cases a csv file with all the 
+cases can be downloaded via a link at the top left of the table. </p>
+
+<p class="center">The above can be repeated for different ORF types which can be selected at the top left of the page as well as using different studies or an aggregate of studies. Note however
+that ORF detection works best with studies that have strong triplet periodicity. This can be checked on the meta-information page.  </p>
+
+<p class="center" style="font-size:300%"><b>Meta-Information.</b></p>
+<p class="center"> From the homepage click on Saccharomyces cerevisiae, then sgd, then Meta-Information. At the top left of the page you'll see various different plot types. Click on the triplet 
+periodicity plot. At the top right of the page is a section for options which will change depending on the chosen plot type. Leave them on default for now. Scroll down and choose the four files from 
+the Albert14 as before, then click view plot. You'll see the plot shown in the screenshot below:
+<br><br><img width="95%" src="/static/walkthrough_periodicity.png"></img></p>
+
+<p class="center"> Read lengths are shown on the x-axis while the count is shown on the y-axis. Each read length has three bars corresponding to each of the three reading frames. If a dataset has strong
+periodicity one of the reading frames will be much higher than the other two. A score is also shown at the top right of the plot between 0 and 1, with 0 being the worst periodicity and 1 being the best. 
+The better the periodicity the easier it will be to detect ORFs and the clearer it will be when visualising single transcripts.</p> 
+
+<p class="center">The other plot types at the top left of the page can be used to check other aspects of datasets such as the read length distribution or metagene profiles, which can be useful when 
+assessing a datasets quality. A description of each can be seen in the metainformation section further down this page or by clicking the information icon next to the plot name. </p>
+
+
+<p class="center" style="font-size:300%"><b>Differential expression/translation</b></p>
+<p class="center"> From the homepage click on Saccharomyces cerevisiae, then sgd, then Differential plot. Leave the settings at the top of the page at their defaults. Scroll down and click on Albert14. 
+The file selection works a little bit differently for this page than the previous ones.
+<br><br><img width="95%" src="/static/walkthrough_diff_file_selection.png"></img></p>
+
+<p class="center"> Only one file can be selected at a time. First click on the file SRR1177157 to select it (1. In screenshot above), the circle will turn blue to indicate which file is selected. Next click on "Add to Ribo-Seq Files 1" (2. In screenshot above), then click
+on the file SRR1177159 to select that and again click "Add to Ribo-Seq Files 1". Next do the same for SRR1177162 and SRR1177163 but click the "Add to Ribo-Seq Files 2" button instead. Then click on the mRNA-Seq button in the 
+Seq-Types section (3. In screenshot above), the files in the file box will change. Select the files SRR1177156 and SRR1177158 and press the "Add to RNA-Seq files 1" button after each, do the same for SRR1177160 and SRR1177161 but click the 
+"Add to RNA-Seq files 2" button after each. When finished scroll up the page, the four boxes should look like the follwing screenshot:
+	
+<br><br><img width="95%" src="/static/walkthrough_diff_file_selection2.png"></img></p>
+
+
+
+
+<p class="center"> Then click the View Plot button at the bottom of the page. You should see a plot like the following:
+<br><br><img width="95%" src="/static/walkthrough_diff_plot.png"></img></p>
+
+<p class="center"> This plot shows the translation efficiency fold changes of each gene in Saccharomyces cerevisiae in the Albert14 study as calculated by the Z-score method. Average fold change is
+shown on the y-axis while the geometric mean of the 8 datasets is shown on the x-axis. Points above and below the yellow line represent genes with a z-score higher/lower than 4 (this can be changed using
+the inputs at the top of the page). Howevering over a specific point tells you the gene/transcript id of the point as well as the specific fold change and geometric mean. Clicking on a point will open a 
+seprate tab showing a comparison plot of the Ribo-Seq and mRNA-Seq for each condition. For example:
+<br><br><img width="95%" src="/static/walkthrough_AGA1_comp.png"></img></p>
+
+<p class="center"> This is a comparison plot for the gene AGA1 showing the data from the Albert14 study. Ribo-Seq reads are shown in dark green/red corresponding to condition 1/2, while mRNA-Seq reads are shown
+in light green/red corresponding to condition 1/2. The Ribo-Seq reads in condition 1 are much higher than the RNA-Seq reads in condition 1, but for condition 2 the Ribo-Seq reads are lower, meaning the 
+translation efficiency is lower in condition 2 than condition 1. 
+
+Comparison plots such as this can also be generated manually by going to the comparison plot page directly. Any number of conditions can be plotted there which makes it useful for looking at variation between 
+replicates or comparing more than two conditions. </p>
+
+
+
+
+
+
+
+</div>
+
+
+
+
 <h3 id="parent_general_info" class="acc_headers" >General Information/Frequently Asked Questions</h3>
 <div id="accordion_faq">
 	<h3 id="child_tripsviz">Why is it called Trips-viz?</h3>
@@ -59,6 +168,16 @@
 		<p class="center">
 		No. All features of Trips-viz can be used without an account. An account is only needed if you wish to change specific aspects of plots such as the background colour. An account is also needed
 		to upload your own data, or to view private data uploaded by someone else.
+		</p>
+	</div>
+	
+	<h3 id="child_share" >What are the codes that appear in the titles of Trips-Viz plots?</h3>
+	<div id="short_codes">
+		<p class="center">
+		These are unique codes that are generated for every plot on Trips-Viz. These allow for quickly sharing plots and record the specific files/studies used to generate the plot as well as any settings that were
+		changed. By following a link in the form https://trips.ucc.ie/short/<short_code> the plot can be recreated in the browser. For example if the code in the title of the plot was (28S) following the link 
+		<a href="http://trips.ucc.ie/short/28S">http://trips.ucc.ie/short/28S</a> would load the plot in the browser. Scrolling up the page would show you which settings and files were used to generate the plot. This
+		link can be sent to others to facilitate easily sharing plots. 
 		</p>
 	</div>
 
@@ -83,8 +202,11 @@
 		 <br><br>
 		 The "My files" section will also be populated after uploading a file. This will list the file name, the study name and a checkbox for each file. To delete files click the 
 		 checkboxes of the files you want to delete and press the "Delete files" button at the bottom of the page.
-		 Note that any files uploaded to Trips-Viz need to be in a specific format (sqlite) and have the extension .sqlite. In order to create a file in that format you  need to use
-		 the "bam_to_sqlite.py" script, which can be gotten from the downloads page. You will also need to download a file called "transcriptomic_to_genomic.sqlite" and 
+		 Note that any files uploaded to Trips-Viz need to be in a specific format (sqlite) and have the extension .sqlite. In order to create a file in that format, our reccommendation
+		 is to use <a href="https://ribogalaxy.ucc.ie/">RiboGalaxy</a>, under the Trips-Viz section select the bam to sqlite tool. Note that this tool requires an annotation sqlite file which 
+		 can also be created on RiboGalaxy using the create new organism tool, or downloaded from the Trips-Viz downloads page if the organism is already available there. 
+		 
+		 Alternatively you can use the "bam_to_sqlite.py" script, which can be retrieved from the downloads page. You will also need to download a file called "transcriptomic_to_genomic.sqlite" and 
 		 "organism_name.sqlite" which can be downloaded from the same page. Then run the python 2 script as follows:
 		 python bam_to_sqlite.py <path_to_bam_file> <path_to_transcriptomic_to_genomic.sqlite> <path_to_organism.sqlite> 
 		 This will produce a .sqlite file which you can upload to Trips-Viz. Note: BAM file has to be sorted, if not a valid sqlite file will still be produced, but the 
@@ -491,8 +613,8 @@
 						by a factor of 0.33  (100/300 = 0.33).<br>
 			<b>Min/Max readlen:</b> Readlengths outside this range will not contribute to the plot.<br><br>
 			<b>Custom sequence list:</b>   Rather than centering the plot around annotated start or stop codons multiple custom sequences (seperated via comma) can be entered in this box.
-									The search limits below restrict where the custom sequences should be searched for, this can be across the whole gene, the 5' leader, the annotated
-									coding region (CDS) or the 3' trailer. This can be further restricted by the boxes below to include or exclude sections of the chosen region.
+									The search limits below restrict where the custom sequences should be searched for, this can be across the whole gene, the 5' leader (5' UTR), the annotated
+									coding region (CDS) or the 3' trailer (3' UTR). This can be further restricted by the boxes below to include or exclude sections of the chosen region.
 									For example to recreate the stop codon plot, UAG,UAA,UGA would be entered into the custom sequence list, CDS should be chosen as the region and 
 									"Include last" option should be checked with the number of nucleotides set to 3.<br><br>
 									
@@ -582,7 +704,7 @@
 </div>
 
 
-	<h3 id="parent_diff" class="acc_headers">Differential translation</h3>
+<h3 id="parent_diff" class="acc_headers">Differential translation</h3>
 	<div id="accordion_diff" class="h">
 	<h3 id="child_video"> Video tutorial</h3>
 	<div id="video_tutorial">
@@ -626,6 +748,24 @@
 		you clicked and the files contributing to the plot colour coded red/green.
 		</p>
 	</div>
+	
+	<h3 id="child_plot_type" >Plot type</h3>
+		<div id="plot type">
+		<p class="center">
+		Choose the method used for identifying differentially expressed/translated genes. If correlation is selected only fold changes of transcripts will be displayed with no attempt to identify significant genes.
+		Significantly differentially expressed/translated genes can be found using the z-score approach, <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8">DESeq2</a> 
+		or <a href="https://academic.oup.com/nar/article/47/12/e70/5423604">Anota2seq</a>. If DEseq2 or Anota2seq is used a link above the plot allows you to download 
+		the inputs/outputs of the relevant software. 
+		</p>
+	</div>	
+	
+	
+	<h3 id="child_gene_type" >Gene type</h3>
+		<div id="gene type">
+		<p class="center">
+		Carry out the search using coding transcripts (default), non-coding transcripts or all transcripts. If this is not set to coding then region has to be set to "all".
+		</p>
+	</div>
 
 	<!-- <h3 id="child_diff_ambig" >Allow ambiguously mapped reads</h3>
 	<div id="Allow ambiguously mapped reads">
@@ -638,14 +778,19 @@
 		still be classed as unambiguous.</p>
 	</div> -->
 
-	<h3 id="child_minz" >Minimum Z-score</h3>
+	<h3 id="child_minz" >Minimum Z-score/Max p-adj</h3>
 	<div id="Allow ambiguously mapped reads">
 		<p class="center">
-		This allows you to set the minimum Z-score required before a transcript is considered significantly up/downregulated.
+		If using the z-score plot this option allows you to set the minimum Z-score required before a transcript is considered significantly up/downregulated.
 		Z-score represents the number of standard deviations a particular transcript is from the mean. So for example given
 		a minimum z-score of 4, only transcripts 4 standard deviations above or below the mean would be considered significantly
-		up/down regulated. The default is 4 but this is quite strict. Corresponding p-value from a given z-score can be checked
-		<a href="http://www.socscistatistics.com/pvalues/normaldistribution.aspx">here</a> (choose two tailed test). 
+		up/down regulated. 
+		
+		If using the DESeq2 or Anota2seq plot types this values represents the max p-adjusted value that will be used to consider genes significant. The values is 
+		a percentage so entering 5 in this box will count all genes with a p-adjusted values below 5% as significant. The default value for the DESeq2 plot is 5 while
+		for Anota2seq it is 15. 
+		
+		
 		</p>
 	</div>
 
@@ -663,17 +808,203 @@
 		finds the difference between the groups based on the number of unambiguously mapped reads. The counts for one of the groups will then be 
 		reduced to mitigate the difference. For example if there is one dataset in condition 1 with 1,000,000 mapped reads and 
 		one dataset in condition 2 with 500,000 mapped reads, the count for every transcript in condition 1 would be divided
-		by 2.
+		by 2. This is only applicable when not using the DESeq2 or Anota2seq plot types. 
 		</p>
 	</div>
 
 	<h3 id="child_minreads" >Minimum reads</h3>
 	<div id="Allow ambiguously mapped reads">
 		<p class="center">
-		Any transcripts with less than this number of reads in any group will be ignored. If normalisation is used the minimum applies to the normalised value. 
+		Any transcripts with less than this number of reads in any group will be ignored. If normalisation is used the minimum applies to the normalised value.
+		This is only applicable when not using the DESeq2 or Anota2seq plot types. 
 		</p>
 	</div>
+	
+	<h3 id="child_hili_genes" >Highlight gene list</h3>
+		<div id="Highlight gene list">
+		<p class="center">
+		Enter a comma seperated list of gene names, these will then be highlighted red/green on the z-score plots and black on other plot types. 
+		</p>
 	</div>
+	
+	<h3 id="child_transcript_list" >Transcript list</h3>
+		<div id="transcript list">
+		<p class="center">
+		Enter a comma seperated list of transcript ids, search will then be carried out only on these transcripts. 
+		</p>
+	</div>
+	
+	
+	</div>
+	
+	
+	
+	
+<h3 id="parent_traninfo" class="acc_headers">Transcriptome info plot</h3>
+<div id="accordion_traninfo" class="h">	
+	<h3 id="child_video"> Video tutorial</h3>
+	<div id="video_tutorial">
+	<p align="center"><iframe width="1020" height="630" src="https://www.youtube.com/embed/r94KTouy1us" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+	</div>
+	
+	<h3 id="child_traninfo_plotdesc" >Plot description</h3>
+	<div id="plot_description">
+	<p class="center">
+	The purpose of these plots is to explore any information inherit to the transcriptome annotations, not related to Ribo-Seq/RNA-Seq or other data types, for example transcript lengths or GC content. Many of the 
+	plots have multiple inputs for seperate transcript lists allowing for easy comparisons between groups. 
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_nuc_comp_single" >Nucleotide compositon (Single transcript)</h3>
+	<div id="nuc_comp_single">
+	<p class="center">
+	Used to explore the nucleotide composition of an individual transcript. Enter a transcript ID in the input box and press "View plot", a plot will be displayed showing a sliding window 
+	across the entire transcript of individual nucleotide compositions as well as GC content and minimum free energy (MFE). These can be turned on/off using the legend on the top right of the plot. 
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_nuc_comp_multi" >Nucleotide compositon (Multiple transcripts)</h3>
+	<div id="nuc_comp_multi">
+	<p class="center">
+	Used to investigate the nucleotide composition of multiple groups of transcripts. Between 1 and 4 lists of transcripts (comma seperated) can be entered in the boxes at the top right. The nucleotide and region
+	that is taken into consideration can also be chosen here, as well as the plot type (scatter or box). 
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_lengths" >Lengths plot</h3>
+	<div id="nuc_comp_lengths">
+	<p class="center">
+	Used to investigate the lengths of multiple groups of transcripts. Between 1 and 4 lists of transcripts (comma seperated) can be entered in the boxes at the top right. The region
+	that is taken into consideration can also be chosen here, as well as the plot type (scatter or box). 
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_genes" >Gene Count</h3>
+	<div id="gene_count">
+	<p class="center">
+	Displays the number of annotated genes and transcripts in a transcriptome. These are broken down further by the number of annotated coding (green) and non-coding (red) genes/transcripts. 
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_codon_usage" >Codon Usage plot</h3>
+	<div id="codon_usage">
+	<p class="center">
+	Displays the codon counts of coding regions of all principal isoforms if the supplied list is empty, a custom list of transcrips (comma seperated) can also be entered to only get codon counts from those transcripts. 
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_nucfreq" >Nucleotide frequency plot</h3>
+	<div id="nucfreq">
+	<p class="center">
+	Build a nucleotide frequence plot centered around the TSS (transcription start site), CDS start, CDS stop, or TTS (transcription termination site). A comma seperated list of transcripts needs to be entered.
+	</p>
+	</div>
+	
+	<h3 id="child_traninfo_orftable" >ORF Table</h3>
+	<div id="nucfreq">
+	<p class="center">
+	Generate a table of uORFs or other ORF types with information such as start/stop positions, length and start codon. Results can also be downloaded as a csv file.
+	</p>
+	</div>
+	
+	
+</div>	
+
+
+
+<h3 id="parent_orfplot" class="acc_headers">Translated ORF detection</h3>
+<div id="accordion_orfplot" class="h">	
+	<h3 id="child_video"> Video tutorial</h3>
+	<div id="video_tutorial">
+	<p align="center"><iframe width="1020" height="630" src="https://www.youtube.com/embed/vmqlGSKTi8w" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+	</div>
+	<h3 id="child_orfplot_plotdesc" >Plot description</h3>
+	<div id="plot_description">
+	<p class="center">
+	Used to detect translated ORFs in various categories, which can be selected at the top left of the page. Several features will be calculated derived from the selected ribosome profiling data. 
+	These features are then ranked, individual ranks are then aggregated to create a global rank. A table will be returned showing ORFs ranked from highest to lowest. Each ORF will have a link to 
+	view the ORF on the single transcript plot page with the selected ribosome profiling data where the ORF in question will be highlighted. Only the top 1000 ranked ORFs will be shown on the page
+	but all ranked ORFs can be downloaded in csv format by clicking the link above and to the left of the table. If proteomics data is also selected a column in the csv file will indicate the number
+	of peptides that overlap the ORF in question. If all files in a particular study are selected an aggregated file for that study will be used which will speed up the search significantly.
+	</p>
+	</div>
+
+	<h3 id="child_orfplot_start_increase" >Start Increase</h3>
+	<div id="start_increase">
+	<p class="center">
+	This feature compares the number of reads 5' of the start codon to the number of reads 3' of the start codon, with the assumption that there should be a large increase in reads at the 
+	start if the ORF is translated and thus a large difference between these two values. Only inframe reads are considered from the 5 codons before and after the start. 
+	</p>
+	</div>
+
+	<h3 id="child_orfplot_stop_decrease" >Stop Decrease</h3>
+	<div id="stop_decrease">
+	<p class="center">
+	This feature compares the number of reads 5' of the stop codon to the number of reads 3' of the stop codon, with the assumption that there should be a large decrease in reads at the 
+	stop if the ORF is translated and thus a large difference between these two values. Only inframe reads are considered from the 5 codons before and after the stop.
+	</p>
+	</div>
+
+	<h3 id="child_orfplot_coverage" >Coverage</h3>
+	<div id="coverage">
+	<p class="center">
+	This feature is dependent on the frame difference feature (highest or lowest). If the frame difference feature (highest) is used, this feature counts the number of positions in the 
+	ORF where the inframe count is higher than either of the other two frames, if frame difference (lowest) is used it counts the number of positions where the inframe reads are not the lowest 
+	of the three frames. 
+	</p>
+	</div>
+	
+	<h3 id="child_orfplot_fd_highest" >Frame Difference (highest)</h3>
+	<div id="fd_highest">
+	<p class="center">
+	Takes the number of inframe reads and substracts the number of out of frame reads (from whichever of the two is highest).
+	</p>
+	</div>
+	
+	<h3 id="child_orfplot_fd_lowest" >Frame Difference (lowest)</h3>
+	<div id="fd_lowest">
+	<p class="center">
+	Takes the number of inframe reads and substracts the number of out of frame reads (from whichever of the two is lowest).
+	</p>
+	</div>
+	
+
+	<h3 id="child_orfplot_cds_overlap" >CDS overlap</h3>
+	<div id="cds_overlap">
+	<p class="center">
+	Limit the search to only ORFs that minimally or maximally overlap a CDS region, values entered are between 0 and 1. If for example the min limit is set to 0 and max limit set to 0.5, the only 
+	ORFs that are returned will overlap CDS regions by 50% or less. Values will be changed automatically to the suggested values when switching ORF types, for example setting the max limit to 1 (100%)
+	if searching for nested or CDS ORF types. 
+	</p>
+	</div>
+	
+	<h3 id="child_orfplot_length" >Length</h3>
+	<div id="length">
+	<p class="center">
+	Limit the search to only ORFs with a length between the min and max limits (in nucleotides). 
+	</p>
+	</div>
+	
+	<h3 id="child_orfplot_transcripts" >Transcripts</h3>
+	<div id="orfplot_transcripts">
+	<p class="center">
+	Search for ORFs only on principal transcripts, all transcripts or a custom list (enter a comma seperated list in the input box).  
+	</p>
+	</div>
+	
+	<h3 id="child_orfplot_starts" >Start Codons</h3>
+	<div id="starts">
+	<p class="center">
+	Search for ORFs begining with either AUG, CUG or GUG codons.   
+	</p>
+	</div>
+	
+</div>	
+
+
+
+
+
 </div>
 
 
@@ -709,6 +1040,16 @@ $( function() {
 				active: false,
 				heightStyle: "content"
 						});
+		$( "#accordion_traninfo").accordion({
+			collapsible: true,
+			active: false,
+			heightStyle: "content"
+				});
+		$( "#accordion_orfplot").accordion({
+			collapsible: true,
+			active: false,
+			heightStyle: "content"
+				});
 		} );
 
 
