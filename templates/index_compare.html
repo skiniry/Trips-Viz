@@ -16,15 +16,15 @@ var gwips_info = {{  gwips_info|safe  }};
 <div id="general_settings">
 	<p><font size="5" align="center"><b><u>General Settings </u></b></font></p>
 	<table align="center" class="studytable">
-	<tr><td><input id="ambiguous" class="hidden_check ambig_check" type="checkbox" name="ambiguous" value="ambiguous" unchecked></input><label for='ambiguous' class='checkbox_label'></label><label for='line_graph' class='padded_label'>Allow ambiguous reads</label> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_ambig">(Whats this?) </a> </tr></td>
-	<tr><td><input id="normalize" class="hidden_check norm_check" type="checkbox" name="normalize" value="normalize" checked></input>     <label for='normalize' class='checkbox_label'></label><label for='line_graph' class='padded_label'>Normalize by mapped reads</label> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_norm">(Whats this?) </a> </tr></td>
-	<tr><td><input id="comp_ribocov" class="hidden_check comp_ribocov_check" type="checkbox" name="comp_ribocov" value="comp_ribocov" checked></input>     <label for='comp_ribocov' class='checkbox_label'></label><label for='line_graph' class='padded_label'>Ribo-Seq coverage</label> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_norm">(Whats this?) </a> </tr></td>
-	<tr><td><b>Gene/Transcript: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_gene">(Whats this?) </a>
+	<tr><td><input id="ambiguous" class="hidden_check ambig_check" type="checkbox" name="ambiguous" value="ambiguous" unchecked></input><label for='ambiguous' class='checkbox_label'></label><label for='line_graph' class='padded_label'>Allow ambiguous reads</label> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_ambig">&#9432; </a> </tr></td>
+	<tr><td><input id="normalize" class="hidden_check norm_check" type="checkbox" name="normalize" value="normalize" checked></input>     <label for='normalize' class='checkbox_label'></label><label for='line_graph' class='padded_label'>Normalize by mapped reads</label> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_norm">&#9432; </a> </tr></td>
+	<tr><td><input id="comp_ribocov" class="hidden_check comp_ribocov_check" type="checkbox" name="comp_ribocov" value="comp_ribocov" checked></input>     <label for='comp_ribocov' class='checkbox_label'></label><label for='line_graph' class='padded_label'>Ribo-Seq coverage</label> <a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_norm">&#9432; </a> </tr></td>
+	<tr><td><b>Gene/Transcript: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_gene">&#9432; </a>
 	<input align="center" id="tran" type="text" name="transcript" value="ENST00000367055"></input></tr></td>
-	<tr><td><b>Min Read: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_minread">(Whats this?) </a><input type="text" id="minread" name="minread" value="25" ></input></tr></td>
-	<tr><td><b>Max Read: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_maxread">(Whats this?) </a><input type="text" id="maxread" name="maxread" value="150" ></input></tr></td>
-	<tr><td><b>Highlight start: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_hili">(Whats this?) </a><input type="text" id="hili_start" name="hili_start" value="0" ></input></tr></td>
-	<tr><td><b>Highlight stop: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_hili">(Whats this?) </a><input type="text" id="hili_stop" name="hili_stop" value="0" ></input></tr></td>
+	<tr><td><b>Min Read: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_minread">&#9432; </a><input type="text" id="minread" name="minread" value="25" ></input></tr></td>
+	<tr><td><b>Max Read: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_maxread">&#9432; </a><input type="text" id="maxread" name="maxread" value="150" ></input></tr></td>
+	<tr><td><b>Highlight start: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_hili">&#9432; </a><input type="text" id="hili_start" name="hili_start" value="0" ></input></tr></td>
+	<tr><td><b>Highlight stop: </b><a class="whatsthis"  target="_blank_" href="https://trips.ucc.ie/help/?parent_acc=parent_comparison&child_acc=child_comp_hili">&#9432; </a><input type="text" id="hili_stop" name="hili_stop" value="0" ></input></tr></td>
 	</table>
 </div>
 
@@ -353,7 +353,11 @@ function addItem(file_id){
 						};
 
 				 };
-
+		//console.log("color file list html", document.getElementById("color_file_list").innerHTML)
+		//for (color in master_file_dict) {
+		//	li_val = document.getElementById("label_"+color+"");
+		//	console.log("li_val",li_val);
+		//	}
 		document.getElementById("color_file_list").innerHTML = "";
 		for (color in master_file_dict) {
 				var li = document.createElement("LI");
@@ -436,7 +440,7 @@ $("#comparequery").click(function() {
 	var transcript = $('input:text[name=transcript]').val();
 	var minread = $('input:text[name=minread]').val();
 	var maxread = $('input:text[name=maxread]').val();
-
+	var nanobar = new Nanobar({bg: '#77abff'});
 	var hili_start = $('input:text[name=hili_start]').val();
 	var hili_stop = $('input:text[name=hili_stop]').val();
 
@@ -471,10 +475,81 @@ $("#comparequery").click(function() {
 			contentType: "application/json; charset=utf-8",
 			url: url,
 			data: JSON.stringify(qu),
-			success: function (data) {
-					if (data.slice(0, 11) == "TRANSCRIPTS"){
+			dataType: "html",
+			success: function(data, status, request) {
+					status_url = request.getResponseHeader('Location');
+					
+					if (request.statusText == "NO_CELERY") {
+						if (data.slice(0, 11) == "TRANSCRIPTS"){
+								console.log("Its a transcript list");
+								var splitdata = data.split(":");
+								populate_jquery_dialog(splitdata);
+								$( "#dialog-2" ).dialog( "open" );
+								console.log("After submit");
+								$("#loading-div-background").hide();
+								$("#container").show();
+
+								}
+						else{
+								console.log("its not a transcript list");
+
+								var graph = $("#container");
+								graph.html(data);
+								$("#loading-div-background").hide();
+								$("#container").show();
+								$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+								document.getElementById('container').scrollIntoView();
+
+								}
+					
+					}
+					else {
+						jdata = JSON.parse(data);
+						if (jdata["status"] == "return_str") {
+							var graph = $("#container");
+							graph.html(jdata["result"]);
+							$("#loading-div-background").hide();
+							$("#container").show();
+							}
+						else if (jdata["status"] == "tran_list") {
+							console.log("Populating tran list");
+							var splitdata = jdata['result'].split(":");
+							populate_jquery_dialog(splitdata);
+							$("#myTable").tablesorter({sortList: [[4,0]]});
+							$( "#dialog-2" ).dialog( "open" );
+							}
+						else {
+							console.log("data, status, request", data, status, request);
+							
+							console.log("Calling update progress");
+							update_progress(status_url, nanobar);
+							//$("#loading-div-background").hide();
+							}
+						}
+					},
+			
+ });
+});
+
+
+
+function update_progress(status_url, nanobar) {
+	console.log("update progress called");
+	// send GET request to status URL
+	$.getJSON(status_url, function(data) {
+		// update UI
+		percent = parseInt(data['current'] * 100 / data['total']);
+		nanobar.go(percent);
+		//$(status_div.childNodes[1]).text(percent + '%');
+		//$(status_div.childNodes[2]).text(data['status']);
+		$("#loading_header").text(data['status'])
+		
+		console.log("data is "+data);
+
+		if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
+				if (data['result'].slice(0, 11) == "TRANSCRIPTS"){
 							console.log("Its a transcript list");
-							var splitdata = data.split(":");
+							var splitdata = data['result'].split(":");
 							populate_jquery_dialog(splitdata);
 							$( "#dialog-2" ).dialog( "open" );
 							console.log("After submit");
@@ -486,17 +561,28 @@ $("#comparequery").click(function() {
 							console.log("its not a transcript list");
 
 							var graph = $("#container");
-							graph.html(data);
+							graph.html(data['result']);
 							$("#loading-div-background").hide();
 							$("#container").show();
 							$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
 							document.getElementById('container').scrollIntoView();
 
 							}
-					},
-	dataType: "html"
- });
-});
+			}
+			else {
+				// rerun in 2 seconds
+				setTimeout(function() {
+					update_progress(status_url, nanobar);
+					}, 2000);
+				}
+				});
+				}
+
+
+
+
+
+
 
 
 if (html_args["minread"] != "None") {
