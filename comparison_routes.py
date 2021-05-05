@@ -153,10 +153,16 @@ def comparequery():
 						threeutrlen = tranlen - cds_stop
 					return_str += (":{},{},{},{},{},{}".format(transcript[0], tranlen, cds_start, cdslen, threeutrlen,principal))
 				tot_prog = 100
-				return jsonify({'current': 400, 'total': tot_prog, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
+				if app.debug == True:
+					return return_str, "NO_CELERY", {'Location': None}
+				else:
+					return jsonify({'current': 100, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""}  
 		else:
 			return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			if app.debug == True:
+				return return_str, "NO_CELERY", {'Location': None}
+			else:
+				return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 	transhelve.close()
 	minread = int(data['minread'])
 	maxread = int(data['maxread'])
@@ -164,13 +170,16 @@ def comparequery():
 	hili_stop = int(data['hili_stop'])
 	master_filepath_dict = {}
 	master_file_dict = data['master_file_dict']
-	# This section is purely to sort by label alphabetically
+	
 	if master_file_dict == {}:
 		return_str =  "Error: No files in the File list box. To add files to the file list box click on a study in the studies section above. This will populate the Ribo-seq and RNA-Seq sections with a list of files. Click on one of the files and then press the  Add button in the studies section. This will add the file to the File list box. Selecting another file and clicking Add again will add the new file to the same group in the File list. Alternatively to add a new group simply change the selected colour (by clicking on the coloured box in the studies section) and then click the Add file button."
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		if app.debug == True:
+			return return_str, "NO_CELERY", {'Location': None}
+		else:
+			return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""}  
 
 
-
+	# This section is purely to sort by label alphabetically
 	for color in master_file_dict:
 		master_filepath_dict[color] = {"filepaths":[],"file_ids":[],"file_names":[],"file_descs":[],"mapped_reads":0,"minread":minread,"maxread":maxread}
 		# Overwrite the default minread and maxread with the minread/maxread values that are group specific, this allows users to easily visualise
@@ -194,7 +203,10 @@ def comparequery():
 						sqlite_db = SqliteDict(filepath, autocommit=False)
 					else:
 						return_str =  "File not found, please report this to tripsvizsite@gmail.com or via the contact page."
-						return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+						if app.debug == True:
+							return return_str, "NO_CELERY", {'Location': None}
+						else:
+							return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 					#if maxread != 150:
 					#	read_lengths = sqlite_db["read_lengths"]
 					#	for i in range(master_filepath_dict[color]["minread"],master_filepath_dict[color]["maxread"]+1):
@@ -206,7 +218,10 @@ def comparequery():
 					else:
 						if "normalize" in data:
 							return_str = "One or more selected files is missing values for 'coding_counts' and 'non_coding_counts' so cannot normalize with these files, please report this to tripsvizsite@gmail.com or via the contact page."
-							return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+							if app.debug == True:
+								return return_str, "NO_CELERY", {'Location': None}
+							else:
+								return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""}  
 					master_filepath_dict[color]["filepaths"].append(filepath)
 					master_filepath_dict[color]["file_ids"].append(file_id)
 					master_filepath_dict[color]["file_names"].append(file_name)
@@ -267,7 +282,7 @@ def comparequery():
 	trips_connection.close()
 		
 	if tran != "":
-		if app.debug == True or celery_availability == None:
+		if app.debug == True:
 			task = riboflask_compare.generate_compare_plot(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
 											ribocoverage, organism,normalize,short_code,background_col,hili_start,
 											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,config.ANNOTATION_DIR,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
@@ -281,7 +296,10 @@ def comparequery():
 			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	else:
 		return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		if app.debug == True:
+			return return_str, "NO_CELERY", {'Location': None}
+		else:
+			return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 
 
 

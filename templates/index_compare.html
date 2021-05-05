@@ -227,7 +227,6 @@ for (var key in studies_dict)  {
 			var seq_type = seq_types[i]
 			var files_div = document.getElementById('files');
 			var new_show_div = document.createElement(studies_dict[key]["study_name"]);
-			console.log("Seq type is "+seq_type)
 			new_show_div.className = 'show';
 			new_show_div.id = seq_type+"study"+key;
 			tablehtml = "<table  class='file_table' id="+key+seq_type+" align='center'></table>";
@@ -302,7 +301,6 @@ function addStudy(){
 	var study_id = document.querySelector('input[name="content_type"]:checked').value;
 	study_id = study_id.replace("study", "");
 	var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
-	console.log("Study id is", study_id);
 
 	for (var item in accepted_files[seq_type][study_id]) {
 		addItem(item);
@@ -321,37 +319,16 @@ function addItem(file_id){
 			};
 		var colorinput = document.getElementById("inputcolor_riboseq");
 		if (colorinput.value in master_file_dict) {
-				console.log("COLOR INPUT "+colorinput.value+" is in master file dict ");
 				master_file_dict[colorinput.value]["file_ids"].push(fileinput);
-				
-				
 				var group_id = 'label_'+colorinput.value
-				console.log("INPUT GROUP ID IS "+group_id)
 				var group_label = document.getElementById(group_id);
 				var label_val = (group_label.value).replace(/_/g, "-");
 				master_file_dict[colorinput.value]["label"] = label_val
-				
-				
-				
-				for (key in master_file_dict) {
-						for (id in master_file_dict[key]["file_ids"]) {
-								console.log("id "+master_file_dict[key]["file_ids"][id]);
-																													}
-																			};
 				}
 		else {
-				console.log("COLOR INPUT "+colorinput.value+" is not in master file dict ");
 				var minread = $('input:text[name=minread]').val();
 				var maxread = $('input:text[name=maxread]').val();
 				master_file_dict[colorinput.value] = {"file_ids":[fileinput],"minread":minread, "maxread":maxread,"label":""}
-
-				for (key in master_file_dict) {
-						console.log("Color", key);
-						for (id in master_file_dict[key]["file_ids"]) {
-								console.log("id "+master_file_dict[key]["file_ids"][id]);
-								}
-						};
-
 				 };
 		//console.log("color file list html", document.getElementById("color_file_list").innerHTML)
 		//for (color in master_file_dict) {
@@ -369,7 +346,6 @@ function addItem(file_id){
 				newdiv.appendChild(indiv);
 				var file_name = file_id_to_name_dict[master_file_dict[color]["file_ids"][0]]
 				var group_id = 'label_'+color
-				console.log("INPUT GROUP ID IS "+group_id)
 				if (master_file_dict[color]["file_ids"].length == 1) {
 						var minread = master_file_dict[color]["minread"];
 						var maxread = master_file_dict[color]["maxread"];
@@ -390,11 +366,7 @@ function addItem(file_id){
 		};
 
 
-function print_dict(input_dict) {
-		for (var key in input_dict) {
-				console.log(input_dict[key]);
-																}
-																};
+
 
 $(function() {
 		$( "#dialog-2" ).dialog({
@@ -404,16 +376,13 @@ $(function() {
 				buttons: {
 				Submit: function() {//var transcript = document.getElementById("transcript_sel").value();
 								var transcript = document.querySelector('input[name=transcript_sel]:checked').value;
-								console.log("transcript"+transcript);
 								document.getElementById('tran').value = transcript;
 								$(this).dialog("close");
 								// if there is files in the file list then call the comparequery function
 
 								if (listnum >= 1) {
-										console.log("Calling compare query");
 										$("#comparequery").click();}
 								else {
-										console.log("listnum"+listnum);
 										return true;
 												}
 								}},
@@ -453,7 +422,6 @@ $("#comparequery").click(function() {
 
 	for (key in master_file_dict) {
 			var group_id = "label_"+key
-			console.log("Group id is "+group_id);
 			var group_label = document.getElementById(group_id);
 			var label_val = (group_label.value).replace(/_/g, "-");
 			master_file_dict[key]["label"] = label_val
@@ -478,21 +446,19 @@ $("#comparequery").click(function() {
 			dataType: "html",
 			success: function(data, status, request) {
 					status_url = request.getResponseHeader('Location');
-					
+					console.log("data is ", data);
+					console.log("status is ", status);
+					console.log("request is ", request);
 					if (request.statusText == "NO_CELERY") {
 						if (data.slice(0, 11) == "TRANSCRIPTS"){
-								console.log("Its a transcript list");
 								var splitdata = data.split(":");
 								populate_jquery_dialog(splitdata);
 								$( "#dialog-2" ).dialog( "open" );
-								console.log("After submit");
 								$("#loading-div-background").hide();
 								$("#container").show();
 
 								}
 						else{
-								console.log("its not a transcript list");
-
 								var graph = $("#container");
 								graph.html(data);
 								$("#loading-div-background").hide();
@@ -512,16 +478,12 @@ $("#comparequery").click(function() {
 							$("#container").show();
 							}
 						else if (jdata["status"] == "tran_list") {
-							console.log("Populating tran list");
 							var splitdata = jdata['result'].split(":");
 							populate_jquery_dialog(splitdata);
 							$("#myTable").tablesorter({sortList: [[4,0]]});
 							$( "#dialog-2" ).dialog( "open" );
 							}
 						else {
-							console.log("data, status, request", data, status, request);
-							
-							console.log("Calling update progress");
 							update_progress(status_url, nanobar);
 							//$("#loading-div-background").hide();
 							}
@@ -534,7 +496,6 @@ $("#comparequery").click(function() {
 
 
 function update_progress(status_url, nanobar) {
-	console.log("update progress called");
 	// send GET request to status URL
 	$.getJSON(status_url, function(data) {
 		// update UI
@@ -544,22 +505,15 @@ function update_progress(status_url, nanobar) {
 		//$(status_div.childNodes[2]).text(data['status']);
 		$("#loading_header").text(data['status'])
 		
-		console.log("data is "+data);
-
 		if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
 				if (data['result'].slice(0, 11) == "TRANSCRIPTS"){
-							console.log("Its a transcript list");
 							var splitdata = data['result'].split(":");
 							populate_jquery_dialog(splitdata);
 							$( "#dialog-2" ).dialog( "open" );
-							console.log("After submit");
 							$("#loading-div-background").hide();
 							$("#container").show();
-
 							}
 					else{
-							console.log("its not a transcript list");
-
 							var graph = $("#container");
 							graph.html(data['result']);
 							$("#loading-div-background").hide();
@@ -638,7 +592,6 @@ $(document).ready(function(){
 	}
 	for (file_type in seq_study_dict) {
 		if (file_type == seq_type) {
-			console.log("File type is seq_type "+file_type+"  "+seq_type);
 			for (var sub_study_id in seq_study_dict[file_type]) {
 				$("#label"+seq_study_dict[file_type][sub_study_id]+"").css({ opacity: 1 });
 			}
