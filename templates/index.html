@@ -548,33 +548,34 @@ $("#query").click(function() {
 		dataType: "html",
 		success: function(data, status, request) {
 					status_url = request.getResponseHeader('Location');
-					console.log("Status text is ", request.statusText);
 					// If running in local mode or celery not running do not call update_progress function
 					if (request.statusText == "NO_CELERY") {
 						if (data.slice(0, 11) == "TRANSCRIPTS"){
-						var splitdata = data.split(":");
-						populate_jquery_dialog(splitdata);
-						$("#myTable").tablesorter({sortList: [[4,0]]});
-						$( "#dialog-2" ).dialog( "open" );
-						}
+							var splitdata = data.split(":");
+							populate_jquery_dialog(splitdata);
+							$("#myTable").tablesorter({sortList: [[4,0]]});
+							$( "#dialog-2" ).dialog( "open" );
+							}
 			
-					else if (data.slice(0, 17) == "QUANT_TRANSCRIPTS"){
-						var splitdata = data.split(":");
-						populate_jquery_dialog_quant(splitdata);
-						$("#myTable").tablesorter({sortList: [[6,0]]});
-						$( "#dialog-2" ).dialog( "open" );
-						}
+						else if (data.slice(0, 17) == "QUANT_TRANSCRIPTS"){
+							var splitdata = data.split(":");
+							populate_jquery_dialog_quant(splitdata);
+							$("#myTable").tablesorter({sortList: [[6,0]]});
+							$( "#dialog-2" ).dialog( "open" );
+							}
 
-					else{
-						var graph = $("#container");
-						graph.html(data);
-						$("#loading-div-background").hide();
-						$("#container").show();
-						$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);}
-					document.getElementById('container').scrollIntoView();
+						else{
+							var graph = $("#container");
+							graph.html(data);
+							$("#loading-div-background").hide();
+							$("#container").show();
+							$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+							}
+						document.getElementById('container').scrollIntoView();
 					}
 					
 					else {
+						// if data is an error message or just populating the transcript table, do not send to update_progress
 						jdata = JSON.parse(data);
 						if (jdata["status"] == "return_str") {
 							var graph = $("#container");
@@ -588,11 +589,14 @@ $("#query").click(function() {
 							$("#myTable").tablesorter({sortList: [[4,0]]});
 							$( "#dialog-2" ).dialog( "open" );
 						}
+						else if (jdata["status"] == "quant_tran_list"){
+							var splitdata = jdata['result'].split(":");
+							populate_jquery_dialog_quant(splitdata);
+							$("#myTable").tablesorter({sortList: [[6,0]]});
+							$( "#dialog-2" ).dialog( "open" );
+							}
 						else {
-							
-							//console.log("Calling update progress");
 							update_progress(status_url, nanobar);
-							//$("#loading-div-background").hide();
 							}
 						}
 		}
@@ -603,65 +607,34 @@ $("#query").click(function() {
 
 
 function update_progress(status_url, nanobar) {
-	//console.log("update progress called");
 	// send GET request to status URL
 	$.getJSON(status_url, function(data) {
-		//console.log("Updating UI")
 		// update UI
 		percent = parseInt(data['current'] * 100 / data['total']);
 		nanobar.go(percent);
 		//$(status_div.childNodes[1]).text(percent + '%');
 		//$(status_div.childNodes[2]).text(data['status']);
 		$("#loading_header").text(data['status'])
-		
-
 		if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
-				if (data['result'].slice(0, 11) == "TRANSCRIPTS"){
-					var splitdata = data['result'].split(":");
-					populate_jquery_dialog(splitdata);
-					$("#myTable").tablesorter({sortList: [[4,0]]});
-					$( "#dialog-2" ).dialog( "open" );
-					}
-		
-				else if (data['result'].slice(0, 17) == "QUANT_TRANSCRIPTS"){
-					var splitdata = data['result'].split(":");
-					populate_jquery_dialog_quant(splitdata);
-					$("#myTable").tablesorter({sortList: [[6,0]]});
-					$( "#dialog-2" ).dialog( "open" );
-					}
-
-				else{
-					var graph = $("#container");
-					graph.html(data['result']);
-					$("#loading-div-background").hide();
-					$("#container").show();
-					$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);}
-					document.getElementById('container').scrollIntoView();
+			var graph = $("#container");
+			graph.html(data['result']);
+			$("#loading-div-background").hide();
+			$("#container").show();
+			$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+			document.getElementById('container').scrollIntoView();
 			}
-			else {
-				// rerun in 2 seconds
-				setTimeout(function() {
-					update_progress(status_url, nanobar);
-					}, 500);
-				}
-				});
-				}
-
-
-
-
-
-
-
-
-
-
+		else {
+			// rerun in 2 seconds
+			setTimeout(function() {
+				update_progress(status_url, nanobar);
+				}, 500);
+			}
+		});
+	}
 
 
 // if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
 if (user_files.length != 0 || user_ribo_studies.length != 0 || user_proteomics_studies.length != 0 || user_rna_studies.length != 0) {
-
-
 		for (i in seq_types) {
 			var seq_type = seq_types[i];
 			$('input.'+seq_type+'_file').prop('checked',false);

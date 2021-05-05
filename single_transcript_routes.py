@@ -183,7 +183,11 @@ def query():
 			sqlite_path_organism = "{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)
 			transhelve = sqlite3.connect(sqlite_path_organism)
 		else:
-			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+			if app.debug == True:
+				return return_str, "NO_CELERY", {'Location': None}
+			else:
+				return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 	else:
 		sqlite_path_organism = "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome)
 		transhelve = sqlite3.connect(sqlite_path_organism)
@@ -206,7 +210,7 @@ def query():
 				tran = str(result[0][0])
 			else:
 				return_str = "TRANSCRIPTS"
-				if user == "master":
+				if user == "test":
 					return_str = "QUANT_TRANSCRIPTS"
 					if len(file_paths_dict["riboseq"].values()) > 0:
 						pre_orfQuant_res = incl_OPM_run_orfQuant(tran, sqlite_path_organism, file_paths_dict["riboseq"].values())
@@ -248,7 +252,7 @@ def query():
 					else:
 						cdslen = cds_stop-cds_start
 						threeutrlen = tranlen - cds_stop
-					if user == "master":
+					if user == "test":
 						if transcript[0] in orfQuant_res:
 							OPM_coverage = orfQuant_res[transcript[0]]
 						else:
@@ -267,11 +271,22 @@ def query():
 						return_str += (":{},{},{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen, OPM_coverage, ribo_coverage, RNA_coverage))
 					else:
 						return_str += (":{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen,principal))
-				return jsonify({'current': 400, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
+				if app.debug == True:
+					return return_str, "NO_CELERY", {'Location': None}
+				else:
+					if user == "test":
+						print "TEST USER, RETURNING:", return_str
+						return jsonify({'current': 400, 'total': 100, 'status': 'quant_tran_list','result': return_str}), 200, {'Location': ""} 
+					else:
+						return jsonify({'current': 400, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
 				
 		else:
-			return "ERROR! Could not find any transcript corresponding to {}".format(tran)
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return_str =  "ERROR! Could not find any gene or transcript corresponding to {}".format(tran)
+			logging.debug(return_str)
+			if app.debug == True:
+				return return_str, "NO_CELERY", {'Location': None}
+			else:
+				return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 	transhelve.close()
 	if 'varlite' in data:
 		lite = "y"
@@ -386,14 +401,11 @@ def query():
 								subheading_size,axis_label_size,marker_size,transcriptome,config.UPLOADS_DIR,cds_marker_size,cds_marker_colour,
 								legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches,hili_start, hili_stop)
 			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
-	
-	
-	
-	
-	
-	
-	
-	
+
 	else:
-		return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		return_str =  "ERROR! Could not find any transcript or gene corresponding to {}".format(tran)
+		logging.debug(return_str)
+		if app.debug == True:
+			return return_str, "NO_CELERY", {'Location': None}
+		else:
+			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
