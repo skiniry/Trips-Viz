@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import date
 import sys
 import sqlite3
 import logging
@@ -39,7 +40,9 @@ root_logger.propagate = False
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 
-file_handler = logging.FileHandler(config.LOG_FILE+str(time.time()))
+
+today = date.today()
+file_handler = logging.FileHandler(config.LOG_FILE+str(today))
 file_handler.setFormatter(log_format)
 
 stream_handler = logging.StreamHandler()
@@ -730,7 +733,11 @@ def upload_transcriptome():
 # Called by flask in case of an error in the code, returns the exception so it can be displayed to user
 @app.errorhandler(500)
 def handle_bad_request(e):
-	return 'ERROR: '+str(e)+" please report this to tripsvizsite@gmail.com or via the contact page. "
+	return_str =  'ERROR: '+str(e)+" please report this to tripsvizsite@gmail.com or via the contact page. "
+	if app.debug == True:
+		return return_str, "NO_CELERY", {'Location': None}
+	else:
+		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
 
 # This is the page where users login. 
 @app.route("/user/login", methods=["GET", "POST"])
