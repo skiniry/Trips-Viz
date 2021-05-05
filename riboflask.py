@@ -89,8 +89,6 @@ def merge_dicts(dict1,dict2):
 @celery_application.task(bind=True)
 def generate_plot(self, tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,trips_annotation_location,seqhili,seq_rules,title_size,
 subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_location,cds_marker_size,cds_marker_colour,legend_size,ribo_linewidth, secondary_readscore,pcr,mismatches, hili_start, hili_stop):
-	start_time = time.time()
-	print ("Generate plot called with tran {}".format(tran))
 	#self.update_state(state='PROGRESS',meta={'current': 0, 'total': 100,'status': "Generate plot called"})
 	if lite == "n" and ribocoverage == True:
 		return "Error: Cannot display Ribo-Seq Coverage when 'Line Graph' is turned off"
@@ -144,7 +142,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		traninfo["exon_junctions"] = [int(x) for x in traninfo["exon_junctions"]]
 	else:
 		traninfo["exon_junctions"] = []
-	print ("Checkpoint 1 {}".format((time.time()-start_time)))
 	all_cds_regions = []
 	# Check if the 'coding_regions' table exists
 	cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coding_regions';")
@@ -195,11 +192,8 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 				frame_orfs[frame].append((start, best_stop_pos))
 	#self.update_state(state='PROGRESS',meta={'current': 100, 'total': 100,'status': "Fetching RNA-Seq Reads"})
 	all_rna_reads, rna_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, False,noisered, primetype,"rnaseq",readscore,pcr,get_mismatches=mismatches,self_obj=self)
-	print ("Checkpoint 1.1 {}".format((time.time()-start_time)))
 	#self.update_state(state='PROGRESS',meta={'current': 100, 'total': 100,'status': "Fetching Ribo-Seq Reads"})
 	all_subcodon_reads,ribo_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,ribocoverage, organism, True,noisered, primetype,"riboseq",readscore,secondary_readscore,pcr,get_mismatches=mismatches,self_obj=self)
-	print ("File paths dict", file_paths_dict)
-	print ("Checkpoint 1.2 {}".format((time.time()-start_time)))
 	#print "riboseq var dict",ribo_seqvar_dict
 	seq_var_dict = merge_dicts(ribo_seqvar_dict, rna_seqvar_dict)
 	#print "all subcodon reads", all_subcodon_reads
@@ -211,7 +205,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		subcodonmax = max(all_subcodon_reads.values())
 	except:
 		subcodonmax = 0
-	print ("Checkpoint 2 {}".format((time.time()-start_time)))
 	y_max = max(1,rnamax, subcodonmax)*1.1
 	fig = plt.figure(figsize=(22,13))
 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
@@ -264,7 +257,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 				alt_seq_type_vars.append(frame2_altseqplot)
 			if max(alt_sequence_reads.values()) > y_max:
 				y_max = max(alt_sequence_reads.values())
-	print ("Checkpoint 3 {}".format((time.time()-start_time)))
 	label = 'Reads'
 	ax_main.set_ylabel(label,  fontsize=axis_label_size, labelpad=30)
 	label = 'Position (nucleotides)'
@@ -302,7 +294,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	for tup in all_cds_regions:
 		ax_cds.fill_between([tup[0],tup[1]], [1, 1],zorder=0, alpha=1, color="#001285")
 
-	print ("Checkpoint 4 {}".format((time.time()-start_time)))
 	#plot a dummy exon junction at postion -1, needed in cases there are no exon junctions, this wont be seen
 	allexons = ax_main.plot((-1,-1), (0, 1), alpha=0.01,color='black',linestyle = '-.', linewidth=2)
 	for exon in exon_junctions:
@@ -397,7 +388,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	title_str = '{} ({})'.format(gene,short_code)
 	plt.title(title_str, fontsize=title_size,y=38)
 	line_collections = [frame0subpro, frame1subpro, frame2subpro, rna_bars, allexons]
-	print ("Checkpoint 5 {}".format((time.time()-start_time)))
 	if mismatches == True:
 		line_collections.append(a_mismatches)
 		line_collections.append(t_mismatches)
@@ -503,7 +493,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			label = df.ix[[0], :].T
 			label.columns = ["Start pos: {}".format(start-1)]
 			htmllabels[frame].append(str(label.to_html()))
-	print ("Checkpoint 6 {}".format((time.time()-start_time)))
 	points1 =ax_f1.plot(all_start_points[1], [0.75]*len(all_start_points[1]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 	points2 =ax_f2.plot(all_start_points[2], [0.75]*len(all_start_points[2]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 	points3 =ax_f3.plot(all_start_points[3], [0.75]*len(all_start_points[3]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
@@ -536,7 +525,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, TopToolbar(yoffset=180,xoffset=-70),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
 	else:
 		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, signaltooltip1,signaltooltip2,signaltooltip3, TopToolbar(yoffset=100),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
-	print ("Checkpoint 7 {}".format((time.time()-start_time)))
+
 	ax_main.set_axis_bgcolor(background_col)
 	# This changes the size of the tick markers, works on both firefox and chrome.
 	ax_main.tick_params('both', labelsize=marker_size)
