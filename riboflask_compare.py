@@ -28,7 +28,7 @@ color_dict = {'frames': ['#FF4A45', '#64FC44', '#5687F9']}
 
 @celery_application.task(bind=True)
 def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_dict,lite, offset_dict,ribocoverage,organism,normalize, short_code, background_col, hili_start, 
-				 hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,trips_annotation_location, title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,
+				 hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col, title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,
 				 cds_marker_colour, legend_size,transcriptome):
 	labels = []
 	start_visible=[]
@@ -45,11 +45,11 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	owner = (cursor.fetchone())[0]
 	if owner == 1:
-		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
-			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		if os.path.isfile("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome))
 		else:
 			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return {'current': 400, 'total': 100, 'status': 'return_str','result': return_str}
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	cursor = transhelve.cursor()

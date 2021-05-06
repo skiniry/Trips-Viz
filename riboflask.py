@@ -87,11 +87,12 @@ def merge_dicts(dict1,dict2):
 	return dict1
 
 @celery_application.task(bind=True)
-def generate_plot(self, tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,trips_annotation_location,seqhili,seq_rules,title_size,
+def generate_plot(self, tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
 subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_location,cds_marker_size,cds_marker_colour,legend_size,ribo_linewidth, secondary_readscore,pcr,mismatches, hili_start, hili_stop):
 	#self.update_state(state='PROGRESS',meta={'current': 0, 'total': 100,'status': "Generate plot called"})
 	if lite == "n" and ribocoverage == True:
-		return "Error: Cannot display Ribo-Seq Coverage when 'Line Graph' is turned off"
+		return_str =  "Error: Cannot display Ribo-Seq Coverage when 'Line Graph' is turned off"
+		return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
 	labels = ["Frame 1 profiles","Frame 2 profiles","Frame 3 profiles","RNA", "Exon Junctions"]
 	start_visible=[True, True, True, True, False]
 	if mismatches == True:
@@ -114,10 +115,11 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	owner = (cursor.fetchone())[0]
 	if owner == 1:
-		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
-			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		if os.path.isfile("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome))
 		else:
-			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
+			return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
 	else:
 		print "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome)
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome))
@@ -429,9 +431,8 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	htmllabels = {1:[],2:[],3:[]}
 	all_start_points = {1:[],2:[],3:[]}
 	try:
-		con_scores = SqliteDict("{0}homo_sapiens/score_dict.sqlite".format(trips_annotation_location))
+		con_scores = SqliteDict("{0}/{1}/homo_sapiens/score_dict.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR))
 	except Exception as e:
-		print "Couldn't open conservation scores "+e
 		con_scores = []
 	for frame in [1,2,3]:
 		orf_list = frame_orfs[frame]

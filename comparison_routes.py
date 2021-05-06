@@ -113,8 +113,8 @@ def comparequery():
 	trips_cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	owner = (trips_cursor.fetchone())[0]
 	if owner == 1:
-		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
-			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		if os.path.isfile("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome))
 		else:
 			return "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 	else:
@@ -285,13 +285,13 @@ def comparequery():
 		if app.debug == True:
 			task = riboflask_compare.generate_compare_plot(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
 											ribocoverage, organism,normalize,short_code,background_col,hili_start,
-											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,config.ANNOTATION_DIR,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
+											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
 											legend_size,transcriptome)
 			return task["result"], "NO_CELERY", {'Location': None}
 		else:
 			task = riboflask_compare.generate_compare_plot.delay(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
 											ribocoverage, organism,normalize,short_code,background_col,hili_start,
-											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,config.ANNOTATION_DIR,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
+											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
 											legend_size,transcriptome)
 			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	else:

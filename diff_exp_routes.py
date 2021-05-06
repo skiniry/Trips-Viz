@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, abort, request,jsonify, url_for
+from flask import current_app as app
 import sqlite3
 from sqlitedict import SqliteDict
 import ast
@@ -124,6 +125,12 @@ def diffpage(organism,transcriptome):
 	return render_template('index_diff.html', studies_dict=accepted_studies, accepted_files=accepted_files,organism=organism, default_tran=default_tran,local=local,transcriptome=transcriptome,html_args=html_args,studyinfo_dict=studyinfo_dict,seq_types=seq_types)
 
 
+def prepare_return_str(input_string):
+	if app.debug == True:
+		return input_string, "NO_CELERY", {'Location': None}
+	else:
+		return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': input_string}), 200, {'Location': ""}
+
 # Creates/serves the z-score plot for differential expression
 diffquery_blueprint = Blueprint("diffquery", __name__, template_folder="templates")
 @diffquery_blueprint.route('/diffquery', methods=['POST'])
@@ -137,8 +144,7 @@ def diffquery():
 	genetype = data["genetype"]
 	region = data["region"] #can be all, cds,fiveprime, or threeprime
 	if genetype != "coding" and region != "all":
-		return_str = "If gene type is not set to 'coding' then region has to be set to 'all'"
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		return prepare_return_str( "If gene type is not set to 'coding' then region has to be set to 'all'")
 	html_args = data["html_args"]
 	organism = data["organism"]
 	transcriptome = data["transcriptome"]
@@ -152,8 +158,7 @@ def diffquery():
 	else:
 		min_cov = 0
 	if min_cov > 1:
-		return_str =  "Minimum coverage should be a value between 0 and 1"
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		return prepare_return_str( "Minimum coverage should be a value between 0 and 1")
 	filename = organism+"_differential_translation_"+str(time.time())+".csv"
 	csv_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
 	master_file_dict = data["master_file_dict"]
@@ -169,11 +174,10 @@ def diffquery():
 	owner = (cursor.fetchone())[0]
 
 	if owner == 1:
-		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
-			transhelve = sqlite3.connect("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome))
+		if os.path.isfile("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome)):
+			transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome))
 		else:
-			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 	trancursor = transhelve.cursor()
@@ -258,14 +262,17 @@ def diffquery():
 		ambiguous = True
 	else:
 		ambiguous = False
+	
+	print "CHecking file boxes"
+	if len(master_file_dict["riboseq1"]["file_ids"]) == 0 and len(master_file_dict["riboseq2"]["file_ids"]) == 0 and len(master_file_dict["rnaseq1"]["file_ids"]) == 0 and len(master_file_dict["rnaseq2"]["file_ids"]) == 0:
+		return prepare_return_str("Error: No files selected.")
 	# User can decide to look at just riboseq fold-change, rnaseq fold-change or TE fold-change
-	#if len(master_file_dict["riboseq1"]["file_ids"]) != len(master_file_dict["riboseq2"]["file_ids"]):
-	#	return "Error: Both Riboseq Condition boxes need to have an equal number of files."
-	#if len(master_file_dict["rnaseq1"]["file_ids"]) != len(master_file_dict["rnaseq2"]["file_ids"]):
-	#	return "Error: Both RNA-Seq Condition boxes need to have an equal number of files."
+	if len(master_file_dict["riboseq1"]["file_ids"]) != len(master_file_dict["riboseq2"]["file_ids"]):
+		return prepare_return_str("Error: Both Riboseq Condition boxes need to have an equal number of files.")
+	if len(master_file_dict["rnaseq1"]["file_ids"]) != len(master_file_dict["rnaseq2"]["file_ids"]):
+		return prepare_return_str("Error: Both RNA-Seq Condition boxes need to have an equal number of files.")
 	if len(master_file_dict["rnaseq1"]["file_ids"]) >= 1 and len(master_file_dict["riboseq1"]["file_ids"]) >= 1 and (len(master_file_dict["riboseq1"]["file_ids"]) != len(master_file_dict["rnaseq1"]["file_ids"])):
-		return_str =  "Error: If RNA-Seq boxes are not empty they need to have an equal number of files as the riboseq boxes"
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		return prepare_return_str( "Error: If RNA-Seq boxes are not empty they need to have an equal number of files as the riboseq boxes")
 	if len(master_file_dict["riboseq1"]["file_ids"]) >= 1 and len(master_file_dict["riboseq2"]["file_ids"]) >= 1 and len(master_file_dict["rnaseq1"]["file_ids"]) >= 1 and len(master_file_dict["rnaseq2"]["file_ids"]) >= 1:
 		label = "TE"
 	elif len(master_file_dict["riboseq1"]["file_ids"]) >= 1 and len(master_file_dict["riboseq2"]["file_ids"]) >= 1 and len(master_file_dict["rnaseq1"]["file_ids"]) == 0 and len(master_file_dict["rnaseq2"]["file_ids"]) == 0:
@@ -274,7 +281,7 @@ def diffquery():
 		label = "Rnaseq"
 	else:
 		label = "TE"
-	#	return "ERROR IMBALANCED OR NO FILES: Either all 4 boxes (RIBO-seq files 1, RIBO-seq files 2, mRNA-seq files 1, mRNA-seq files 2) must have a file associated with it OR both riboseq boxes OR both rnaseq boxes, you currently have {} files in RIBO-seq condition 1 files, {} in RIBO-seq condition 2 files, {} in mRNA-seq condition 1 files and {} in mRNA-seq condition 2 files".format(len(riboseq1_filepaths),len(riboseq2_filepaths),len(rnaseq1_filepaths),len(rnaseq2_filepaths))
+		return prepare_return_str("ERROR IMBALANCED OR NO FILES: Either all 4 boxes (RIBO-seq files 1, RIBO-seq files 2, mRNA-seq files 1, mRNA-seq files 2) must have a file associated with it OR both riboseq boxes OR both rnaseq boxes, you currently have {} files in RIBO-seq condition 1 files, {} in RIBO-seq condition 2 files, {} in mRNA-seq condition 1 files and {} in mRNA-seq condition 2 files".format(len(riboseq1_filepaths),len(riboseq2_filepaths),len(rnaseq1_filepaths),len(rnaseq2_filepaths)))
 
 	no_groups = max(len(master_file_dict["riboseq1"]["file_ids"]),len(master_file_dict["rnaseq1"]["file_ids"]))
 	riboseq1_tot_reads = 0.001
@@ -316,8 +323,7 @@ def diffquery():
 
 		transcript_dict,groupname = calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath, master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict,minreads, minzscore,ambiguous,min_cov)
 		if transcript_dict == "error":
-			return_str =  groupname
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("Error: {}".format(groupname))
 		master_transcript_dict[groupname] = transcript_dict
 
 	deseq_sample_file.write(",Condition,SeqType\n")
@@ -328,8 +334,7 @@ def diffquery():
 	
 	if plottype == "deseq2":
 		if no_groups <= 1:
-			return_str =  "At least two replicates are required when using DESeq2"
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("At least two replicates are required when using DESeq2")
 		mapped_reads_norm = False
 		for i in range(1,no_groups+1):
 			if label in ["TE","Riboseq"]:
@@ -489,7 +494,8 @@ def diffquery():
 		
 		tar_file = filename+".tar.gz"
 		connection.close()
-		task = riboflask_diff.deseq2_plot.delay(deseq_dict,
+		if app.debug == True:
+			task = riboflask_diff.deseq2_plot(deseq_dict,
 										organism,
 										transcriptome,
 										master_file_dict["riboseq1"]["file_ids"],
@@ -509,11 +515,32 @@ def diffquery():
 										gene_list,
 										label,
 										minzscore)
-		return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+			return task["result"], "NO_CELERY", {'Location': None}
+		else:
+			task = riboflask_diff.deseq2_plot.delay(deseq_dict,
+										organism,
+										transcriptome,
+										master_file_dict["riboseq1"]["file_ids"],
+										master_file_dict["riboseq2"]["file_ids"],
+										master_file_dict["rnaseq1"]["file_ids"],
+										master_file_dict["rnaseq2"]["file_ids"],
+										background_col,
+										short_code,
+										mapped_reads_norm,
+										tar_file,
+										no_groups,
+										str(title_size)+"pt",
+										str(axis_label_size)+"pt",
+										str(subheading_size)+"pt",
+										str(marker_size)+"pt",
+										ambiguous,
+										gene_list,
+										label,
+										minzscore)
+			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	if anota2seq:
 		if label != "TE" or no_groups <= 2:
-			return_str =  "At least 3 replicates are required for all groups when using Anota2seq"
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("At least 3 replicates are required for all groups when using Anota2seq")
 		for i in range(1,no_groups+1):
 			if label in ["TE","Riboseq"]:
 				deseq_sample_file.write("Ribo_cond1_count{},control,riboseq\n".format(i))
@@ -672,7 +699,9 @@ def diffquery():
 		
 		tar_file = filename+".tar.gz"
 		connection.close()
-		task = riboflask_diff.anota2seq_plot.delay(deseq_dict,
+			
+		if app.debug == True:
+			task = riboflask_diff.anota2seq_plot(deseq_dict,
 										organism,
 										transcriptome,
 										master_file_dict["riboseq1"]["file_ids"],
@@ -694,8 +723,33 @@ def diffquery():
 										minzscore,
 										sig_translated,
 										sig_rna,
-										sig_buffered)	
-		return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+										sig_buffered)
+			return task["result"], "NO_CELERY", {'Location': None}
+		else:
+			task = riboflask_diff.anota2seq_plot.delay(deseq_dict,
+										organism,
+										transcriptome,
+										master_file_dict["riboseq1"]["file_ids"],
+										master_file_dict["riboseq2"]["file_ids"],
+										master_file_dict["rnaseq1"]["file_ids"],
+										master_file_dict["rnaseq2"]["file_ids"],
+										background_col,
+										short_code,
+										mapped_reads_norm,
+										tar_file,
+										no_groups,
+										str(title_size)+"pt",
+										str(axis_label_size)+"pt",
+										str(subheading_size)+"pt",
+										str(marker_size)+"pt",
+										ambiguous,
+										gene_list,
+										label,
+										minzscore,
+										sig_translated,
+										sig_rna,
+										sig_buffered)
+			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	
 	
 	
@@ -1020,7 +1074,8 @@ def diffquery():
 	#print "Sending ribo vs rna dict", len(ribo_vs_rna_dict.keys())
 	connection.close()
 	if plottype == "z_score":
-		task = riboflask_diff.generate_plot.delay(sorted_aggregated_values,
+		if app.debug == True:
+			task = riboflask_diff.generate_plot(sorted_aggregated_values,
 										bin_list,
 										organism,
 										label,
@@ -1040,9 +1095,33 @@ def diffquery():
 										str(marker_size)+"pt",
 										ambiguous,
 										gene_list)
-		return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+			return task["result"], "NO_CELERY", {'Location': None}
+		else:
+			task = riboflask_diff.generate_plot.delay(sorted_aggregated_values,
+										bin_list,
+										organism,
+										label,
+										transcriptome,
+										master_file_dict["riboseq1"]["file_ids"],
+										master_file_dict["riboseq2"]["file_ids"],
+										master_file_dict["rnaseq1"]["file_ids"],
+										master_file_dict["rnaseq2"]["file_ids"],
+										background_col,
+										short_code,
+										mapped_reads_norm,
+										filename,
+										no_groups,
+										str(title_size)+"pt",
+										str(axis_label_size)+"pt",
+										str(subheading_size)+"pt",
+										str(marker_size)+"pt",
+										ambiguous,
+										gene_list)
+			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	else:
-		task =  riboflask_diff.ribo_vs_rna.delay(ribo_vs_rna_dict,
+		
+		if app.debug == True:
+			task =  riboflask_diff.ribo_vs_rna(ribo_vs_rna_dict,
 										organism,
 										transcriptome,
 										master_file_dict["riboseq1"]["file_ids"],
@@ -1061,7 +1140,28 @@ def diffquery():
 										ambiguous,
 										gene_list,
 										label)
-		return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+			return task["result"], "NO_CELERY", {'Location': None}
+		else:
+			task =  riboflask_diff.ribo_vs_rna.delay(ribo_vs_rna_dict,
+										organism,
+										transcriptome,
+										master_file_dict["riboseq1"]["file_ids"],
+										master_file_dict["riboseq2"]["file_ids"],
+										master_file_dict["rnaseq1"]["file_ids"],
+										master_file_dict["rnaseq2"]["file_ids"],
+										background_col,
+										short_code,
+										mapped_reads_norm,
+										filename,
+										no_groups,
+										str(title_size)+"pt",
+										str(axis_label_size)+"pt",
+										str(subheading_size)+"pt",
+										str(marker_size)+"pt",
+										ambiguous,
+										gene_list,
+										label)
+			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 
 
 # Given either two or four filepaths, calculates a z-score, places the z-scores in a master dict
@@ -1090,8 +1190,7 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 		if os.path.isfile(riboseq1_filepath):
 			sqlite_db = SqliteDict(riboseq1_filepath, autocommit=False)
 		else:
-			return_str =  "error","File not found: {}".format(groupname)
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("error","File not found: {}".format(groupname))
 		if region == "fiveprime":
 			opendict = sqlite_db["{}_fiveprime_totals".format(ambig_type)]
 		elif region == "cds":
@@ -1131,8 +1230,7 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 		if os.path.isfile(riboseq2_filepath):
 			sqlite_db = SqliteDict(riboseq2_filepath, autocommit=False)
 		else:
-			return_str =  "error","File not found, please report this to tripsvizsite@gmail.com or via the contact page."
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("error","File not found, please report this to tripsvizsite@gmail.com or via the contact page.")
 		if region == "fiveprime":
 			opendict = sqlite_db["{}_fiveprime_totals".format(ambig_type)]
 		elif region == "cds":
@@ -1171,8 +1269,7 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 		if os.path.isfile(rnaseq1_filepath):
 			sqlite_db = SqliteDict(rnaseq1_filepath, autocommit=False)
 		else:
-			return_str = "error","File not found, please report this to tripsvizsite@gmail.com or via the contact page."
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("error","File not found, please report this to tripsvizsite@gmail.com or via the contact page.")
 		if region == "fiveprime":
 			opendict = sqlite_db["{}_fiveprime_totals".format(ambig_type)]
 		elif region == "cds":
@@ -1210,8 +1307,7 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 		if os.path.isfile(rnaseq2_filepath):
 			sqlite_db = SqliteDict(rnaseq2_filepath, autocommit=False)
 		else:
-			return_str =  "error","File not found, please report this to tripsvizsite@gmail.com or via the contact page."
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return prepare_return_str("error","File not found, please report this to tripsvizsite@gmail.com or via the contact page.")
 		if region == "fiveprime":
 			opendict = sqlite_db["{}_fiveprime_totals".format(ambig_type)]
 		elif region == "cds":
