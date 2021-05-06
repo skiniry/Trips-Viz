@@ -8,10 +8,7 @@ import os
 import re
 import subprocess
 import shelve
-import mpld4
-from mpld4 import plugins,utils
 import collections
-from mpld4.utils import get_id
 import pandas as pd
 from math import log
 from bokeh.plotting import figure, show, output_file
