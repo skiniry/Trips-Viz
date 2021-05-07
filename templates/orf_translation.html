@@ -1,0 +1,1536 @@
+{% extends "layout.html" %}
+{% block content %}
+
+
+<head>
+<script src="https://cdn.pydata.org/bokeh/release/bokeh-0.12.14.min.js"></script>
+<script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.14.min.js"></script>
+</head>
+
+
+
+<style>
+
+
+div #choose_region_of_interest {
+		display: inline-block;
+		float: left;
+		width:45%;
+		}
+
+div #features_and_limits {
+display: inline-block;
+float: right;
+width:50%;
+		}
+
+
+
+
+div .prediction_table {
+	width:100% !important;
+	}
+
+#section1_header {
+	text-align: center;
+	}
+
+
+
+
+
+</style>
+
+
+
+
+
+
+<div id="choose_region_of_interest">
+<h3 id="section1_header"> 1.ORF Type</h3><br>
+<!-- Checkbox implementation (more than one orf type at a time) -->
+<!-- <input type="checkbox" class="uorf" id="uorf" value="uorf" name="uorf" checked>Upstream open reading frame</input><br> -->
+<!-- <input type="checkbox" class="ouorf" id="ouorf" value="ouorf" name="ouorf" unchecked>Overlapping upstream open reading frame</input><br> -->
+<!-- <input type="checkbox" class="extension" id="extension" value="extension" name="extension" unchecked>N-terminal extension</input><br> -->
+<!-- <input type="checkbox" class="cds" id="cds" value="cds" name="cds" unchecked>Annotated coding region</input><br> -->
+<!-- <input type="checkbox" class="nested" id="nested" value="nested" name="nested" unchecked>Nested open reading frame</input><br> -->
+<!-- <input type="checkbox" class="odorf" id="odorf" value="odorf" name="odorf" unchecked>Overlapping downstream open reading frame</input><br> -->
+<!-- <input type="checkbox" class="minusone" id="minusone" value="minusone" name="minusone" unchecked>Minus one frameshift</input><br> -->
+<!-- <input type="checkbox" class="readthrough" id="readthrough" value="readthrough" name="readthrough" unchecked>Readthrough</input><br> -->
+<!-- <input type="checkbox" class="plusone" id="plusone" value="plusone" name="plusone" unchecked>Plus one frameshift</input><br> -->
+<!-- <input type="checkbox" class="dorf" id="dorf" value="dorf" name="dorf" unchecked>Downstream open reading frame</input><br> -->
+<!-- <input type="checkbox" class="noncoding" id="noncoding" value="noncoding" name="noncoding" unchecked>Non coding</input><br> -->
+<!-- <input type="checkbox" class="drops" id="drops" value="drops" name="drops" unchecked>CDS drop</input><br> -->
+<!-- <input type="radio" id="noncoding" value="noncoding" name="region" unchecked>Non-coding</input><br><br> -->
+<!-- Radio button implementation (one orf type at a time) -->
+<input type="radio" class="uorf" id="uorf" value="uorf" name="region" checked>Upstream open reading frame</input><br> 
+<input type="radio" class="ouorf" id="ouorf" value="ouorf" name="region" unchecked>Overlapping upstream open reading frame</input><br> 
+<input type="radio" class="extension" id="extension" value="extension" name="region" unchecked>N-terminal extension</input><br> 
+<input type="radio" class="cds" id="cds" value="cds" name="region" unchecked>Annotated coding region</input><br> 
+<input type="radio" class="nested" id="nested" value="nested" name="region" unchecked>Nested open reading frame</input><br> 
+<input type="radio" class="odorf" id="odorf" value="odorf" name="region" unchecked>Overlapping downstream open reading frame</input><br> 
+<input type="radio" class="dorf" id="dorf" value="dorf" name="region" unchecked>Downstream open reading frame</input><br> 
+<input type="radio" class="noncoding" id="noncoding" value="noncoding" name="region" unchecked>Non coding</input><br> 
+{% if current_user.name == "test" %}
+	<input  type="radio" class="minusone" id="minusone" value="minusone" name="region" unchecked>Minus one frameshift</input><br>
+	<input  type="radio" class="readthrough" id="readthrough" value="readthrough" name="region" unchecked>Readthrough</input><br>
+	<input type="radio" class="plusone" id="plusone" value="plusone" name="region" unchecked>Plus one frameshift</input><br>
+{% endif %}
+
+
+
+
+
+
+
+<!-- <input type="checkbox" class="drops" id="drops" value="drops" name="drops" unchecked>CDS drop</input><br> -->
+<!-- <input type="radio" id="noncoding" value="noncoding" name="region" unchecked>Non-coding</input><br><br> -->
+
+
+
+
+
+
+
+<div id="choose_starts">
+<h3> 3.Filters</h3><br>
+<table id="filters">
+<tr><td></td><td><b>Min limit</b></td><td><b>Max limit</b></td></tr>
+<tr><td>CDS overlap:</td><td><input id="min_cds" name="min_cds" value="0" ></input></td>   <td><input id="max_cds" name="max_cds" value="0.5" ></input></td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_cds_overlap'>  &#9432; </a></td></tr>
+<tr><td>Length:</td><td><input id="min_len" name="min_len" value="30" ></input></td>   <td><input id="max_len" name="max_len" value="100000" ></input></td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_length'>  &#9432; </a></td></tr>
+<tr class= "hidden_element"><td>Average ribosome peak:</td><td><input id="min_avg" name="min_avg" value="0" ></input></td><td><input id="max_avg" name="max_avg" value="100000" ></input></td></tr>
+
+<!-- <input type="radio" class="nnet" id="nnet" value="nnet" name="output" unchecked>Neural Net</input></td></tr> -->
+<tr><td>Transcripts:</td><td><input type="radio" id="prin_trans" value="prin_trans" name="tranlist" checked>Principal</input>
+<input type="radio" id="all_trans" value="all_trans" name="tranlist" unchecked>All</input>
+<input type="radio" id="custom_trans" value="custom_trans" name="tranlist" unchecked>Custom:</input></td><td><input id="custom_tran_list" name="custom_tran_list" value="" ></input></td>
+<td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_transcripts'>  &#9432; </a></td></tr>
+<tr><td>Start codons:</td><td><input type="checkbox" id="AUG" value="AUG" name="sc_aug" checked>AUG</input>
+<input type="checkbox" id="CUG" value="CUG" name="sc_cug" checked>CUG</input>
+<input type="checkbox" id="GUG" value="GUG" name="sc_gug" checked>GUG</input>
+{% if current_user.name == "test" %}
+	<input type="checkbox" id="NONE" value="None" name="sc_none" unchecked>None</input>
+{% endif %}	
+<td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_starts'>  &#9432; </a></td></tr>
+<tr><td>Exclude saved cases</td> <td><input class="class_filter_saved" id="saved_check" type="checkbox" name="saved_check" value="saved_check" unchecked></input></td></tr>
+</td>
+{% if current_user.name == "test" %}
+	<tr><td>Use neural net</td> <td><input class="class_filter_nnet" id="nnet_check" type="checkbox" name="nnet_check" value="nnet_check" unchecked></input></td></tr>
+{% else %}
+	<tr class= "hidden_element"><td>Use neural net</td> <td><input class="class_filter_nnet" id="nnet_check" type="checkbox" name="nnet_check" value="nnet_check" unchecked></input></td></tr>
+{% endif %}
+
+<tr class= "hidden_element"><td>Output:</td><td><input type="radio" class="table" id="table" value="table" name="output" checked>Table</input>
+<input type="radio" class="plot" id="plot" value="plot" name="output" unchecked>Scatter plot</input></tr>
+<tr class= "hidden_element" ><td>Min periodicity score:</td><td><input id="minscore" name="minscore" value="0" ></input></td></tr>
+
+</table>
+</div>
+</div>
+
+
+
+
+<div id="features_and_limits">
+<h3> 2.Features</h3><br>
+
+<table>
+<tr class= "hidden_element"><td></td><td><b>Min limit</b></td><td><b>Max limit</b></td></tr>
+
+<!--<tr><td>Entropy: </td><td><input id="min_entropy" name="min_entropy" value="0" ></input></td>   <td><input id="max_entropy" name="max_entropy" value="1" ></input></td><td>    <input class="entropy_check" id="entropy_check" type="checkbox" name="entropy_check" value="entropy_check" checked></input>    </td></tr>-->
+<!-- <tr><td>Start Increase: </td><td style="width:20px"><input id="min_start_increase" name="min_start_increase" value="0" ></input></td>   <td><input id="max_start_increase" name="max_start_increase" value="1" ></input></td><td>    <input class="start_increase_check" id="start_increase_check" type="checkbox" name="start_increase_check" value="start_increase_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_start_increase'>  &#9432; </a></td></tr> -->
+<!-- <tr><td>Stop Decrease: </td><td><input id="min_stop_decrease" name="min_stop_decrease" value="0" ></input></td>   <td><input id="max_stop_decrease" name="max_stop_decrease" value="1" ></input></td><td>    <input class="stop_decrease_check" id="stop_decrease_check" type="checkbox" name="stop_decrease_check" value="stop_decrease_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_stop_decrease'>  &#9432; </a></td></tr> -->
+<!-- <tr><td>Coverage: </td><td><input id="min_coverage" name="min_coverage" value="0" ></input></td>   <td><input id="max_coverage" name="max_coverage" value="1" ></input></td><td>    <input class="coverage_check" id="coverage_check" type="checkbox" name="coverage_check" value="coverage_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_coverage'>  &#9432; </a></td></tr> -->
+<!-- <tr><td>Translation efficiency: </td><td><input id="min_te" name="min_te" value="0" ></input></td>   <td><input id="max_te" name="max_te" value="1" ></input></td><td>    <input class="te_check" id="te_check" type="checkbox" name="te_check" value="te_check" checked></input>    </td></tr>-->
+<!-- <tr><td>Cds ratio: </td><td><input id="min_cds_ratio" name="min_cds_ratio" value="0" ></input></td>   <td><input id="max_cds_ratio" name="max_cds_ratio" value="1" ></input></td><td>    <input class="cds_ratio_check" id="cds_ratio_check" type="checkbox" name="cds_ratio_check" value="cds_ratio_check" unchecked></input>    </td></tr> -->
+<!-- <tr><td>Frame difference (lowest): </td><td><input id="min_lowest_frame_diff" name="min_lowest_frame_diff" value="-1" ></input></td>   <td><input id="max_lowest_frame_diff" name="max_lowest_frame_diff" value="1" ></input></td><td>    <input class="lowest_frame_diff_check" id="lowest_frame_diff_check" type="checkbox" name="lowest_frame_diff_check" value="lowest_frame_diff_check" unchecked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_fd_highest'>  &#9432; </a></td></tr> -->
+<!-- <tr><td>Frame difference (highest): </td><td><input id="min_highest_frame_diff" name="min_highest_frame_diff" value="-1" ></input></td>   <td><input id="max_highest_frame_diff" name="max_highest_frame_diff" value="1" ></input></td><td>    <input class="highest_frame_diff_check" id="highest_frame_diff_check" type="checkbox" name="highest_frame_diff_check" value="highest_frame_diff_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_fd_lowest'>  &#9432; </a></td></tr> -->
+
+
+
+<tr><td>Start Increase: </td><td><input class="start_increase_check" id="start_increase_check" type="checkbox" name="start_increase_check" value="start_increase_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_start_increase'>  &#9432; </a></td></tr>
+<tr><td>Stop Decrease: </td><td><input class="stop_decrease_check" id="stop_decrease_check" type="checkbox" name="stop_decrease_check" value="stop_decrease_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_stop_decrease'>  &#9432; </a></td></tr>
+<tr><td>Coverage: </td><td><input class="coverage_check" id="coverage_check" type="checkbox" name="coverage_check" value="coverage_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_coverage'>  &#9432; </a></td></tr>
+<tr><td>Frame difference (lowest): </td><td><input class="lowest_frame_diff_check" id="lowest_frame_diff_check" type="checkbox" name="lowest_frame_diff_check" value="lowest_frame_diff_check" unchecked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_fd_lowest'>  &#9432; </a></td></tr>
+<tr><td>Frame difference (highest): </td><td><input class="highest_frame_diff_check" id="highest_frame_diff_check" type="checkbox" name="highest_frame_diff_check" value="highest_frame_diff_check" checked></input>    </td><td><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_orfplot&child_acc=child_orfplot_fd_highest'>  &#9432; </a></td></tr>
+
+
+</table>
+
+
+
+
+</div>
+
+
+
+
+<div id="seq_types">
+<p><font size="5" align="center"><b><u>Seq types</u></b></font></p>
+<table align="center">
+<td><button class="button all_checks" type="button" onclick='uncheck_all()'><b>Uncheck All Files With Selected Seq-type</b></button></td>
+<td><button class="button all_checks" type="button" onclick='check_all()'><b>Check All Files with Selected Seq-type</b></button></td>
+<!--<input type="button" onClick=uncheck_all_riboseq() value="Riboseq: Uncheck All Studies    " class="button" />-->
+<tr id="1">
+</tr>
+</table>
+</br>
+</div>
+
+<div id = "dialog-2" title = "Choose a label">
+Label:<input id="userlabel" name="userlabel" value="" >
+</div>
+
+<div id = "dialog-3" title = "Dataset breakdown">
+<div id="container2"></div>
+</div>
+
+
+
+<div id="studies">
+<p><font size="5" align="center"><b><u>Studies</u></b></font></p>
+</br>
+
+
+<button  class="study_button" type="button" onclick='view_study_info()'><b>View study info</b></button>
+
+
+
+<table align="center">
+
+<tr id="1">
+<td><button class="button all_checks" type="button" onclick='uncheck_all_multi()'><b>Uncheck All Files</b></button></td>
+<td><button class="button all_checks" type="button" onclick='check_all_multi()'><b>Check All Files</b></button></td>
+</tr>
+
+<tr id="2">
+<td><button class="button all_checks" type="button" onclick="uncheck_study_multi()" ><b>Uncheck All files in Files box</b> </button></td>
+<td><button class="button all_checks" type="button" onclick="check_study_multi()" ><b>Check All files in Files box</b></button></td>
+</tr>
+
+</table>
+
+</br></br>
+
+<table align="center" name="studytable" id="studytable" class="studytable">
+<tr id="tablerow1">
+</tr>
+<tr id="tablerow2">
+</tr>
+<tr id="tablerow3">
+</tr>
+<tr id="tablerow4">
+</tr>
+<tr id="tablerow5">
+</tr>
+<tr id="tablerow6">
+</tr>
+<tr id="tablerow7">
+</tr>
+<tr id="tablerow8">
+</tr>
+<tr id="tablerow9">
+</tr>
+<tr id="tablerow10">
+</tr>
+<tr id="tablerow11">
+</tr>
+<tr id="tablerow12">
+</tr>
+<tr id="tablerow13">
+</tr>
+<tr id="tablerow14">
+</tr>
+<tr id="tablerow15">
+</tr>
+<tr id="tablerow16">
+</tr>
+<tr id="tablerow17">
+</tr>
+<tr id="tablerow18">
+</tr>
+</table>
+</br></br>
+</div>
+
+
+<div id="files">
+</br>
+<p><font size="5" align="center"><b><u>Files</u></b></br></font></p>
+</div>
+
+
+
+<div id="buttons"></div>
+
+
+
+
+
+<div id="wrapper"><button class="button" type="button"  id="query"><b>Generate table</b></button></div>
+
+<div id="loading-div-background">
+<div id="loading-div" class="ui-corner-all" >
+<img style="height:64px;margin:10px;"      src="{{ url_for('static', filename = 'css/images/282.GIF') }}" width="110" height="85" alt="Loading..."/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sofia.css') }}">
+<h3 id="loading_header" style="color:gray;font-weight:normal;">Loading....</h3>
+<div style="color:white;font-weight:bold;" id="est_time"></div>
+</div>
+</div>
+
+
+<div id="container">
+</div>
+
+
+
+<div id="container2">
+<!-- <div id="summary_table_div">
+<br><br><br><br>
+<h2 align="center"> Summary Table </h2>
+<table  id="summary_table" class="prediction_table hover">
+<thead><tr><th></th><th>Score</th><th>Entropy</th><th>Start increase</th><th>Stop decrease</th><th>Coverage</th><th>Translation efficiency</th><th></th><th></th></tr></thead>
+<tbody></tr>
+</tbody>
+</table>
+</div> -->
+
+
+<br><br><br><br>
+<a id="table_link" href= "{{ url_for('static', filename='robots.txt') }}" download="robots.txt"> Download entire table</a>
+<h2 id="tabletitle" align="center"> Results Table </h2>
+<table  id="myTable" class="prediction_table hover">
+
+
+<thead><tr><th>Gene</th><th>Tran</th><th>Start</th><th>Stop</th><th>Length</th><th>Rank</th><th>Type</th><th>Trips-Viz link</th><th>Save</th> </tr></thead><tbody></tr>
+
+
+</tbody>
+</table>
+
+</div>
+
+
+
+
+<script type="text/javascript"   src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script type="text/javascript">
+
+
+var organism = "{{ organism|safe }}";
+var html_args = {{ html_args|safe }};
+
+//if (organism == "homo_sapiens") {
+//	var table = document.getElementById("filters");
+//	$(table).find('tbody').append('<tr><td>Conservation score: </td><td>  <input id="min_cons_score" name="min_cons_score" value=""></td> <td><input id="max_cons_score" name="max_cons_score" value=""></td></tr>');
+//	};
+
+var table = document.getElementById("filters");
+//$(table).find('tbody').append('<tr><td></td></tr>');
+//$(table).find('tbody').append('<tr><td>Show only genes with</td>  <td><input id="user_gene_count" name="user_gene_count" value="" > hits.</td></tr>');
+//$(table).find('tbody').append('<tr><td>Include these transcripts only:</td> <td><input id="tran_list" name="tran_list" value="" ></td></tr>');
+//$(table).find('tbody').append('<tr><td colspan="2">Exclude previously saved cases <input class="class_filter_saved" id="saved_check" type="checkbox" name="saved_check" value="saved_check" unchecked></input></td></tr>');
+//$(table).find('tbody').append('<tr><td colspan="2">Allow ambiguous reads  <input class="class_ambig" id="ambig_check" type="checkbox" name="ambig_check" value="ambig_check" unchecked></input></td></tr>');
+
+
+// hide advanced sections from user if they have not turned on the advanced setting
+//var advanced = "{{ advanced|safe }}";
+var advanced = "True";
+
+// create DIV element and append to the table cell
+function createCell(cell, text, style) {
+	var div = document.createElement('div'), // create DIV element
+	txt = document.createTextNode(text); // create text node
+	div.appendChild(txt);                    // append text node to the DIV
+	div.setAttribute('class', style);        // set DIV class attribute
+	div.setAttribute('className', style);    // set DIV class attribute for IE (?!)
+	cell.appendChild(div);                   // append DIV to the table cell
+	}
+
+
+var user = "{{ user|safe }}";
+//if (user != "None"){
+//	var tbl = document.getElementById('myTable'), // table reference
+//	i;
+//	// open loop for each row and append cell
+//	for (i = 0; i < tbl.rows.length; i++) {
+//		createCell(tbl.rows[i].insertCell(tbl.rows[i].cells.length), 'Save', 'col');
+//		}
+
+//	}
+
+
+
+
+
+if (advanced == "False") {
+		var adv_section1 = document.getElementById('features_and_limits');
+		adv_section1.style.display = 'none';
+		var adv_section1 = document.getElementById('choose_starts');
+		adv_section1.style.display = 'none';
+		//var adv_section1 = document.getElementById('summary_table_div');
+		//adv_section1.style.display = 'none';
+		document.getElementById('choose_region_of_interest').style.paddingLeft = "750px";
+		}
+
+
+if (advanced == "True") {
+
+	document.getElementById('section1_header').style.textAlign = "left";
+	document.getElementById('section1_header').style.paddingLeft = "265px";
+	}
+
+
+
+
+
+//"aaSorting": []
+
+
+
+
+$(document).ready( function () {
+		$('#summary_table').DataTable({
+				"aaSorting": []
+				});
+
+		$('#myTable').DataTable({
+				"order": [[ 5, "asc" ]],
+
+				});
+		} );
+
+
+var alt_file_list = [];
+rownum = 1
+rowcount = -1
+
+
+
+var seq_types = {{  seq_types|safe  }};
+console.log("Seq TYPES Is: "+seq_types);
+for (var i in seq_types) {
+	console.log("SEQ TYPES "+seq_types[i])
+
+	//if the seq type is riboseq make it checked by default
+	if (seq_types[i] == "riboseq") {
+		checked = "checked"
+	}
+	else {
+		checked = "unchecked"
+	};
+
+	// if seq type is riboseq or rnaseq set a proper display name, else just use seq_type
+	if (seq_types[i] == "riboseq") {
+		display_name = "Ribo-Seq"
+	}
+	else if (seq_types[i] == "rnaseq") {
+		display_name = "mRNA-Seq"
+	}
+	else {
+		display_name = seq_types[i]
+	}
+
+	var radio_seq_types = "<input "+checked+" type='radio' class='seq_type_radio all_checks' id='"+seq_types[i]+"' name='seq_type' value="+seq_types[i]+" /></b>   </input><label for='"+seq_types[i]+"' id='label"+seq_types[i]+"' class='radio_label' >"+display_name+"</label>";
+	var seq_types_div = document.getElementById('seq_types');
+	seq_types_div.innerHTML += radio_seq_types;
+}
+
+
+var studies_dict = {{  studies_dict|safe  }};
+var studyinfo_dict = {{  studyinfo_dict|safe  }};
+for (var key in studies_dict)  {
+		rowcount += 1;
+		if (rowcount == 8) {
+				rowcount = 0
+				rownum += 1
+				};
+		var radio_study = "<input type='radio' checked class='study_radio all_checks' id='study"+key+"' name='content_type' value=study"+key+" /></b></input><label for='study"+key+"' id='label"+key+"' class='radio_label' >"+studies_dict[key]["study_name"]+"</label>";
+		//console.log("LABEL ID IS label"+key);
+		addRow(rownum, radio_study)
+
+		for (i in seq_types) {
+			var seq_type = seq_types[i]
+			var files_div = document.getElementById('files');
+			var new_show_div = document.createElement(studies_dict[key]["study_name"]);
+			//console.log("Seq type is "+seq_type)
+			new_show_div.className = 'show';
+			new_show_div.id = seq_type+"study"+key;
+			tablehtml = "<table  class='file_table' id="+key+seq_type+" align='center'></table>";
+			new_show_div.innerHTML = tablehtml;
+			files_div.appendChild(new_show_div);
+		}
+		};
+
+
+
+
+// accepted files structure, key is file_type,values are file_id's (which are themselves keys) which point to a dictionary with the following: {"study_id":row[1],"file_name":row[2],"file_description":row[3],"file_type":row[4]}
+var accepted_files = {{ accepted_files|safe }};
+
+
+// keys in this are seq types with values being a list of study id's that have at least one file of that seq type
+// this is used to hide studies that don't have any files of the selected seq type.
+var seq_study_dict = {};
+
+
+// populate the ribostudies and rnastudies div with file names and descriptions.
+for (var filetype in accepted_files) {
+		//console.log("filetype ", filetype);
+		for (var study_id in accepted_files[filetype]) {
+				//console.log("Study id: ",study_id);
+				i=0
+				var file_names = [];
+				for (var file_id in accepted_files[filetype][study_id]) {
+					file_name = accepted_files[filetype][study_id][file_id]["file_name"]
+					file_names.push([file_name, file_id])
+					}
+				//console.log("File names", file_names);
+				file_names = file_names.sort(function(a, b) {
+					return a[0].localeCompare(b[0]);
+				})
+				
+				var sorted_file_list = [];
+				for (var z in file_names) {
+					var tup = file_names[z];
+					sorted_file_list.push(tup[1]);
+					}
+				//console.log("sorted file_list", sorted_file_list);
+				for (var file_id in sorted_file_list) {
+						file_id = sorted_file_list[file_id]
+						file_name = accepted_files[filetype][study_id][file_id]["file_name"];
+						file_description = accepted_files[filetype][study_id][file_id]["file_description"];
+
+						if (!(filetype in seq_study_dict)) {
+							seq_study_dict[filetype] = [];
+						};
+						//console.log("FILE ID LIST IS "+accepted_files[filetype][study_id])
+						if (accepted_files[filetype][study_id].length != 0) {
+							if (!(study_id in seq_study_dict[filetype])) {
+								//console.log("PUSHING STUDY ID"+study_id);
+								seq_study_dict[filetype].push(study_id);
+								//console.log("Seq study dict now "+seq_study_dict[filetype])
+						}
+					};
+
+
+						var table = document.getElementById(study_id+filetype);
+						//console.log("STUDY ID FILETYPE "+study_id+filetype);
+						var tr = document.createElement("tr");
+						var td = document.createElement("td");
+						// riboseq is checked by default all others not
+						td.innerHTML = ("<td><input id='"+file_name+file_id+"_check' type='checkbox' class='hidden_check file_"+file_id+" all_checks file_check "+filetype+"_file "+filetype+"_study"+study_id+"'  name="+file_id+" value=inputfile unchecked></input>    <label for='"+file_name+file_id+"_check' class='filetable_label'></label> <label for='"+file_name+file_id+"_check' class='padded_label'><b>"+file_name+"</b>:"+file_description+"</label></td>");
+						//tr.appendChild();
+
+						if (i != 2){
+								table.appendChild(td);
+								i+= 1;
+												}
+						else if (i == 2){
+								table.appendChild(td);
+								table.appendChild(tr);
+								i = 0
+								}
+																						}
+														}
+								};
+
+
+// If the user presses the enter key call the #query function (generates the plot)
+$(document).keypress(function(e){
+if (e.which == 13){
+	console.log("CALLING QUERY");
+	$("#query").click();
+}
+});
+
+var label = "";
+
+// If local mode is true change the url called by query
+var local = "{{ local|safe }}";
+var url = "/orfquery"
+var anno_url = "/anno_query"
+var dataset_url = "/dataset_query"
+
+
+// This is called when the user passes a gene, shows a popup with multiple transcripts
+$("#loading-div-background").css({ opacity: 0.7 });
+$(function() {
+$( "#dialog-2" ).dialog({
+		autoOpen: false,
+		modal: true,
+		minWidth: 800,
+		buttons: {
+		Submit: function() {
+				label = document.getElementById('userlabel').value;
+				annotate_query()
+				$(this).dialog("close");
+				}
+		},
+		title: "Choose a label. . .",
+		position: {
+				my: "center",
+				at: "center"
+								}
+		});
+		$( "#query4" ).click(function() {
+		$( "#dialog-2" ).dialog("open");
+		});
+});
+
+
+
+// This is called when the user passes a gene, shows a popup with multiple transcripts
+$("#loading-div-background").css({ opacity: 0.7 });
+$(function() {
+	$( "#dialog-3" ).dialog({
+		autoOpen: false,
+		modal: true,
+		minWidth: 1400,
+		title: "Dataset breakdown",
+		position: {
+				my: "center",
+				at: "center"
+					}
+			});
+		$( "#query5" ).click(function() {
+			$( "#dialog-3" ).dialog("open");
+			});
+		});
+
+
+
+
+
+
+
+var organism = "{{  organism|safe  }}";
+var transcriptome = "{{  transcriptome|safe  }}";
+//setup splitdata as a global var so we can access it in annotate_query
+var splitdata = "";
+var komondor_file_list = "";
+
+var user_short = "{{ user_short|safe }}";
+
+function remove_user_short() {
+	changebuttonlink(gwips_info)
+	user_short = "None";
+	//alert("The function called 'function_one' has been called.");
+	$("#query").click();
+	}
+
+
+
+// Whenever open_dialog is called, this will be set to the row number that the save button was pressed in
+var save_line = "";
+
+// When any of the buttons in summary table are pressed this function takes the values of that row and fills in the min/max feature boxes
+function populate_min_max(limits){
+		//console.log("Populate min max called with limits "+limits)
+		//document.getElementById(limits.split(",")[7]+'_entropy').value = limits.split(",")[2]
+		document.getElementById(limits.split(",")[7]+'_start_increase').value = limits.split(",")[3]
+		document.getElementById(limits.split(",")[7]+'_stop_decrease').value = limits.split(",")[4]
+		document.getElementById(limits.split(",")[7]+'_coverage').value = limits.split(",")[5]
+		document.getElementById(limits.split(",")[7]+'_te').value = limits.split(",")[6]
+		};
+
+
+
+
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+$("#query").click(function() {
+		//console.log("calling query");
+		$("#loading-div-background").show();
+		$("#container").hide();
+		
+		
+		
+		
+		
+		//div = $('<div class="progress"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+		//$('#progress').append(div);
+		
+		// create a progress bar
+		var nanobar = new Nanobar({bg: '#77abff'});
+
+		//Checkbox implementation
+		//var uorf = $('input:checkbox[name=uorf]:checked').val();
+		//var ouorf = $('input:checkbox[name=ouorf]:checked').val();
+		//var extension = $('input:checkbox[name=extension]:checked').val();
+		//var cds = $('input:checkbox[name=cds]:checked').val();
+		//var nested = $('input:checkbox[name=nested]:checked').val();
+		//var odorf = $('input:checkbox[name=odorf]:checked').val();
+		//var plusone = $('input:checkbox[name=plusone]:checked').val();
+		//var minusone = $('input:checkbox[name=minusone]:checked').val();
+		//var readthrough = $('input:checkbox[name=readthrough]:checked').val();
+		//var dorf = $('input:checkbox[name=dorf]:checked').val();
+		//var noncoding = $('input:checkbox[name=noncoding]:checked').val();
+		
+		//radio button implementation
+		var region = document.querySelector('input[name=region]:checked').value;
+		
+		
+		var output = document.querySelector('input[name=output]:checked').value;
+		var tranlist = document.querySelector('input[name=tranlist]:checked').value;
+		var sc_aug = $('input:checkbox[name=sc_aug]:checked').val();
+		var sc_cug = $('input:checkbox[name=sc_cug]:checked').val();
+		var sc_gug = $('input:checkbox[name=sc_gug]:checked').val();
+		var sc_none = $('input:checkbox[name=sc_none]:checked').val();
+
+		var min_cds = $('input:text[name=min_cds]').val();
+		var max_cds = $('input:text[name=max_cds]').val();
+
+		var min_len = $('input:text[name=min_len]').val();
+		var max_len = $('input:text[name=max_len]').val();
+
+		var min_avg = $('input:text[name=min_avg]').val();
+		var max_avg = $('input:text[name=max_avg]').val();
+
+		//var min_entropy = $('input:text[name=min_entropy]').val();
+		//var max_entropy = $('input:text[name=max_entropy]').val();
+
+		var min_start_increase = $('input:text[name=min_start_increase]').val();
+		var max_start_increase = $('input:text[name=max_start_increase]').val();
+
+		var min_stop_decrease = $('input:text[name=min_stop_decrease]').val();
+		var max_stop_decrease = $('input:text[name=max_stop_decrease]').val();
+
+		var min_coverage = $('input:text[name=min_coverage]').val();
+		var max_coverage = $('input:text[name=max_coverage]').val();
+
+		//var min_te = $('input:text[name=min_te]').val();
+		//var max_te = $('input:text[name=max_te]').val();
+
+		//var min_cds_ratio = $('input:text[name=min_cds_ratio]').val();
+		//var max_cds_ratio = $('input:text[name=max_cds_ratio]').val();
+
+		//var entropy_check = $('input:checkbox[name=entropy_check]:checked').val();
+		var saved_check = $('input:checkbox[name=saved_check]:checked').val();
+		var nnet_check = $('input:checkbox[name=nnet_check]:checked').val();
+		var ambig_check = $('input:checkbox[name=ambig_check]:checked').val();
+		var start_increase_check = $('input:checkbox[name=start_increase_check]:checked').val();
+		var stop_decrease_check = $('input:checkbox[name=stop_decrease_check]:checked').val();
+		var coverage_check = $('input:checkbox[name=coverage_check]:checked').val();
+		var te_check = $('input:checkbox[name=te_check]:checked').val();
+		//var cds_ratio_check = $('input:checkbox[name=cds_ratio_check]:checked').val();
+		var user_gene_count = $('input:text[name=user_gene_count]').val();
+		
+		try  {
+			var min_cons_score = $('input:text[name=min_cons_score]').val();
+			}
+		catch (err) {
+			var min_cons_score = "";
+			};
+		
+		try  {
+			var max_cons_score = $('input:text[name=max_cons_score]').val();
+			}
+		catch (err) {
+			var max_cons_score = "";
+			};
+		
+		//console.lgo("CONS SCORE IS "+min_cons_score);
+		var custom_tran_list = $('input:text[name=custom_tran_list]').val();
+		var minscore = $('input:text[name=minscore]').val();
+		var min_lowest_frame_diff = $('input:text[name=min_lowest_frame_diff]').val();
+		var max_lowest_frame_diff = $('input:text[name=max_lowest_frame_diff]').val();
+		var lowest_frame_diff_check = $('input:checkbox[name=lowest_frame_diff_check]:checked').val();
+
+		var min_highest_frame_diff = $('input:text[name=min_highest_frame_diff]').val();
+		var max_highest_frame_diff = $('input:text[name=max_highest_frame_diff]').val();
+		var highest_frame_diff_check = $('input:checkbox[name=highest_frame_diff_check]:checked').val();
+
+
+		var qu = {"organism":organism,
+							"transcriptome":transcriptome,
+							"region":region,
+							"output":output,
+							"sc_aug":sc_aug,
+							"sc_cug":sc_cug,
+							"sc_gug":sc_gug,
+							"sc_none":sc_none,
+
+							//"min_entropy":min_entropy,
+							//"max_entropy":max_entropy,
+
+							"min_start_increase":min_start_increase,
+							"max_start_increase":max_start_increase,
+
+							"min_stop_decrease":min_stop_decrease,
+							"max_stop_decrease":max_stop_decrease,
+
+							"min_coverage":min_coverage,
+							"max_coverage":max_coverage,
+
+							//"min_te":min_te,
+							//"max_te":max_te,
+
+							//"min_cds_ratio":min_cds_ratio,
+							//"max_cds_ratio":max_cds_ratio,
+
+							"min_lowest_frame_diff":min_lowest_frame_diff,
+							"max_lowest_frame_diff":max_lowest_frame_diff,
+
+							"min_highest_frame_diff":min_highest_frame_diff,
+							"max_highest_frame_diff":max_highest_frame_diff,
+
+							//"entropy_check":entropy_check,
+							"saved_check":saved_check,
+							"nnet_check":nnet_check,
+							"ambig_check":ambig_check,
+							"start_increase_check":start_increase_check,
+							"stop_decrease_check":stop_decrease_check,
+							"coverage_check":coverage_check,
+							"te_check":te_check,
+							//"cds_ratio_check":cds_ratio_check,
+							"highest_frame_diff_check":highest_frame_diff_check,
+							"lowest_frame_diff_check":lowest_frame_diff_check,
+							"user_gene_count":user_gene_count,
+							"tran_list":tranlist,
+							"custom_tran_list":custom_tran_list,
+							"minscore":minscore,
+							"min_cds":min_cds,
+							"max_cds":max_cds,
+							"min_len":min_len,
+							"max_len":max_len,
+							"min_avg":min_avg,
+							"max_avg":max_avg,
+							"cons_score":min_cons_score,
+							"max_cons_score":max_cons_score,
+							"user_short":user_short,
+							"html_args":html_args};
+		//console.log("USER SHROT IS "+qu[user_short])
+		//var file_list = [];
+		
+		//for (var filetype in accepted_files) {
+		//		for (var study_id in accepted_files[filetype]) {
+		//				for (var file_id in accepted_files[filetype][study_id]) {
+		//						var newelement=$('input:checkbox[name='+file_id+']:checked').val();
+		//						if (newelement == 'inputfile'){
+		//								file_list.push(file_id);
+		//		};
+		//}
+		//}
+		//};
+
+		qu["file_list"] = alt_file_list
+		//console.log("len of File list is "+file_list.length);
+		console.log("len of Alt file list is "+alt_file_list.length);
+		$.ajax({
+				type: "POST",
+				//async:true,
+				contentType: "application/json; charset=utf-8",
+				url: url,
+				data: JSON.stringify(qu),
+				dataType: "html",
+				success: function(data, status, request) {
+					status_url = request.getResponseHeader('Location');
+					// If running in local mode or celery not running do not call update_progress function
+					if (request.statusText == "NO_CELERY") {
+						var result = data.toString();
+						if ((result.split("|")[0]) == "Table") {
+							console.log("Table in result loading table");
+							var div = document.getElementById('container2');
+							var rawdata = result.split("|");
+							komondor_file_list = rawdata[4]
+							short_code = rawdata[5]
+							tabletitle.innerText = "Results Table ("+short_code+")";
+							var table_link = document.getElementById('table_link');
+							var base_url = "{{ url_for('static',filename='') }}";
+							table_link.href = base_url+"tmp/"+rawdata[3]
+							table_link.download = rawdata[3]
+							//console.log("raw data is "+rawdata);
+							var summary_data = rawdata[2].split(".,/");
+							var summary_table = $('#summary_table').DataTable();
+							summary_table.clear()
+							//console.log("calling function");
+							for(var i = 0; i < summary_data.length-1; i++) {
+								summary_table.row.add( [
+									"<b>"+(summary_data[i]).split(",")[0]+"</b>",
+									(summary_data[i]).split(",")[1],
+									(summary_data[i]).split(",")[2],
+									(summary_data[i]).split(",")[3],
+									(summary_data[i]).split(",")[4],
+									(summary_data[i]).split(",")[5],
+									(summary_data[i]).split(",")[6],
+									"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",min') >Use as min limits</button>",
+									"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",max') >Use as max limits</button>"
+									] ).draw( false );
+								}
+								
+								splitdata = rawdata[1].split(".,/");
+								var table = $('#myTable').DataTable();
+								table.clear()
+								//var file_list = ((splitdata[0]).split(",")[9]).replace(/;/g,",")
+								// there is a space in front of the file_list for some reason, this line removes it
+								//file_list = file_list.slice(1)
+								//console.log("file_list"+file_list+file_list[0]);
+								
+								for(var i = 0; i < splitdata.length-1; i++) {
+									splitline = splitdata[i].split(",")
+									//console.log("Trips link before"+splitline[11])
+									table.row.add( [
+										splitline[0],
+										splitline[1],
+										splitline[2],
+										splitline[3],
+										splitline[4],
+										splitline[5],
+										splitline[6],
+										//(splitline[10]).replace(/;/g,","),
+										(splitline[11]).replace(/;/g,","),
+										"<button class='orf_save_button' type='button'  id='annotate_query'  onclick='open_dialog("+i+")'><b>Save</b></button>"
+										]).draw( false );
+									
+									};
+									table.columns.adjust()
+									table.draw()
+									$("#loading-div-background").hide();
+									$("#container").hide();
+									$("#container2").show();
+									}
+							else{
+								var graph = $("#container");
+								graph.html(data);
+								$("#loading-div-background").hide();
+								$("#container").show();
+								$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+							}
+			
+						
+
+						
+						document.getElementById('container').scrollIntoView();
+					}
+					
+					else {
+						// if data is an error message or just populating the transcript table, do not send to update_progress
+						jdata = JSON.parse(data);
+						if (jdata["status"] == "return_str") {
+							var graph = $("#container");
+							graph.html(jdata["result"]);
+							$("#loading-div-background").hide();
+							$("#container").show();
+							}
+						else if (jdata["status"] == "tran_list") {
+							var splitdata = jdata['result'].split(":");
+							populate_jquery_dialog(splitdata);
+							$("#myTable").tablesorter({sortList: [[4,0]]});
+							$( "#dialog-2" ).dialog( "open" );
+						}
+						else if (jdata["status"] == "quant_tran_list"){
+							var splitdata = jdata['result'].split(":");
+							populate_jquery_dialog_quant(splitdata);
+							$("#myTable").tablesorter({sortList: [[6,0]]});
+							$( "#dialog-2" ).dialog( "open" );
+							}
+						else {
+							update_progress(status_url, nanobar);
+							}
+						}
+		},
+				error: function() {
+					alert('Unexpected error');
+					},
+										
+										});
+						});
+
+
+function update_progress(status_url, nanobar) {
+	console.log("update progress called");
+	// send GET request to status URL
+	$.getJSON(status_url, function(data) {
+		// update UI
+		percent = parseInt(data['current'] * 100 / data['total']);
+		nanobar.go(percent);
+		//$(status_div.childNodes[1]).text(percent + '%');
+		//$(status_div.childNodes[2]).text(data['status']);
+		$("#loading_header").text(data['status'])
+		
+			
+
+		if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
+			if ('result' in data) {
+				// show result
+				//$(status_div.childNodes[3]).text('Result: ' + data['result']);
+				
+				var result = data['result'].toString();
+				
+				
+				if ((result.split("|")[0]) == "Table") {
+					console.log("Table in result loading table");
+					var div = document.getElementById('container2');
+					var rawdata = result.split("|");
+					komondor_file_list = rawdata[4]
+					short_code = rawdata[5]
+					tabletitle.innerText = "Results Table ("+short_code+")";
+					var table_link = document.getElementById('table_link');
+					var base_url = "{{ url_for('static',filename='') }}";
+					table_link.href = base_url+"tmp/"+rawdata[3]
+					table_link.download = rawdata[3]
+					//console.log("raw data is "+rawdata);
+					var summary_data = rawdata[2].split(".,/");
+					var summary_table = $('#summary_table').DataTable();
+					summary_table.clear()
+					//console.log("calling function");
+					for(var i = 0; i < summary_data.length-1; i++) {
+						summary_table.row.add( [
+							"<b>"+(summary_data[i]).split(",")[0]+"</b>",
+							(summary_data[i]).split(",")[1],
+							(summary_data[i]).split(",")[2],
+							(summary_data[i]).split(",")[3],
+							(summary_data[i]).split(",")[4],
+							(summary_data[i]).split(",")[5],
+							(summary_data[i]).split(",")[6],
+							"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",min') >Use as min limits</button>",
+							"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",max') >Use as max limits</button>"
+							] ).draw( false );
+						}
+						
+						splitdata = rawdata[1].split(".,/");
+						var table = $('#myTable').DataTable();
+						table.clear()
+						//var file_list = ((splitdata[0]).split(",")[9]).replace(/;/g,",")
+						// there is a space in front of the file_list for some reason, this line removes it
+						//file_list = file_list.slice(1)
+						//console.log("file_list"+file_list+file_list[0]);
+						
+						for(var i = 0; i < splitdata.length-1; i++) {
+							splitline = splitdata[i].split(",")
+							//console.log("Trips link before"+splitline[11])
+							table.row.add( [
+								splitline[0],
+								splitline[1],
+								splitline[2],
+								splitline[3],
+								splitline[4],
+								splitline[5],
+								splitline[6],
+								//(splitline[10]).replace(/;/g,","),
+								(splitline[11]).replace(/;/g,","),
+								"<button class='orf_save_button' type='button'  id='annotate_query'  onclick='open_dialog("+i+")'><b>Save</b></button>"
+								]).draw( false );
+							
+							};
+							table.columns.adjust()
+							table.draw()
+							$("#loading-div-background").hide();
+							$("#container").hide();
+							$("#container2").show();
+							}
+				
+				
+				
+				
+				
+				
+				$("#loading-div-background").hide();
+				}
+				else {
+					// something unexpected happened
+					$("#loading_header").text('Result: ' + data['state']);
+					}
+			}
+			else {
+				// rerun in 2 seconds
+				setTimeout(function() {
+					update_progress(status_url, nanobar);
+					}, 2000);
+				}
+				});
+				}
+				
+//$(function() {
+//	$('#start-bg-job').click(start_long_task);
+//});
+
+
+// Use this to create annotate button in the table, make sure to add a new header on table creation
+//"<button class='button' type='button'  id='annotate_query'  onclick='annotate_query("+input_str+")'><b>Save</b></button>"
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+function dataset_dialog(i){
+	save_line = i;
+	input_line = splitdata[save_line].split(",");
+	document.getElementById('userlabel').value = input_line[6]
+	$("#container").show();
+	$("#dialog-3").dialog("open");
+	};
+
+
+
+function dataset_query(i) {
+	$("#container").hide();
+	$("#loading-div-background").show();
+	save_line = i;
+	input_line = splitdata[save_line].split(",");
+	document.getElementById('userlabel').value = input_line[6]
+	//$("#container2").hide();
+	console.log("dataset query called");
+	var region = document.querySelector('input[name=region]:checked').value;
+	//var file_list = [];
+	//for (var filetype in accepted_files) {
+	//	for (var study_id in accepted_files[filetype]) {
+	//		for (var file_id in accepted_files[filetype][study_id]) {
+	//			var newelement=$('input:checkbox[name='+file_id+']:checked').val();
+	//			if (newelement == 'inputfile'){
+	//				file_list.push(file_id);
+	//				};
+	//			}
+	//			}
+	//			};
+	var qu = {"input_line":input_line,"file_list":alt_file_list, "organism":organism,"region":region}
+		
+		$.ajax({
+			type: "POST",
+			async:true,
+			contentType: "application/json; charset=utf-8",
+			url: dataset_url,
+			data: JSON.stringify(qu),
+			success: function (data) {
+				var graph = $("#container2");
+				graph.html(data);
+				$("#loading-div-background").hide();
+				dataset_dialog(i);
+				//$("#container2").show();
+				},
+			dataType: "html"
+				});
+			};
+
+
+
+
+
+
+
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+function open_dialog(i){
+	save_line = i;
+	input_line = splitdata[save_line].split(",");
+	document.getElementById('userlabel').value = input_line[6]
+	$("#dialog-2").dialog("open");
+	};
+
+// Query function, gathers information on settings configured by the user and passes it to python for a plot to be generated
+function annotate_query(){
+		input_line = splitdata[save_line].split(",");
+		console.log(input_line);
+		var qu = {"organism":organism,
+				"transcriptome":transcriptome,
+				"label":label,
+				"gene":input_line[0],
+				"transcript":input_line[1],
+				"start":input_line[2],
+				"stop":input_line[3],
+				"length":input_line[4],
+				"score":input_line[5],
+				"type":input_line[6],
+				"start_codon":input_line[7],
+				"cds_overlap":input_line[8],
+				"start_score":input_line[9],
+				"stop_score":input_line[10],
+				"trips_link":input_line[11]};
+		$.ajax({
+				type: "POST",
+				async:true,
+				contentType: "application/json; charset=utf-8",
+				url: anno_url,
+				data: JSON.stringify(qu),
+				dataType: "html"
+				});
+										};
+
+//console.log("CHECKING REGION",html_args["region"])
+$('.'+html_args["region"]+'').attr('checked', true);
+
+
+
+
+
+
+if (html_args["sic"] == "T") {
+	//console.log("CHECKING SIC")
+	jQuery('#start_increase_check').prop('checked',true);
+	};
+if (html_args["sdc"] == "T") {
+	jQuery('#start_decrease_check').prop('checked',true);
+	};
+//if (html_args["crc"] == "T") {
+//	jQuery('#cds_ratio_check').prop('checked',true);
+//	};
+if (html_args["lfdc"] == "T") {
+	jQuery('#lowest_frame_diff_check').prop('checked',true);
+	};
+if (html_args["hfdc"] == "T") {
+	jQuery('#highest_frame_diff_check').prop('checked',true);
+	};
+if (html_args["ambig"] == "T") {
+	jQuery('#ambig_check').prop('checked',true);
+	};
+if (html_args["saved_check"] == "T") {
+	jQuery('#saved_check').prop('checked',true);
+	};
+
+if (html_args["sic"] == "F") {
+	//console.log("UNCHECKING SIC")
+	jQuery('#start_increase_check').prop('checked',false);
+	};
+if (html_args["sdc"] == "F") {
+	jQuery('#start_decrease_check').prop('checked',false);
+	};
+if (html_args["crc"] == "F") {
+	jQuery('#cds_ratio_check').prop('checked',false);
+	};
+if (html_args["lfdc"] == "F") {
+	jQuery('#lowest_frame_diff_check').prop('checked',false);
+	};
+if (html_args["hfdc"] == "F") {
+	jQuery('#highest_frame_diff_check').prop('checked',false);
+	};
+if (html_args["ambig"] == "F") {
+	jQuery('#ambig_check').prop('checked',false);
+	};
+if (html_args["saved_check"] == "F") {
+	jQuery('#saved_check').prop('checked',false);
+	};
+
+if (html_args["min_start_inc"] != "None") {
+	document.getElementById('min_start_increase').value = html_args["min_start_inc"]
+	};
+if (html_args["max_start_inc"] != "None") {
+	document.getElementById('max_start_increase').value = html_args["max_start_inc"]
+	};
+
+if (html_args["min_stop_dec"] != "None") {
+	document.getElementById('min_stop_decrease').value = html_args["min_stop_dec"]
+	};
+if (html_args["max_stop_dec"] != "None") {
+	document.getElementById('max_stop_decrease').value = html_args["max_stop_dec"]
+	};
+
+//if (html_args["min_cds_rat"] != "None") {
+//	document.getElementById('min_cds_ratio').value = html_args["min_cds_rat"]
+//	};
+//if (html_args["max_cds_rat"] != "None") {
+//	document.getElementById('max_cds_ratio').value = html_args["max_cds_rat"]
+//	};
+
+if (html_args["min_avg"] != "None") {
+	document.getElementById('min_avg').value = html_args["min_avg"]
+	};
+if (html_args["max_avg"] != "None") {
+	document.getElementById('max_avg').value = html_args["max_avg"]
+	};
+
+if (html_args["min_len"] != "None") {
+	document.getElementById('min_len').value = html_args["min_len"]
+	};
+if (html_args["max_len"] != "None") {
+	document.getElementById('max_len').value = html_args["max_len"]
+	};
+
+if (html_args["min_cds"] != "None") {
+	document.getElementById('min_cds').value = html_args["min_cds"]
+	};
+if (html_args["max_cds"] != "None") {
+	document.getElementById('max_cds').value = html_args["max_cds"]
+	};
+
+if (html_args["min_lfd"] != "None") {
+	document.getElementById('min_lowest_frame_diff').value = html_args["min_lfd"]
+	};
+
+if (html_args["max_lfd"] != "None") {
+	document.getElementById('max_lowest_frame_diff').value = html_args["max_lfd"]
+	};
+
+if (html_args["min_hfd"] != "None") {
+	document.getElementById('min_highest_frame_diff').value = html_args["min_hfd"]
+	};
+
+if (html_args["max_hfd"] != "None") {
+	document.getElementById('max_highest_frame_diff').value = html_args["max_hfd"]
+	};
+
+
+
+
+// if the user passes a list of files, or studies uncheck everything then recheck only those checkboxes which the user passed
+
+
+if (html_args["user_files"].length != 0 || html_args["user_ribo_studies"].length != 0 || html_args["user_rna_studies"].length != 0) {
+	//console.log("UNCHECKING everything");
+	for (i in seq_types) {
+		var seq_type = seq_types[i];
+		$('input.'+seq_type+'_file').prop('checked',false);
+		
+		}
+	
+	if (html_args["user_files"].length != 0) {
+		for (i in html_args["user_files"]) {
+			//console.log("CHECKING "+'file_'+html_args["user_files"][i]+'');
+			$('input.file_'+html_args["user_files"][i]+'').prop('checked',true);
+			}};
+		
+		if (html_args["user_ribo_studies"].length != 0) {
+			for (i in html_args["user_ribo_studies"]) {
+				$('input.riboseq_study'+html_args["user_ribo_studies"][i]+'').prop('checked',true);
+				}};
+			
+			if (html_args["user_rna_studies"].length != 0) {
+				for (i in html_args["user_rna_studies"]) {
+					$('input.rnaseq_study'+html_args["user_rna_studies"][i]+'').prop('checked',true);
+					}};
+				}
+				
+
+if (html_args["user_short"] != "None") {
+	//console.log("CLICKING QUERY "+html_args["user_short"])
+	//$("#AUG").prop("checked", false);
+	//$("#CUG").prop("checked", false);
+	//$("#GUG").prop("checked", false);
+	//$("#NONE").prop("checked", false);
+	for (ind in html_args["start_codons"]) {
+		var sc = html_args["start_codons"][ind]
+		//console.log("START CODON IS"+sc);
+		$(sc).prop('checked',true);
+		};
+	//update_colours()
+	$("#query").click();
+	};
+
+jQuery('#noncoding').click(function(){
+		$("#max_cds").val("0");
+		//$("#cds_ratio_check").prop("checked", false);
+		jQuery('#coverage_check').prop('checked', true);
+		});
+
+
+jQuery('#noncoding , #uorf , #ouorf , #odorf , #dorf , #readthrough , #plusone , #minusone , #extension').click(function(){
+		jQuery('#highest_frame_diff_check').prop('checked', true);
+		jQuery('#lowest_frame_diff_check').prop('checked', false);
+		jQuery('#coverage_check').prop('checked', true);
+});
+
+
+
+jQuery('#nested').click(function(){
+		jQuery('#highest_frame_diff_check').prop('checked', false);
+		jQuery('#lowest_frame_diff_check').prop('checked', true);
+		jQuery('#coverage_check').prop('checked', true);
+});
+
+
+
+
+jQuery('#cds, #nested, #extension').click(function(){
+		$("#max_cds").val("1");
+		//$("#min_cds_ratio").val("0.9");
+		//$("#cds_ratio_check").prop("checked", true);
+		});
+
+
+jQuery('#plusone , #minusone , #readthrough').click(function(){
+		jQuery('#start_increase_check').prop('checked', false);
+		jQuery('#stop_decrease_check').prop('checked', true);
+		jQuery('#coverage_check').prop('checked', true);
+		$('#AUG').prop('checked', false);
+		$("#NONE").prop("checked", true);
+		$("#max_cds").val("0.5");
+		//$("#cds_ratio_check").prop("checked", false);
+		});
+
+
+
+jQuery('#uorf , #dorf').click(function(){
+		$("#max_cds").val("0.5");
+		$("#NONE").prop("checked", false);
+		//$("#cds_ratio_check").prop("checked", false);
+		});
+
+jQuery('#ouorf  , #odorf').click(function(){
+	$("#max_cds").val("0.95");
+	$("#NONE").prop("checked", false);
+	//$("#cds_ratio_check").prop("checked", false);
+	});
+
+
+jQuery('#extension').click(function(){
+		jQuery('#start_increase_check').prop('checked', true);
+		jQuery('#stop_decrease_check').prop('checked', false);
+		});
+
+
+
+jQuery('#extension').click(function(){
+		$("#max_cds").val("0.5");
+		$("#NONE").prop("checked", false);
+		//$("#cds_ratio_check").prop("checked", false);
+		});
+
+
+
+jQuery('#cds , #uorf , #ouorf , #extension , #nested , #odorf , #dorf , #noncoding').click(function(){
+		$('#AUG').prop('checked', true);
+		$("#NONE").prop("checked", false);
+
+		});
+
+jQuery('#cds , #uorf , #ouorf  , #nested , #odorf , #dorf , #noncoding').click(function(){
+		jQuery('#start_increase_check').prop('checked', true);
+		jQuery('#stop_decrease_check').prop('checked', true);
+		$("#AUG").prop("checked", true);
+		});
+
+
+jQuery('#drops').click(function(){
+	jQuery('#start_increase_check').prop('checked', false);
+	//jQuery('#entropy_check').prop('checked', false);
+	jQuery('#stop_decrease_check').prop('checked', true);
+	$("#AUG").prop("checked", true);
+	$("#CUG").prop("checked", true);
+	$("#GUG").prop("checked", true);
+	//$("#cds_ratio_check").prop("checked", false);
+	//$("#coverage_check").prop("checked", false);
+	$("#max_cds").val("1");
+	jQuery('#lowest_frame_diff_check').prop('checked', false);
+	jQuery('#highest_frame_diff_check').prop('checked', false);
+	});
+
+
+//Update the options box on page load and load files in file box
+$(document).ready(function(){
+	var n = document.querySelector('input[name="content_type"]:checked').value;
+	var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+	for (var study_id in studies_dict) {
+		$("#label"+study_id+"").css({opacity: 0.2});
+	}
+	for (file_type in seq_study_dict) {
+		if (file_type == seq_type) {
+			//console.log("File type is seq_type "+file_type+"  "+seq_type);
+			for (var sub_study_id in seq_study_dict[file_type]) {
+				$("#label"+seq_study_dict[file_type][sub_study_id]+"").css({ opacity: 1 });
+			}
+		}
+	}
+
+	var selector = "#"+seq_type+ n; //Create a selector based on the id
+	$(".show").hide(); //Hide all the checkbox containers
+	$(selector).show(); //Show only the related container
+})
+
+
+
+// This section listens for clicks from any radio/checkbox with the all_checks class, if it detects a change it goes through
+// all studies to see which if any of them have riboseq/rnaseq files checked, if so it changes the border colour
+$('.all_checks').change(function() {
+	for (var key in studies_dict)  {
+		if (($('.rnaseq_study'+key+':checked').length == 0) && ($('.riboseq_study'+key+':checked').length == 0)) {
+			document.getElementById('label'+key+'').style.borderColor='#e2e2e2';
+			}
+		else {
+			document.getElementById('label'+key+'').style.borderColor='#77abff';
+			}
+		}
+		});
+		
+		
+// This function is called whenever the check/uncheck all buttons are pressed, when called it goes through
+// all studies to see which if any of them have riboseq/rnaseq files checked, if so it changes the border colour
+function update_colours() {
+	for (var key in studies_dict)  {
+		if (($('.rnaseq_study'+key+':checked').length == 0) && ($('.riboseq_study'+key+':checked').length == 0)) {
+			document.getElementById('label'+key+'').style.borderColor='#e2e2e2';
+			}
+		else {
+			document.getElementById('label'+key+'').style.borderColor='#77abff';
+			}
+		}
+		}
+				
+
+$('#files').on('change', '.file_check', function() {
+	//console.log("check function called")
+	var file_id = $(this).attr('name');
+	if (this.checked) {
+		//console.log("adding file id "+ $(this).attr('name'))
+		addItOnce(alt_file_list, file_id);
+		}
+	else {
+		removeItemOnce(alt_file_list, file_id);
+		};
+});
+		
+function removeItemOnce(arr, value) {
+	var index = arr.indexOf(value);
+	if (index > -1) {
+		//console.log("Poppin file id "+value);
+		arr.splice(index, 1);
+	}
+	return arr;
+};
+
+function addItOnce(arr, value) {
+	var index = arr.indexOf(value);
+	if (index < 0) {
+		//console.log("adding file id "+value);
+		arr.push(value);
+	}
+	return arr;
+};	
+
+// checks all checkboxes with the <seq_type>_study<study_id> class, the study_id is gotten from the value of the currently selected study
+function check_study_multi(){
+		var curstudy = $('input[name="content_type"]:checked').val();
+		var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+		$('input.'+seq_type+'_'+curstudy+'').prop('checked',true);
+		update_colours();
+		$('input.'+seq_type+'_'+curstudy+'').each(function(){
+			var file_id = $(this).attr('name');
+			addItOnce(alt_file_list, file_id);
+			//console.log("Adding file id "+file_id);
+		});
+};
+
+function uncheck_study_multi(){
+		var curstudy = $('input[name="content_type"]:checked').val();
+		var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+		$('input.'+seq_type+'_'+curstudy+'').prop('checked',false);
+		update_colours();
+		
+		$('input.'+seq_type+'_'+curstudy+'').each(function(){
+			var file_id = $(this).attr('name');
+			removeItemOnce(alt_file_list, file_id);
+			
+		});
+};		
+
+// Unchecks every checkbox that has the class <seq_type>_file
+function uncheck_all_multi(){
+		var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+		$('input.'+seq_type+'_file').prop('checked',false);
+		update_colours();
+		$('input.'+seq_type+'_file').each(function(){
+			var file_id = $(this).attr('name');
+			removeItemOnce(alt_file_list, file_id);
+			
+		});
+};
+
+// Checks every checkbox that has the class <seq_type>_file
+function check_all_multi(){
+		var seq_type = document.querySelector('input[name="seq_type"]:checked').value;
+		$('input.'+seq_type+'_file').prop('checked',true);
+		update_colours();
+		$('input.'+seq_type+'_file').each(function(){
+			var file_id = $(this).attr('name');
+			addItOnce(alt_file_list, file_id);
+			//console.log("Adding file id "+file_id);
+		});
+};
+
+
+
+</script>
+{% endblock %}
