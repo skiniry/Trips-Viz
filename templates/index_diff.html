@@ -486,19 +486,28 @@ $("#diffquery").click(function() {
 		url: url,
 		data: JSON.stringify(qu),
 		success: function(data, status, request) {
-			jdata = JSON.parse(data);
-			if (jdata["status"] == "return_str") {
+			status_url = request.getResponseHeader('Location');
+			if (request.statusText == "NO_CELERY") {
 				var graph = $("#container");
-				graph.html(jdata["result"]);
+				graph.html(data);
 				$("#loading-div-background").hide();
 				$("#container").show();
+				$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+				document.getElementById('container').scrollIntoView();
 			}
 			else {
-				console.log("data, status, request", data, status, request);
-				status_url = request.getResponseHeader('Location');
-				console.log("Calling update progress");
-				update_progress(status_url, nanobar);
-				//$("#loading-div-background").hide();
+		
+				jdata = JSON.parse(data);
+				if (jdata["status"] == "return_str") {
+					var graph = $("#container");
+					graph.html(jdata["result"]);
+					$("#loading-div-background").hide();
+					$("#container").show();
+				}
+				else {
+					update_progress(status_url, nanobar);
+					//$("#loading-div-background").hide();
+					}
 				}
 	 },
 	 dataType: "html"

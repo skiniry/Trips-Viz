@@ -994,9 +994,11 @@ def most_freq_unmapped(self, file_paths_dict,short_code):
 			if os.path.isfile(filepath):
 				sqlite_db = SqliteDict(filepath, autocommit=False)
 			else:
-				return "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1])
+				return_str =  "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1])
+				return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
 			if "frequent_unmapped_reads" not in sqlite_db:
-				return "No unmapped reads data for {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1])
+				return_str =  "No unmapped reads data for {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1])
+				return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
 			#unmapped reads list is a list of tuples of length 100, first item in tuple is a sequence second is a count
 			unmapped_reads_list = sqlite_db["frequent_unmapped_reads"]
 			sqlite_db.close()

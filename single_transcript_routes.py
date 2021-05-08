@@ -10,9 +10,11 @@ import riboflask
 import collections
 from flask_login import current_user
 import logging
-from orfQuant import incl_OPM_run_orfQuant
-from tripsTPM import TPM
-
+try:
+	from orfQuant import incl_OPM_run_orfQuant
+	from tripsTPM import TPM
+except:
+	pass
 
 #This is the single transcript plot page, user chooses gene, files and other settings
 single_transcript_plotpage_blueprint = Blueprint("interactiveplotpage", __name__, template_folder="templates")
@@ -179,8 +181,8 @@ def query():
 	user,logged_in = fetch_user()
 
 	if owner == 1:
-		if os.path.isfile("{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)):
-			sqlite_path_organism = "{0}{1}/{1}.{2}.sqlite".format(config.ANNOTATION_DIR,organism,transcriptome)
+		if os.path.isfile("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome)):
+			sqlite_path_organism = "{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome)
 			transhelve = sqlite3.connect(sqlite_path_organism)
 		else:
 			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
@@ -275,7 +277,6 @@ def query():
 					return return_str, "NO_CELERY", {'Location': None}
 				else:
 					if user == "test":
-						print "TEST USER, RETURNING:", return_str
 						return jsonify({'current': 400, 'total': 100, 'status': 'quant_tran_list','result': return_str}), 200, {'Location': ""} 
 					else:
 						return jsonify({'current': 400, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
@@ -390,21 +391,20 @@ def query():
 		if app.debug == True:
 			task = riboflask.generate_plot(tran, ambiguous, minread, maxread, lite , ribocoverage, organism, readscore, noisered,primetype,
 								minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict,short_code, color_readlen_dist,
-								background_col,uga_col, uag_col, uaa_col,advanced,config.ANNOTATION_DIR,seqhili,seq_rules,title_size,
+								background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
 								subheading_size,axis_label_size,marker_size,transcriptome,config.UPLOADS_DIR,cds_marker_size,cds_marker_colour,
 								legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches,hili_start, hili_stop)
 			return task["result"], "NO_CELERY", {'Location': None}
 		else:
 			task = riboflask.generate_plot.delay(tran, ambiguous, minread, maxread, lite , ribocoverage, organism, readscore, noisered,primetype,
 								minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict,short_code, color_readlen_dist,
-								background_col,uga_col, uag_col, uaa_col,advanced,config.ANNOTATION_DIR,seqhili,seq_rules,title_size,
+								background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
 								subheading_size,axis_label_size,marker_size,transcriptome,config.UPLOADS_DIR,cds_marker_size,cds_marker_colour,
 								legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches,hili_start, hili_stop)
 			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 
 	else:
 		return_str =  "ERROR! Could not find any transcript or gene corresponding to {}".format(tran)
-		logging.debug(return_str)
 		if app.debug == True:
 			return return_str, "NO_CELERY", {'Location': None}
 		else:

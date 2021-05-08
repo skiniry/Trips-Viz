@@ -1,0 +1,707 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<head>
+<link rel= "stylesheet" href= "{{ url_for('static', filename='css/metainfo.css') }}">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.css"/>
+<script src="https://cdn.pydata.org/bokeh/release/bokeh-0.12.14.min.js"></script>
+<script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.14.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.js">
+</script>
+</head>
+
+
+<div id="sidebar">
+	<br/>
+	<p><font size="5" align="center"><b><u>Choose plot type</u></b></font></p>
+	<br/>
+	<br/>
+	<table align="center" class="plot_table" id="plottype_table">
+	<tr><td><input id="readlen" class="study_radio nuc_comp_single" type="radio" value="nuc_comp_single" name="plottype" checked></input><label for="readlen" class='subplot_label'>Nucleotide composition (Single transcript)</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_nuc_comp_single'>  &#9432; </a></td></tr>
+	<tr><td><input id="nuc_comp_multi" class="study_radio nuc_comp_multi" type="radio" value="nuc_comp_multi" name="plottype" unchecked></input><label for="nuc_comp_multi" class='subplot_label'>Nucleotide composition (Multiple transcripts)</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_nuc_comp_multi'>  &#9432; </a></td></tr>
+	<tr><td><input id="lengths_plot" class="study_radio lengths_plot" type="radio" value="lengths_plot" name="plottype" unchecked></input><label for="lengths_plot" class='subplot_label'>Lengths (Multiple transcripts)</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_lengths'>  &#9432; </a></td></tr>
+	<tr><td><input id="gene_count" class="study_radio gene_count" type="radio" value="gene_count" name="plottype" unchecked></input><label for="gene_count" class='subplot_label'>Gene count</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_genes'>  &#9432; </a>        </td></tr>
+	<tr><td><input id="codon_usage" class="study_radio codon_usage" type="radio" value="codon_usage" name="plottype" unchecked></input><label for="codon_usage" class='subplot_label'>Codon usage</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_codon_usage'>  &#9432; </a></td></tr>
+	<tr><td><input id="nuc_freq_plot" class="study_radio nuc_freq_plot" type="radio" value="nuc_freq_plot" name="plottype" unchecked></input><label for="nuc_freq_plot" class='subplot_label'>Nucleotide frequency</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_nucfreq'>  &#9432; </a></td></tr>
+	<tr><td><input id="orfstats" class="study_radio orfstats" type="radio" value="orfstats" name="plottype" unchecked></input><label for="orfstats" class='subplot_label'>ORF Table</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_orftable'>  &#9432; </a></td></tr>
+	<tr><td><input id="fetch_seq" class="study_radio fetch_seq" type="radio" value="fetch_seq" name="plottype" unchecked></input><label for="fetch_seq" class='subplot_label'>Fetch sequences</label><a class='whatsthis'  target='_blank_' href='https://trips.ucc.ie/help/?parent_acc=parent_traninfo&child_acc=child_traninfo_fetch_seq'>  &#9432; </a></td></tr>
+	</table>
+</div>
+
+
+<div id="options">
+		</br>
+		<p><font size="5" align="center"><b><u>Options</u></b></font></p>
+</div>
+
+
+
+
+<div id="view_plot" class="wrapper"><button class="button" type="button"  id="traninfoquery"><b>View Plot</b></button>
+</div>
+
+<div id="loading-div-background">
+<div id="loading-div" class="ui-corner-all" >
+<img style="height:64px;margin:10px;"      src="{{ url_for('static', filename = 'css/images/282.GIF') }}" width="110" height="85" alt="Loading..."/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sofia.css') }}">
+<h3 id="loading_header" style="color:gray;font-weight:normal;">Loading....</h3>
+</div>
+</div>
+
+
+
+<div id="te_table">
+<a id="table_link" href= "{{ url_for('static', filename='tmp/robots.txt') }}" download="robots.txt"> Download entire table</a>
+<table  id="myTable" class="prediction_table hover">
+<thead><tr><th>Filename</th><th>Gene</th><th>Transcript</th><th>Start Codon</th><th>Length</th><th>Start position</th><th>Stop position</th><th>CDS coverage</th></tr></thead>
+<tbody> </tbody>
+</table>
+</div>
+
+
+<div id="fa_div" align="center">
+<a id="fa_link" href= "{{ url_for('static', filename='tmp/robots.txt') }}" download="robots.txt"> Download fasta file</a>
+</table>
+</div>
+
+
+<div id="container">
+</div>
+
+<div id = "study_dialog" title = "Study info">
+<table></table>
+</div>
+
+<script type="text/javascript"   src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script type="text/javascript">
+
+var te_div = document.getElementById('te_table')
+te_div.style.visibility = "hidden";
+
+var fa_div = document.getElementById('fa_div')
+fa_div.style.visibility = "hidden";
+
+
+$(document).ready( function () {
+		$('#myTable').DataTable({
+				"order": [[ 6, "desc" ]],
+				});
+				} );
+
+var html_args = {{ html_args|safe }};
+var username = "{{ current_username|safe }}";
+
+
+
+
+
+$(document).keypress(function(e){
+		if (e.which == 13){
+				$("#traninfoquery").click();
+				}
+		});
+
+
+var defaulttran = "{{ default_tran|safe }}";
+var local = "{{ local|safe }}";
+if (local == "True") {
+		var url = "/traninfoquery"
+		}
+else {
+		var url = "/traninfoquery"
+		}
+
+rownum = 1
+rowcount = -1
+
+
+
+
+
+$("#loading-div-background").css({ opacity: 0.7 });
+function datetime_to_epoch(datetime)
+{ var aDate = datetime.split('/');
+	var epoch = new Date(aDate[2] + "," + aDate[0] + "," + aDate[1]).getTime() / 1000;
+	return epoch;}
+
+
+
+function update_settings(n,defaulttran){
+		console.log("UPDATE SETTINGS WITH PLOT TYPE "+n+" and defaulttran "+defaulttran);
+		switch(n)
+		{
+				case 'nuc_comp_single':
+						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>\
+							<tr><td>Transcript: <input type='text' id='metagene_tranlist' name='metagene_tranlist' value='"+defaulttran+"'></input></td></tr>\
+							</table>");
+						break;
+
+				case 'nuc_comp_multi':
+					// The following line can be used to add framing options to nuc comp plot, I didn't implement this as it's too difficult
+					// Firstly it can't be done retroactively as we need the mismatch info for each individual read (otherwise we are just reading the sequence, no info on if untemplated addition / adapter etc is causing the misframing)
+					// In the bam to sqlite stage, when we are extracting the sequence of the reads we don't know which frame it's in as we haven't done the metagene profile yet
+					// We could go over the sequences again once we know the offsets, but this would add signifigcant overhead, so maybe it's best to do this as a custom analysis.
+					// We can do this reading the reference sequence, this would come in useful in cases where you suspect the extra nucleotide is genuninely part of the sequence
+					// but appeared outside the ribosome (as in nuclease bias), in this case we should see the bias in the nuc comp plot for out of frame reads but not in frame
+					// reads.
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>\
+						<tr><td><b>Plot type:</b><input type='radio' class='scatter' value='scatter' name='plot_type' checked>Scatter</input> <input type='radio'\
+						class='box' value='box' name='plot_type' checked>Box plot</input></td></tr>\
+						<tr><td><b>Region:</b><input type='radio' class='all' value='all' name='gc_location' checked>All</input> <input type='radio'\
+						class='five' value='five' name='gc_location' checked>5'</input>  <input type='radio'class='cds' value='cds' name='gc_location' checked>CDS</input> <input class='three' type='radio' value='three'\
+						name='gc_location' unchecked>3'</input></td></tr>\
+						<tr><td><b>Nucleotide:</b><input type='radio' class='A' value='A' name='nucleotide' checked>A</input> <input type='radio'\
+						class='T' value='T' name='nucleotide' checked>T</input>  <input type='radio'class='G' value='G' name='nucleotide' checked>G</input> <input class='C' type='radio' value='C'\
+						name='nucleotide' unchecked>C</input> <input type='radio'class='GC' value='GC' name='nucleotide' checked>GC</input></td></tr>\
+						<tr><td><b>Transcript list: </b><input type='text' id='gc_tranlist' name='gc_tranlist' value='"+defaulttran+"' ></input></td></tr> \
+						<tr><td><b>Transcript list 2: </b><input type='text' id='gc_tranlist2' name='gc_tranlist2' value='' ></input></td></tr>\
+						<tr><td><b>Transcript list 3: </b><input type='text' id='gc_tranlist3' name='gc_tranlist3' value='' ></input></td></tr>\
+						<tr><td><b>Transcript list 4: </b><input type='text' id='gc_tranlist4' name='gc_tranlist4' value='' ></input></td></tr>\
+						</table>");
+						break;
+				case 'lengths_plot':
+					// The following line can be used to add framing options to nuc comp plot, I didn't implement this as it's too difficult
+					// Firstly it can't be done retroactively as we need the mismatch info for each individual read (otherwise we are just reading the sequence, no info on if untemplated addition / adapter etc is causing the misframing)
+					// In the bam to sqlite stage, when we are extracting the sequence of the reads we don't know which frame it's in as we haven't done the metagene profile yet
+					// We could go over the sequences again once we know the offsets, but this would add signifigcant overhead, so maybe it's best to do this as a custom analysis.
+					// We can do this reading the reference sequence, this would come in useful in cases where you suspect the extra nucleotide is genuninely part of the sequence
+					// but appeared outside the ribosome (as in nuclease bias), in this case we should see the bias in the nuc comp plot for out of frame reads but not in frame
+					// reads.
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>\
+						<tr><td><b>Plot type:</b><input type='radio' class='scatter' value='scatter' name='plot_type' checked>Scatter</input> <input type='radio'\
+						class='box' value='box' name='plot_type' checked>Box plot</input></td></tr>\
+						<tr><td><b>Region:</b><input type='radio' class='all' value='all' name='gc_location' checked>All</input> <input type='radio'\
+						class='five' value='five' name='gc_location' checked>5'</input>  <input type='radio'class='cds' value='cds' name='gc_location' checked>CDS</input> <input class='three' type='radio' value='three'\
+						name='gc_location' unchecked>3'</input></td></tr>\
+						<tr><td><input type='checkbox' class = 'exons' value='exons'  name='exons' display='none' visibility='hidden' unchecked>Use exon count instead of length</input></td></tr>\
+						<tr><td><b>Transcript list: </b><input type='text' id='gc_tranlist' name='gc_tranlist' value='"+defaulttran+"' ></input></td></tr> \
+						<tr><td><b>Transcript list 2: </b><input type='text' id='gc_tranlist2' name='gc_tranlist2' value='' ></input></td></tr>\
+						<tr><td><b>Transcript list 3: </b><input type='text' id='gc_tranlist3' name='gc_tranlist3' value='' ></input></td></tr>\
+						<tr><td><b>Transcript list 4: </b><input type='text' id='gc_tranlist4' name='gc_tranlist4' value='' ></input></td></tr>\
+						</table>");
+						break;
+				case 'gene_count':
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p><table align='center'></table></br>");
+						break;
+
+				case 'codon_usage':
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'>\
+						<tr><td><b>Transcript list: </b><input type='text' id='gc_tranlist' name='gc_tranlist' value='"+defaulttran+"' ></input></td></tr> \
+						</table>");
+						break;
+				case 'nuc_freq_plot':
+						$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> <tr><td><input type='radio' class='tss' value='tss' name='nuc_freq_plot_anchor' checked>TSS</input> <input type='radio'\
+							class='cds_start' value='cds_start' name='nuc_freq_plot_anchor' checked>CDS start</input>  <input type='radio'class='cds_stop' value='cds_stop' name='nuc_freq_plot_anchor' checked>CDS stop</input> <input class='tts' type='radio' value='tts'\
+							name='nuc_freq_plot_anchor' unchecked>TTS</input></td></tr>\
+							<tr><td>  Include +/- <input type='text'   id='nuc_freq_plot_window' name='nuc_freq_plot_window' value='10' ></input> nucleotides.</td></tr> \
+							<tr><td><b>Transcript list: </b><input type='text' id='nuc_freq_plot_tranlist' name='nuc_freq_plot_tranlist' value='"+defaulttran+"'></input></td></tr> \
+							</table>");
+						break;
+				case 'orfstats':
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> \
+						<tr><td><input type='checkbox' class = 'principal' value='principal'  name='principal' checked>Select principal isoforms only</input></td></tr>\
+						<tr><td><b> ORF type: </b> <input type='radio' class='uorf' value='uorf' name='orftype' checked>uORF</input> </td></tr>\
+						<tr><td><input type='radio' class='ouorf' value='ouorf' name='orftype' unchecked>ouORF</input></td></tr>\
+						<tr><td><input type='radio' class='extension' value='extension' name='orftype' unchecked>N-terminal extension</input></td></tr>\
+						<tr><td><input type='radio' class='cds' value='cds' name='orftype' unchecked>CDS</input></td></tr>\
+						<tr><td><input type='radio' class='nested' value='nested' name='orftype' unchecked>Nested</input></td></tr>\
+						<tr><td><input type='radio' class='odorf' value='odorf' name='orftype' unchecked>oDORF</input></td></tr>\
+						<tr><td><input type='radio' class='dorf' value='dorf' name='orftype' unchecked>dORF</input></td></tr>\
+						<tr><td><input type='radio' class='noncoding' value='noncoding' name='orftype' unchecked>noncoding</input> </td></tr>\
+							</table>");
+						break;
+				case 'fetch_seq':
+					$('#options').html("</br><p><font size='5' align='center'><b><u>Options</u></b></font></p> <table align='center'> \
+						<tr><td><b>Region:</b><input type='radio' class='all' value='all' name='gc_location' checked>All</input> <input type='radio'\
+						class='five' value='five' name='gc_location' checked>5'</input>  <input type='radio'class='cds' value='cds' name='gc_location' checked>CDS</input> <input class='three' type='radio' value='three'\
+						name='gc_location' unchecked>3'</input></td></tr>\
+						<tr><td><b>Transcript list: </b><input type='text' id='gc_tranlist' name='gc_tranlist' value='"+defaulttran+"' ></input></td></tr> \
+						<tr><td>  Include first <input type='text'   id='include_first_val' name='include_first_val' value='0' ></input> nucleotides.</td></tr> \
+						<tr><td>  Include last <input type='text'   id='include_last_val' name='include_last_val' value='0' ></input> nucleotides.</td></tr> \
+						<tr><td>  Exclude first <input type='text'   id='exclude_first_val' name='exclude_first_val' value='0' ></input> nucleotides.</td></tr> \
+						<tr><td>  Exclude last <input type='text'   id='exclude_last_val' name='exclude_last_val' value='0' ></input> nucleotides.</td></tr> \
+						</table>");
+					break;
+					
+
+
+				}
+						};
+
+
+$(function () {
+		$('input[name=plottype]').on('change', function() {
+			console.log("plot type changed")
+			var plottype = document.querySelector('input[name=plottype]:checked').value;
+			update_settings(plottype,defaulttran);
+															})
+			});
+
+$("#traninfoquery").click(function() {
+	$("#container").html();
+	$("#loading-div-background").show();
+	$("#container").hide();
+
+	var plottype = document.querySelector('input[name=plottype]:checked').value;
+	try  {
+			var region = document.querySelector('input[name=region]:checked').value;
+			}
+	catch (err) {
+			var region = "cds";
+			}
+
+	try  {
+		var mismatch_region = document.querySelector('input[name=mismatch_region]:checked').value;
+		}
+	catch (err) {
+		var mismatch_region = "cds";
+		}
+
+
+
+
+	try  {
+		var custom_search_region = document.querySelector('input[name=custom_search_region]:checked').value;
+		}
+	catch (err) {
+		var custom_search_region = "null";
+		}
+
+	try  {
+		var corr_type = document.querySelector('input[name=corr_type]:checked').value;
+		}
+	catch (err) {
+		var corr_type = "null";
+		}
+
+	try  {
+			var heatmap_metagene_type = document.querySelector('input[name=heatmap_metagene_type]:checked').value;
+			}
+	catch (err) {
+			var heatmap_metagene_type = "null";
+			}
+	try  {
+		var contaminant_organism = document.querySelector('input[name=contaminant_organism]:checked').value;
+		}
+	catch (err) {
+		var contaminant_organism = "null";
+		}
+	try  {
+			var color_palette = document.querySelector('input[name=color_palette]:checked').value;
+			}
+	catch (err) {
+			var color_palette = "null";
+			}
+
+	try {
+			var nuc_comp_type = document.querySelector('input[name=nuc_comp_type]:checked').value;
+			}
+	catch (err) {
+			var nuc_comp_type = "null";
+			}
+
+	try {
+		var nuccomp_reads = document.querySelector('input[name=nuccomp_reads]:checked').value;
+		}
+	catch (err) {
+		var nuccomp_reads = "null";
+		}
+
+
+
+
+	try {
+			var gc_location = document.querySelector('input[name=gc_location]:checked').value;
+			}
+	catch (err) {
+			var gc_location = "null";
+			}
+	
+	try {
+		var nucleotide = document.querySelector('input[name=nucleotide]:checked').value;
+		}
+	catch (err) {
+		var nucleotide = "null";
+		}	
+	try {
+		var plot_type = document.querySelector('input[name=plot_type]:checked').value;
+		}
+	catch (err) {
+		var plot_type = "null";
+		}
+	try {
+		var nuc_freq_plot_anchor = document.querySelector('input[name=nuc_freq_plot_anchor]:checked').value;
+		}
+	catch (err) {
+		var nuc_freq_plot_anchor = "null";
+		}
+	try {
+		var orftype = document.querySelector('input[name=orftype]:checked').value;
+		}
+	catch (err) {
+		var orftype = "null";
+		}
+	try {
+			var heatmap_direction = document.querySelector('input[name=heatmap_direction]:checked').value;
+			}
+	catch (err) {
+			var heatmap_direction = "null";
+			}
+
+
+	var custom_seq_list = $('input:text[name=custom_seq_list]').val();
+	var metagene_tranlist = $('input:text[name=metagene_tranlist]').val();
+	var exclude_first_val = $('input:text[name=exclude_first_val]').val();
+	var exclude_last_val = $('input:text[name=exclude_last_val]').val();
+	var include_first_val = $('input:text[name=include_first_val]').val();
+	var include_last_val = $('input:text[name=include_last_val]').val();
+	var mismatch_minreadcount = $('input:text[name=mismatch_minreadcount]').val();
+	var mismatch_minper = $('input:text[name=mismatch_minper]').val();
+	var mismatch_maxper = $('input:text[name=mismatch_maxper]').val();
+	var mismatch_maxhit = $('input:text[name=mismatch_maxhit]').val();
+	var heatmap_minreadlen = $('input:text[name=heatmap_minreadlen]').val();
+	var smooth_amount = $('input:text[name=smooth_amount]').val();
+	var heatmap_maxreadlen = $('input:text[name=heatmap_maxreadlen]').val();
+	var heatmap_startpos = $('input:text[name=heatmap_startpos]').val();
+	var heatmap_endpos = $('input:text[name=heatmap_endpos]').val();
+	var maxscaleval = $('input:text[name=maxscaleval]').val();
+	var gc_tranlist = $('input:text[name=gc_tranlist]').val();
+	var gc_tranlist2 = $('input:text[name=gc_tranlist2]').val();
+	var gc_tranlist3 = $('input:text[name=gc_tranlist3]').val();
+	var gc_tranlist4 = $('input:text[name=gc_tranlist4]').val();
+	var nuc_freq_plot_tranlist = $('input:text[name=nuc_freq_plot_tranlist]').val();
+	var nuc_freq_plot_window = $('input:text[name=nuc_freq_plot_window]').val();
+	var mismatch_minreadlen = $('input:text[name=mismatch_minreadlen]').val();
+	var mismatch_maxreadlen = $('input:text[name=mismatch_maxreadlen]').val();
+	var readlen_ambig = $('input:checkbox[name=readlen_ambig]:checked').val();
+	var breakdown_per = $('input:checkbox[name=breakdown_per]:checked').val();
+	var minimum_reads = $('input:text[name=minimum_reads]').val();
+	var te_minimum_reads = $('input:text[name=te_minimum_reads]').val();
+	var te_tranlist = $('input:text[name=te_tranlist]').val();
+	var log_scale = $('input:checkbox[name=log_scale]:checked').val();
+	var count_agg = $('input:checkbox[name=count_agg]:checked').val();
+	var mismatch_agg = $('input:checkbox[name=mismatch_agg]:checked').val();
+	var count_gc = $('input:checkbox[name=count_gc]:checked').val();
+	var mrna_readlen_per = $('input:checkbox[name=mrna_readlen_per]:checked').val();
+	var mrna_dist_per = $('input:checkbox[name=mrna_dist_per]:checked').val();
+	var md_start = $('input:checkbox[name=md_start]:checked').val();
+	var md_stop = $('input:checkbox[name=md_stop]:checked').val();
+	var mrna_readlen_smooth = $('input:checkbox[name=mrna_readlen_smooth]:checked').val();
+	var reverse_scale = $('input:checkbox[name=reverse_scale]:checked').val();
+	var exclude_first = $('input:checkbox[name=exclude_first]:checked').val();
+	var exclude_last = $('input:checkbox[name=exclude_last]:checked').val();
+	var include_first = $('input:checkbox[name=include_first]:checked').val();
+	var include_last = $('input:checkbox[name=include_last]:checked').val();
+	var normalise = $('input:checkbox[name=normalise]:checked').val();
+	var principal = $('input:checkbox[name=principal]:checked').val();
+	var exons = $('input:checkbox[name=exons]:checked').val();
+
+	if (custom_seq_list == null){
+		custom_seq_list = ""
+		}
+	if (exclude_first_val == null){
+		exclude_first_val = "0"
+		}
+	if (exclude_last_val == null){
+		exclude_last_val = "0"
+		}
+	if (include_first_val == null){
+		include_first_val = "0"
+		}
+	if (include_last_val == null){
+		include_last_val = "0"
+		}
+
+
+	if (metagene_tranlist == null){
+		metagene_tranlist = ""
+		}
+	if (mismatch_minreadcount == null){
+		mismatch_minreadcount = "10"
+		}
+
+	if (mismatch_minper == null){
+		mismatch_minper = "90"
+		}
+
+	if (mismatch_maxper == null){
+		mismatch_maxper = "100"
+		}
+
+	if (mismatch_maxhit == null){
+		mismatch_maxhit = "100"
+		}
+
+	if (smooth_amount == null){
+		smooth_amount = "1"
+		}
+
+	if (heatmap_minreadlen == null){
+		heatmap_minreadlen = "15"
+		}
+
+	if (heatmap_maxreadlen == null){
+		heatmap_maxreadlen = "50"
+		}
+
+	if (heatmap_startpos == null){
+		heatmap_startpos = "-50"
+		}
+
+	if (heatmap_endpos == null){
+		heatmap_endpos = "20"
+		}
+	if (maxscaleval == null){
+		maxscaleval = "None"
+		}
+	if (gc_tranlist == null){
+		gc_tranlist = "15"
+		}
+	if (gc_tranlist2 == null){
+		gc_tranlist2 = "15"
+		}
+	if (gc_tranlist3 == null){
+		gc_tranlist3 = "15"
+		}
+	if (gc_tranlist4 == null){
+		gc_tranlist4 = "15"
+		}
+	if (nuc_freq_plot_tranlist == null){
+		nuc_freq_plot_tranlist = "15"
+		}
+	if (nuc_freq_plot_window == null){
+		nuc_freq_plot_window = "15"
+		}
+	if (mismatch_minreadlen == null){
+		mismatch_minreadlen = "15"
+		}
+	if (mismatch_maxreadlen == null){
+		mismatch_maxreadlen = "25"
+		}
+
+	if (minimum_reads == null){
+		minimum_reads = "10"
+		}
+
+	if (te_minimum_reads == null){
+		te_minimum_reads = "10"
+		}
+
+	if (te_tranlist == null){
+			te_tranlist = "10"
+			}
+	var minfiles = $('input:text[name=minfiles]').val();
+	var organism = "{{  organism|safe  }}";
+	var transcriptome = "{{  transcriptome|safe  }}";
+
+	var qu = {"principal":principal,"exons":exons,"minfiles":minfiles,"readlen_ambig":readlen_ambig,
+		    "breakdown_per":breakdown_per,"organism":organism, "transcriptome":transcriptome, "plottype": plottype,
+			"nuc_comp_type": nuc_comp_type,"nuccomp_reads":nuccomp_reads, "gc_tranlist":gc_tranlist,
+			"gc_tranlist2":gc_tranlist2,"gc_tranlist3":gc_tranlist3,"gc_tranlist4":gc_tranlist4, "plot_type":plot_type,
+			"gc_location":gc_location,"nucleotide":nucleotide,"mismatch_minper":mismatch_minper,"mismatch_maxper":mismatch_maxper,
+			"mismatch_maxhit":mismatch_maxhit, "mismatch_minreadcount":mismatch_minreadcount,
+			"log_scale":log_scale,"reverse_scale":reverse_scale,"color_palette":color_palette,"mrna_readlen_per":mrna_readlen_per,"mrna_dist_per":mrna_dist_per,
+			"md_stop":md_stop,"md_start":md_start,"te_tranlist":te_tranlist,"mrna_readlen_smooth":mrna_readlen_smooth,"smooth_amount":smooth_amount,"html_args":html_args,"maxscaleval":maxscaleval,
+			"region":region, "mismatch_region":mismatch_region, "count_agg":count_agg, "mismatch_agg":mismatch_agg,"count_gc":count_gc,"contaminant_organism":contaminant_organism,
+			"custom_seq_list":custom_seq_list,"exclude_first_val":exclude_first_val,"exclude_last_val":exclude_last_val,"include_first_val":include_first_val,"include_last_val":include_last_val,
+			"custom_search_region":custom_search_region,"corr_type":corr_type,"exclude_first":exclude_first, "exclude_last":exclude_last, "include_first":include_first, "include_last":include_last,
+			"metagene_tranlist":metagene_tranlist,"nuc_freq_plot_anchor":nuc_freq_plot_anchor,"orftype":orftype,"nuc_freq_plot_tranlist":nuc_freq_plot_tranlist,
+			"nuc_freq_plot_window":nuc_freq_plot_window};
+
+
+	$.ajax({
+		type: "POST",
+		async:true,
+		contentType: "application/json; charset=utf-8",
+		url: url,
+		data: JSON.stringify(qu),
+		success: function (data) {
+				
+				// If gc content of count table is selected, change the headers of the count table.
+				if (qu["count_gc"] != undefined) {
+					console.log("changing headers");
+					var mytable = document.getElementById('myTable').tHead.innerHTML = "<tr><th>Region</th><th>Gene</th><th>Transcript</th><th>A count</th><th>T count</th><th>G count</th><th>C count</th><th>GC %</th><th>Length</th></tr>";
+					}
+
+				if (data.slice(0, 2) == "TE"){
+						//update link to point to temporary csv
+						var splitdata = data.split("?~");
+						var table_link = document.getElementById('table_link');
+						var base_url = "{{ url_for('static',filename='') }}";
+						table_link.href = base_url+"tmp/"+splitdata[2]
+						table_link.download = splitdata[2]
+						table_link.text = "Download "+splitdata[1]+" rows as csv"
+						var table = $('#myTable').DataTable();
+						table.clear()
+						for(var i = 3; i < splitdata.length-1; i++) {
+								splitrow = splitdata[i].split(".;")
+								table.row.add(splitrow).draw(false);
+								}
+								table.draw()
+								fa_div.style.visibility = "hidden";
+								te_div.style.visibility = "visible";
+								var graph = $("#container");
+								graph.html("");
+								$("#loading-div-background").hide();
+								$("#container").show();
+						}
+				if (data.slice(0, 2) == "FA"){
+							//update link to point to temporary csv
+							var splitdata = data.split("?~");
+							var fa_link = document.getElementById('fa_link');
+							var base_url = "{{ url_for('static',filename='') }}";
+							fa_link.href = base_url+"tmp/"+splitdata[2]
+							fa_link.download = splitdata[2]
+							fa_link.text = "Download fasta file"
+							te_div.style.visibility = "hidden";
+							fa_div.style.visibility = "visible";
+							var graph = $("#container");
+							graph.html("");
+							$("#loading-div-background").hide();
+							$("#container").show();
+							}
+				else {
+						te_div.style.visibility = "hidden";
+						fa_div.style.visibility = "hidden";
+						var graph = $("#container");
+						graph.html(data);
+						$("#loading-div-background").hide();
+						$("#container").show();
+						$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+						document.getElementById('container').scrollIntoView();
+						}
+	 },
+	 dataType: "html"
+ });
+});
+
+if (html_args["user_plot_type"] != "None") {
+		console.log("user plot not none")
+		//console.log("user_plot_type1 "+html_args["user_plot_type"])
+		$('.'+html_args["user_plot_type"]+'').attr('checked', true);
+		update_settings(html_args["user_plot_type"],defaulttran);
+		};
+
+
+if (html_args["nuc_freq_plot_window"] != "None") {
+	document.getElementById('nuc_freq_plot_window').value = html_args["nuc_freq_plot_window"]
+	};
+
+
+if (html_args["metagene_tranlist"] != "None") {
+	document.getElementById('metagene_tranlist').value = html_args["metagene_tranlist"]
+	};
+
+if (html_args["nuc_freq_plot_tranlist"] != "None") {
+	console.log("NUC FREQ PLOT TRANLIST NOT EMPTY SETTING VALUE TO :"+html_args["nuc_freq_plot_tranlist"])
+	document.getElementById('nuc_freq_plot_tranlist').value = html_args["nuc_freq_plot_tranlist"]
+	};
+if (html_args["gc_tranlist"] != "None") {
+	document.getElementById('gc_tranlist').value = html_args["gc_tranlist"]
+	};
+if (html_args["gc_tranlist2"] != "None") {
+	document.getElementById('gc_tranlist2').value = html_args["gc_tranlist2"]
+	};
+if (html_args["gc_tranlist3"] != "None") {
+	document.getElementById('gc_tranlist3').value = html_args["gc_tranlist3"]
+	};
+if (html_args["gc_tranlist4"] != "None") {
+	document.getElementById('gc_tranlist4').value = html_args["gc_tranlist4"]
+	};
+
+
+
+
+//	html_args = {"user_short":str(request.args.get('short')),
+//			  "user_plot_type":str(request.args.get('plot')),
+//			  "gc_tranlist":str(request.args.get('gc_tranlist')),
+//			  "gc_tranlist2":str(request.args.get('gc_tranlist2')),
+//			  "gc_tranlist3":str(request.args.get('gc_tranlist3')),
+//			  "gc_tranlist4":str(request.args.get('gc_tranlist4')),
+//			  "plot_type":str(request.args.get('plot_type')),
+//			  "gc_location":str(request.args.get('gc_location')),
+//			  "nucleotide":str(request.args.get('nucleotide')),
+//			  "nuc_freq_plot_anchor":str(request.args.get('nuc_freq_plot_anchor')),
+//			  "nuc_freq_plot_window":str(request.args.get('nuc_freq_plot_window')),
+//			  "orftype":str(request.args.get('orftype')),
+//			  "transcriptome":str(transcriptome),
+//			  "metagene_tranlist":str(request.args.get('metagene_tranlist'))}
+	
+	
+	
+if (html_args["nuc_freq_plot_anchor"] == "tss") {
+	$('input.tss').prop('checked',true);
+	};		
+if (html_args["nuc_freq_plot_anchor"] == "cds_start") {
+	$('input.cds_start').prop('checked',true);
+	};	
+if (html_args["nuc_freq_plot_anchor"] == "cds_stop") {
+	$('input.cds_stop').prop('checked',true);
+	};		
+if (html_args["nuc_freq_plot_anchor"] == "tts") {
+	$('input.tts').prop('checked',true);
+	};		
+	
+	
+	
+if (html_args["plot_type"] == "scatter") {
+	$('input.scatter').prop('checked',true);
+	};	
+if (html_args["plot_type"] == "box") {
+	$('input.box').prop('checked',true);
+	};	
+
+
+
+
+if (html_args["nucleotide"] == "A") {
+	$('input.A').prop('checked',true);
+	};
+if (html_args["nucleotide"] == "T") {
+	$('input.T').prop('checked',true);
+	};
+if (html_args["nucleotide"] == "G") {
+	$('input.G').prop('checked',true);
+	};
+if (html_args["nucleotide"] == "C") {
+	$('input.C').prop('checked',true);
+	};
+if (html_args["nucleotide"] == "GC") {
+	$('input.GC').prop('checked',true);
+	};
+
+
+if (html_args["gc_location"] == "all") {
+	$('input.all').prop('checked',true);
+	};
+if (html_args["gc_location"] == "five") {
+		$('input.five').prop('checked',true);
+		};
+if (html_args["gc_location"] == "cds") {
+	$('input.cds').prop('checked',true);
+	};
+if (html_args["gc_location"] == "three") {
+		$('input.three').prop('checked',true);
+		};
+
+
+
+if (html_args["user_plot_type"] != "None") {
+	$("#traninfoquery").click();
+	};
+
+//Update the options box on page load and load files in file box
+$(document).ready(function(){
+	console.log("Page loaded")
+	var plottype = document.querySelector('input[name=plottype]:checked').value;
+	if (html_args["user_plot_type"] == "None") {
+		update_settings(plottype,defaulttran);
+		}
+})
+
+
+
+
+</script>
+
+{% endblock %}

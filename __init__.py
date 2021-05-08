@@ -446,7 +446,7 @@ def downloadspage():
 	for row in result:
 		organism = row[0]
 		organism_dict[organism] = []
-	trips_annotation_dir = "{}/trips_annotations/".format(config.SCRIPT_LOC)
+	trips_annotation_dir = "{}/{}/".format(config.SCRIPT_LOC,config.ANNOTATION_DIR)
 	for org in os.listdir(trips_annotation_dir):
 		if org not in organism_dict:
 			continue
@@ -474,7 +474,7 @@ def download_file():
 	if request.method == 'POST':
 		organism = request.form["organism"]
 		assembly = request.form["assembly"]
-		return send_from_directory("{}/trips_annotations/{}".format(config.SCRIPT_LOC, organism), assembly, as_attachment=True)
+		return send_from_directory("{}/{}/{}".format(config.SCRIPT_LOC,config.ANNOTATION_DIR, organism), assembly, as_attachment=True)
 
 
 
@@ -1799,7 +1799,7 @@ def estimate_orfquery():
 	if start_codons == []:
 		return "Error no start codon types selected:"
 
-	traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.v2.sqlite".format(organism))
+	traninfo_connection = sqlite3.connect("{0}/{1}/{2}/{2}.v2.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism))
 	traninfo_cursor = traninfo_connection.cursor()
 	
 	principal_transcripts = []
