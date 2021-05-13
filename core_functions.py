@@ -217,7 +217,7 @@ def fetch_file_paths(file_list,organism):
 			# All files uploaded on our side are owned by user id 1, all others are user uploaded
 			# Replace .shelf with .sqlite to deal with legacy files
 			if row[4] == 1:
-				file_path_dict[row[0]][row[3]] = ("{}{}/{}/{}/{}.sqlite".format(config.SQLITES_DIR,row[0],organism,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
+				file_path_dict[row[0]][row[3]] = ("{}/{}/{}/{}/{}/{}.sqlite".format(config.SCRIPT_LOC, config.SQLITES_DIR,row[0],organism,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 			else:
 				file_path_dict[row[0]][row[3]] = ("{}/{}/{}.sqlite".format(config.UPLOADS_DIR,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 	logging.debug("fetch_file_paths closing connection")
