@@ -31,7 +31,7 @@ def metainfo_plotpage(organism, transcriptome):
 		local = False
 
 	organism = str(organism)
-	connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	user,logged_in = fetch_user()
@@ -467,7 +467,7 @@ def metainfoquery():
 	count_type = data["count_type"]
 
 
-	connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
