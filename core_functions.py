@@ -608,7 +608,11 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 		
 	cursor.execute("SELECT MAX(url_id) from urls;")
 	result = cursor.fetchone()
-	url_id = int(result[0])+1
+	#If the url table is empty result will return none
+	if result[0] == None:
+		url_id = 0
+	else:
+		url_id = int(result[0])+1
 	cursor.execute("INSERT INTO urls VALUES({},'{}')".format(url_id, url))
 	connection.commit()
 	short_code = integer_to_base62(url_id)
