@@ -47,7 +47,7 @@ from bokeh.models import (
 	PrintfTickFormatter,
 	ColorBar
 )
-import RNA
+# import RNA
 
 
 
@@ -128,208 +128,208 @@ def nuc_freq_plot(master_dict,title,short_code, background_col,readlength_col,ti
 
 
 
-def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,traninfo):
-	print "readlen dist called"
-	labels = ["Exon Junctions","CDS markers"]
-	start_visible=[True,True]
-	stop_codons = ["TAG","TAA","TGA"]
-	frame_orfs = {1:[],2:[],3:[]}
-	color_dict = {'frames': ['#FF4A45', '#64FC44', '#5687F9']}
-	try:
-		traninfo["stop_list"] = [int(x) for x in traninfo["stop_list"]]
-	except:
-		traninfo["stop_list"] = []
+# def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,traninfo):
+# 	print "readlen dist called"
+# 	labels = ["Exon Junctions","CDS markers"]
+# 	start_visible=[True,True]
+# 	stop_codons = ["TAG","TAA","TGA"]
+# 	frame_orfs = {1:[],2:[],3:[]}
+# 	color_dict = {'frames': ['#FF4A45', '#64FC44', '#5687F9']}
+# 	try:
+# 		traninfo["stop_list"] = [int(x) for x in traninfo["stop_list"]]
+# 	except:
+# 		traninfo["stop_list"] = []
 
-	try:
-		traninfo["start_list"] = [int(x) for x in traninfo["start_list"]]
-	except:
-		traninfo["start_list"] = []
+# 	try:
+# 		traninfo["start_list"] = [int(x) for x in traninfo["start_list"]]
+# 	except:
+# 		traninfo["start_list"] = []
 
-	if str(traninfo["exon_junctions"][0]) != "":
-		traninfo["exon_junctions"] = [int(x) for x in traninfo["exon_junctions"]]
-	else:
-		traninfo["exon_junctions"] = []
-	gene = traninfo["gene"]
-	tranlen = traninfo["length"]
-	cds_start = traninfo["cds_start"]
-	cds_stop = traninfo["cds_stop"]
-	if cds_start == "NULL" or cds_start == None:
-		cds_start = 0
-	if cds_stop == "NULL" or cds_stop == None:
-		cds_stop = 0
-	all_starts = traninfo["start_list"]
-	all_stops = {"TAG":[],"TAA":[],"TGA":[]}
-	exon_junctions = traninfo["exon_junctions"]
-	seq = traninfo["seq"].upper()
-	for i in range(0,len(seq)):
-		if seq[i:i+3] in stop_codons:
-			all_stops[seq[i:i+3]].append(i+1)
-	# Error occurs if one of the frames is empty for any given start/stop, so we initialise with -5 as this won't be seen by user and will prevent the error
-	start_stop_dict = {1:{"starts":[-5], "stops":{"TGA":[-5],"TAG":[-5],"TAA":[-5]}},
-				   2:{"starts":[-5], "stops":{"TGA":[-5],"TAG":[-5],"TAA":[-5]}},
-				   3:{"starts":[-5], "stops":{"TGA":[-5],"TAG":[-5],"TAA":[-5]}}}
-	for start in all_starts:
-		rem = ((start-1)%3)+1
-		start_stop_dict[rem]["starts"].append(start)
-	for stop in all_stops:
-		for stop_pos in all_stops[stop]:
-			rem = ((stop_pos-1)%3)+1
-			start_stop_dict[rem]["stops"][stop].append(stop_pos)
-	#find all open reading frames
-	for frame in [1,2,3]:
-		for start in start_stop_dict[frame]["starts"]:
-			best_stop_pos = 10000000
-			for stop in start_stop_dict[frame]["stops"]:
-				for stop_pos in start_stop_dict[frame]["stops"][stop]:
-					if stop_pos > start and stop_pos < best_stop_pos:
-						best_stop_pos = stop_pos
-			if best_stop_pos != 10000000:
-				frame_orfs[frame].append((start, best_stop_pos))
-	y_max = 100
-	fig = plt.figure(figsize=(23,12))
+# 	if str(traninfo["exon_junctions"][0]) != "":
+# 		traninfo["exon_junctions"] = [int(x) for x in traninfo["exon_junctions"]]
+# 	else:
+# 		traninfo["exon_junctions"] = []
+# 	gene = traninfo["gene"]
+# 	tranlen = traninfo["length"]
+# 	cds_start = traninfo["cds_start"]
+# 	cds_stop = traninfo["cds_stop"]
+# 	if cds_start == "NULL" or cds_start == None:
+# 		cds_start = 0
+# 	if cds_stop == "NULL" or cds_stop == None:
+# 		cds_stop = 0
+# 	all_starts = traninfo["start_list"]
+# 	all_stops = {"TAG":[],"TAA":[],"TGA":[]}
+# 	exon_junctions = traninfo["exon_junctions"]
+# 	seq = traninfo["seq"].upper()
+# 	for i in range(0,len(seq)):
+# 		if seq[i:i+3] in stop_codons:
+# 			all_stops[seq[i:i+3]].append(i+1)
+# 	# Error occurs if one of the frames is empty for any given start/stop, so we initialise with -5 as this won't be seen by user and will prevent the error
+# 	start_stop_dict = {1:{"starts":[-5], "stops":{"TGA":[-5],"TAG":[-5],"TAA":[-5]}},
+# 				   2:{"starts":[-5], "stops":{"TGA":[-5],"TAG":[-5],"TAA":[-5]}},
+# 				   3:{"starts":[-5], "stops":{"TGA":[-5],"TAG":[-5],"TAA":[-5]}}}
+# 	for start in all_starts:
+# 		rem = ((start-1)%3)+1
+# 		start_stop_dict[rem]["starts"].append(start)
+# 	for stop in all_stops:
+# 		for stop_pos in all_stops[stop]:
+# 			rem = ((stop_pos-1)%3)+1
+# 			start_stop_dict[rem]["stops"][stop].append(stop_pos)
+# 	#find all open reading frames
+# 	for frame in [1,2,3]:
+# 		for start in start_stop_dict[frame]["starts"]:
+# 			best_stop_pos = 10000000
+# 			for stop in start_stop_dict[frame]["stops"]:
+# 				for stop_pos in start_stop_dict[frame]["stops"][stop]:
+# 					if stop_pos > start and stop_pos < best_stop_pos:
+# 						best_stop_pos = stop_pos
+# 			if best_stop_pos != 10000000:
+# 				frame_orfs[frame].append((start, best_stop_pos))
+# 	y_max = 100
+# 	fig = plt.figure(figsize=(23,12))
 
-	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
-	ax_main.spines['bottom'].set_visible(False)
-	#ax_main.set_ylabel(label,  fontsize=axis_label_size, labelpad=30)
-	label = 'Position (nucleotides)'
-	ax_main.set_xlabel(label, fontsize=axis_label_size)
-	ax_main.set_ylim(0, y_max)
-	cds_markers = ax_main.plot((cds_start+1,cds_start+1), (0, y_max), color="black",linestyle = 'solid', linewidth=2)
-	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max), color="black",linestyle = 'solid', linewidth=2)
-	ax_f1 = plt.subplot2grid((30,1), (26,0),rowspan=1,sharex=ax_main)
-	ax_f1.set_axis_bgcolor(color_dict['frames'][0])
-	ax_f2 = plt.subplot2grid((30,1), (27,0),rowspan=1,sharex=ax_main)
-	ax_f2.set_axis_bgcolor(color_dict['frames'][1])
-	ax_f3 = plt.subplot2grid((30,1), (28,0),rowspan=1,sharex=ax_main)
-	ax_f3.set_axis_bgcolor(color_dict['frames'][2])
-	ax_nucseq = plt.subplot2grid((30,1), (29,0),rowspan=1,sharex=ax_main)
-	ax_nucseq.set_xlabel('Transcript: {} Length: {} nt'.format(tran, tranlen), fontsize=subheading_size, labelpad=10)
+# 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
+# 	ax_main.spines['bottom'].set_visible(False)
+# 	#ax_main.set_ylabel(label,  fontsize=axis_label_size, labelpad=30)
+# 	label = 'Position (nucleotides)'
+# 	ax_main.set_xlabel(label, fontsize=axis_label_size)
+# 	ax_main.set_ylim(0, y_max)
+# 	cds_markers = ax_main.plot((cds_start+1,cds_start+1), (0, y_max), color="black",linestyle = 'solid', linewidth=2)
+# 	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max), color="black",linestyle = 'solid', linewidth=2)
+# 	ax_f1 = plt.subplot2grid((30,1), (26,0),rowspan=1,sharex=ax_main)
+# 	ax_f1.set_axis_bgcolor(color_dict['frames'][0])
+# 	ax_f2 = plt.subplot2grid((30,1), (27,0),rowspan=1,sharex=ax_main)
+# 	ax_f2.set_axis_bgcolor(color_dict['frames'][1])
+# 	ax_f3 = plt.subplot2grid((30,1), (28,0),rowspan=1,sharex=ax_main)
+# 	ax_f3.set_axis_bgcolor(color_dict['frames'][2])
+# 	ax_nucseq = plt.subplot2grid((30,1), (29,0),rowspan=1,sharex=ax_main)
+# 	ax_nucseq.set_xlabel('Transcript: {} Length: {} nt'.format(tran, tranlen), fontsize=subheading_size, labelpad=10)
 
-	#plot a dummy exon junction at postion -1, needed in cases there are no exon junctions, this wont be seen
-	allexons = ax_main.plot((-1,-1), (0, 1), alpha=0.01,color='black',linestyle = '-.', linewidth=2)
-	for exon in exon_junctions:
-		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.01,color='black',linestyle = '-.', linewidth=3)
-	xy = 0
-	ax_nucseq.set_axis_bgcolor(background_col)
-	mrnaseq = seq.replace("T","U")
-	color_list = ["#FF4A45","#64FC44","#5687F9"]
-	char_frame = 0
-	for char in mrnaseq:
-		ax_nucseq.text((xy+1)-0.1,0.2,mrnaseq[xy],fontsize=20,color=color_list[char_frame%3])
-		xy += 1
-		char_frame += 1
-	for axisname in (ax_f1, ax_f2, ax_f3,ax_nucseq):
-		axisname.tick_params(top=False, bottom=False, labelleft=False, labelright=False, labelbottom=False)
-	for label in ax_main.xaxis.get_majorticklabels():
-		label.set_fontsize(36)
-	for axis, frame in ((ax_f1, 1), (ax_f2, 2), (ax_f3, 3)):
-		axis.set_xlim(1, tranlen)
-		starts = [(item, 1) for item in start_stop_dict[frame]['starts']]
-		uag_stops = [(item, 1) for item in start_stop_dict[frame]['stops']['TAG']]
-		uaa_stops = [(item, 1) for item in start_stop_dict[frame]['stops']['TAA']]
-		uga_stops = [(item, 1) for item in start_stop_dict[frame]['stops']['TGA']]
-		axis.broken_barh(starts, (0.30, 1),color="white", zorder=2,linewidth=7)
-		axis.broken_barh(uag_stops, (0, 1), color="black", zorder=2, linewidth=4)
-		axis.broken_barh(uaa_stops, (0, 1), color="black", zorder=2, linewidth=4)
-		axis.broken_barh(uga_stops, (0, 1), color="black", zorder=2, linewidth=4)
-		axis.set_ylim(0, 1)
-		axis.set_ylabel('{}'.format(frame), labelpad=10, verticalalignment='center',rotation="horizontal",color="black")
-	title_str = '{} ({})'.format(gene,short_code)
-	plt.title(title_str, fontsize=title_size,y=36)
-	line_collections = [allexons,cds_markers]
+# 	#plot a dummy exon junction at postion -1, needed in cases there are no exon junctions, this wont be seen
+# 	allexons = ax_main.plot((-1,-1), (0, 1), alpha=0.01,color='black',linestyle = '-.', linewidth=2)
+# 	for exon in exon_junctions:
+# 		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.01,color='black',linestyle = '-.', linewidth=3)
+# 	xy = 0
+# 	ax_nucseq.set_axis_bgcolor(background_col)
+# 	mrnaseq = seq.replace("T","U")
+# 	color_list = ["#FF4A45","#64FC44","#5687F9"]
+# 	char_frame = 0
+# 	for char in mrnaseq:
+# 		ax_nucseq.text((xy+1)-0.1,0.2,mrnaseq[xy],fontsize=20,color=color_list[char_frame%3])
+# 		xy += 1
+# 		char_frame += 1
+# 	for axisname in (ax_f1, ax_f2, ax_f3,ax_nucseq):
+# 		axisname.tick_params(top=False, bottom=False, labelleft=False, labelright=False, labelbottom=False)
+# 	for label in ax_main.xaxis.get_majorticklabels():
+# 		label.set_fontsize(36)
+# 	for axis, frame in ((ax_f1, 1), (ax_f2, 2), (ax_f3, 3)):
+# 		axis.set_xlim(1, tranlen)
+# 		starts = [(item, 1) for item in start_stop_dict[frame]['starts']]
+# 		uag_stops = [(item, 1) for item in start_stop_dict[frame]['stops']['TAG']]
+# 		uaa_stops = [(item, 1) for item in start_stop_dict[frame]['stops']['TAA']]
+# 		uga_stops = [(item, 1) for item in start_stop_dict[frame]['stops']['TGA']]
+# 		axis.broken_barh(starts, (0.30, 1),color="white", zorder=2,linewidth=7)
+# 		axis.broken_barh(uag_stops, (0, 1), color="black", zorder=2, linewidth=4)
+# 		axis.broken_barh(uaa_stops, (0, 1), color="black", zorder=2, linewidth=4)
+# 		axis.broken_barh(uga_stops, (0, 1), color="black", zorder=2, linewidth=4)
+# 		axis.set_ylim(0, 1)
+# 		axis.set_ylabel('{}'.format(frame), labelpad=10, verticalalignment='center',rotation="horizontal",color="black")
+# 	title_str = '{} ({})'.format(gene,short_code)
+# 	plt.title(title_str, fontsize=title_size,y=36)
+# 	line_collections = [allexons,cds_markers]
 
-	plot_gc = True
-	plot_mfe = True
-	if plot_mfe == True:
-		step_size = 2
-		window_size = 60
-		mfe_dict = collections.OrderedDict()
-		for i in range(0,len(seq)-(window_size),step_size):
-			seq_window = str(seq[i:i+window_size])
-			print ":"+seq_window+":"
-			(ss, mfe) = RNA.fold(seq_window)
-			print mfe, seq_window
-			mfe_dict[i+(window_size/2)] = abs(mfe)
-	if plot_gc == True:
-		step_size = 2
-		window_size = 60
-		a_dict = collections.OrderedDict()
-		t_dict = collections.OrderedDict()
-		g_dict = collections.OrderedDict()
-		c_dict = collections.OrderedDict()
-		gc_dict = collections.OrderedDict()
-		for i in range(0,len(seq)-(window_size),step_size):
-			a_count = 0.0
-			t_count = 0.0
-			g_count = 0.0
-			c_count = 0.0
-			for x in range(i,i+window_size):
-				if seq[x] == "A":
-					a_count += 1
-				elif seq[x] == "T":
-					t_count += 1
-				elif seq[x] == "G":
-					g_count += 1
-				elif seq[x] == "C":
-					c_count += 1
+# 	plot_gc = True
+# 	plot_mfe = True
+# 	if plot_mfe == True:
+# 		step_size = 2
+# 		window_size = 60
+# 		mfe_dict = collections.OrderedDict()
+# 		for i in range(0,len(seq)-(window_size),step_size):
+# 			seq_window = str(seq[i:i+window_size])
+# 			print ":"+seq_window+":"
+# 			(ss, mfe) = RNA.fold(seq_window)
+# 			print mfe, seq_window
+# 			mfe_dict[i+(window_size/2)] = abs(mfe)
+# 	if plot_gc == True:
+# 		step_size = 2
+# 		window_size = 60
+# 		a_dict = collections.OrderedDict()
+# 		t_dict = collections.OrderedDict()
+# 		g_dict = collections.OrderedDict()
+# 		c_dict = collections.OrderedDict()
+# 		gc_dict = collections.OrderedDict()
+# 		for i in range(0,len(seq)-(window_size),step_size):
+# 			a_count = 0.0
+# 			t_count = 0.0
+# 			g_count = 0.0
+# 			c_count = 0.0
+# 			for x in range(i,i+window_size):
+# 				if seq[x] == "A":
+# 					a_count += 1
+# 				elif seq[x] == "T":
+# 					t_count += 1
+# 				elif seq[x] == "G":
+# 					g_count += 1
+# 				elif seq[x] == "C":
+# 					c_count += 1
 
-			gc_count = g_count + c_count
-			norm_a = a_count/window_size
-			norm_t = t_count/window_size
-			norm_g = g_count/window_size
-			norm_c = c_count/window_size
-			norm_gc = gc_count/window_size
+# 			gc_count = g_count + c_count
+# 			norm_a = a_count/window_size
+# 			norm_t = t_count/window_size
+# 			norm_g = g_count/window_size
+# 			norm_c = c_count/window_size
+# 			norm_gc = gc_count/window_size
 
-			final_a = norm_a*y_max
-			final_t = norm_t*y_max
-			final_g = norm_g*y_max
-			final_c = norm_c*y_max
-			final_gc = norm_gc*y_max
-			a_dict[i+(window_size/2)] = final_a
-			t_dict[i+(window_size/2)] = final_t
-			g_dict[i+(window_size/2)] = final_g
-			c_dict[i+(window_size/2)] = final_c
-			gc_dict[i+(window_size/2)] = final_gc
-		a_plot = ax_main.plot(a_dict.keys(), a_dict.values(), alpha=0.01, label = labels, zorder=1, color=color_dict['frames'][0], linewidth=4)
-		t_plot = ax_main.plot(t_dict.keys(), t_dict.values(), alpha=0.01, label = labels, zorder=1, color=color_dict['frames'][1], linewidth=4)
-		g_plot = ax_main.plot(g_dict.keys(), g_dict.values(), alpha=0.01, label = labels, zorder=1, color=color_dict['frames'][2], linewidth=4)
-		c_plot = ax_main.plot(c_dict.keys(), c_dict.values(), alpha=0.01, label = labels, zorder=1, color='#ffff99', linewidth=4)
-		gc_plot = ax_main.plot(gc_dict.keys(), gc_dict.values(), alpha=1, label = labels, zorder=1, color='grey', linewidth=4)
-		mfe_plot = ax_main.plot(mfe_dict.keys(), mfe_dict.values(), alpha=0.01, label = labels, zorder=1,color='#df8500', linewidth=4)
-		for item,lbl,viz in [(a_plot,"A%",False),(t_plot,"T%",False),(g_plot,"G%",False),(c_plot,"C%",False),(gc_plot,"GC%",True),(mfe_plot,"MFE",False)]:
-			line_collections.append(item)
-			labels.append(lbl)
-			start_visible.append(viz)
+# 			final_a = norm_a*y_max
+# 			final_t = norm_t*y_max
+# 			final_g = norm_g*y_max
+# 			final_c = norm_c*y_max
+# 			final_gc = norm_gc*y_max
+# 			a_dict[i+(window_size/2)] = final_a
+# 			t_dict[i+(window_size/2)] = final_t
+# 			g_dict[i+(window_size/2)] = final_g
+# 			c_dict[i+(window_size/2)] = final_c
+# 			gc_dict[i+(window_size/2)] = final_gc
+# 		a_plot = ax_main.plot(a_dict.keys(), a_dict.values(), alpha=0.01, label = labels, zorder=1, color=color_dict['frames'][0], linewidth=4)
+# 		t_plot = ax_main.plot(t_dict.keys(), t_dict.values(), alpha=0.01, label = labels, zorder=1, color=color_dict['frames'][1], linewidth=4)
+# 		g_plot = ax_main.plot(g_dict.keys(), g_dict.values(), alpha=0.01, label = labels, zorder=1, color=color_dict['frames'][2], linewidth=4)
+# 		c_plot = ax_main.plot(c_dict.keys(), c_dict.values(), alpha=0.01, label = labels, zorder=1, color='#ffff99', linewidth=4)
+# 		gc_plot = ax_main.plot(gc_dict.keys(), gc_dict.values(), alpha=1, label = labels, zorder=1, color='grey', linewidth=4)
+# 		mfe_plot = ax_main.plot(mfe_dict.keys(), mfe_dict.values(), alpha=0.01, label = labels, zorder=1,color='#df8500', linewidth=4)
+# 		for item,lbl,viz in [(a_plot,"A%",False),(t_plot,"T%",False),(g_plot,"G%",False),(c_plot,"C%",False),(gc_plot,"GC%",True),(mfe_plot,"MFE",False)]:
+# 			line_collections.append(item)
+# 			labels.append(lbl)
+# 			start_visible.append(viz)
 
-	leg_offset = (30-17)*5
-	if leg_offset <0:
-		leg_offset = 0
+# 	leg_offset = (30-17)*5
+# 	if leg_offset <0:
+# 		leg_offset = 0
 
-	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=30,xoffset=leg_offset)
-	htmllabels = {1:[],2:[],3:[]}
-	all_start_points = {1:[],2:[],3:[]}
+# 	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=30,xoffset=leg_offset)
+# 	htmllabels = {1:[],2:[],3:[]}
+# 	all_start_points = {1:[],2:[],3:[]}
 
-	points1 =ax_f1.plot(all_start_points[1], [0.75]*len(all_start_points[1]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
-	points2 =ax_f2.plot(all_start_points[2], [0.75]*len(all_start_points[2]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
-	points3 =ax_f3.plot(all_start_points[3], [0.75]*len(all_start_points[3]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
+# 	points1 =ax_f1.plot(all_start_points[1], [0.75]*len(all_start_points[1]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
+# 	points2 =ax_f2.plot(all_start_points[2], [0.75]*len(all_start_points[2]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
+# 	points3 =ax_f3.plot(all_start_points[3], [0.75]*len(all_start_points[3]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
 
-	ax_f3.axes.get_yaxis().set_ticks([])
-	ax_f2.axes.get_yaxis().set_ticks([])
-	ax_f1.axes.get_yaxis().set_ticks([])
+# 	ax_f3.axes.get_yaxis().set_ticks([])
+# 	ax_f2.axes.get_yaxis().set_ticks([])
+# 	ax_f1.axes.get_yaxis().set_ticks([])
 
-	plugins.connect(fig, ilp, plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=""),plugins.DownloadPNG(returnstr=tran))
+# 	plugins.connect(fig, ilp, plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=""),plugins.DownloadPNG(returnstr=tran))
 
-	ax_main.set_axis_bgcolor(background_col)
-	# This changes the size of the tick markers, works on both firefox and chrome.
-	ax_main.tick_params('both', labelsize=marker_size)
-	ax_main.xaxis.set_major_locator(plt.MaxNLocator(3))
-	ax_main.yaxis.set_major_locator(plt.MaxNLocator(3))
-	ax_main.grid(True, color="white", linewidth=30,linestyle="solid")
-	#Without this style tag the markers sizes will appear correct on browser but be original size when downloaded via png
-	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
-	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
-	graph +=  mpld3.fig_to_html(fig)
-	return graph
+# 	ax_main.set_axis_bgcolor(background_col)
+# 	# This changes the size of the tick markers, works on both firefox and chrome.
+# 	ax_main.tick_params('both', labelsize=marker_size)
+# 	ax_main.xaxis.set_major_locator(plt.MaxNLocator(3))
+# 	ax_main.yaxis.set_major_locator(plt.MaxNLocator(3))
+# 	ax_main.grid(True, color="white", linewidth=30,linestyle="solid")
+# 	#Without this style tag the markers sizes will appear correct on browser but be original size when downloaded via png
+# 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
+# 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
+# 	graph +=  mpld3.fig_to_html(fig)
+# 	return graph
 
 def gc_metagene(title, short_code, background_col, readlength_col, title_size, axis_label_size, subheading_size, marker_size, traninfo):
 	labels = ["CDS markers"]
