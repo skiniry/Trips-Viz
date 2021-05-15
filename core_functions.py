@@ -217,7 +217,7 @@ def fetch_file_paths(file_list,organism):
 			# All files uploaded on our side are owned by user id 1, all others are user uploaded
 			# Replace .shelf with .sqlite to deal with legacy files
 			if row[4] == 1:
-				file_path_dict[row[0]][row[3]] = ("{}{}/{}/{}/{}.sqlite".format(config.SQLITES_DIR,row[0],organism,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
+				file_path_dict[row[0]][row[3]] = ("{}/{}/{}/{}/{}/{}.sqlite".format(config.SCRIPT_LOC, config.SQLITES_DIR,row[0],organism,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 			else:
 				file_path_dict[row[0]][row[3]] = ("{}/{}/{}.sqlite".format(config.UPLOADS_DIR,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 	logging.debug("fetch_file_paths closing connection")
@@ -608,7 +608,11 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 		
 	cursor.execute("SELECT MAX(url_id) from urls;")
 	result = cursor.fetchone()
-	url_id = int(result[0])+1
+	#If the url table is empty result will return none
+	if result[0] == None:
+		url_id = 0
+	else:
+		url_id = int(result[0])+1
 	cursor.execute("INSERT INTO urls VALUES({},'{}')".format(url_id, url))
 	connection.commit()
 	short_code = integer_to_base62(url_id)
