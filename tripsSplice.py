@@ -165,15 +165,21 @@ def exons_of_transcript(transcript_id, sqlite_path_organism):
     return exon_lst[::-1]
 
 
-def get_exon_coordinate_ranges(sequence, exons, junctions):
+def get_exon_coordinate_ranges(sequence, junctions):
     # Return list of transcript coordinate ranges (start position, stop position).
-    end = len(sequence) - 1
-    junctions.append(end)
+    junctions = [0] + junctions + [len(sequence) - 1]
+    ranges = [(int(junctions[i]), int(junctions[(i + 1) % len(junctions)]))  for i in range(len(junctions)-1)]
 
-    ranges = []
-    for i in range(len(exons)):
-        ranges.append((sequence.find(exons[i]), junctions[i] - 1))
     return ranges
+
+
+def transcript_exon_coordinate_ranges(gene_info):
+    # return dictionary of transcript exon coordinates for a given locus
+    transcript_exon_coordinate_ranges = {} 
+    for transcript in gene_info:
+        if transcript[0] not in transcript_exon_coordinate_ranges:
+            transcript_exon_coordinate_ranges[transcript[0]] = get_exon_coordinate_ranges(transcript[2], str(transcript[1]).split(","))
+    return  transcript_exon_coordinate_ranges
 
 
 def get_exon_info(gene, sqlite_path_organism, supported_transcripts, filter=True):
@@ -199,13 +205,11 @@ def genomic_exon_coordinate_ranges(gene, sqlite_path_organism, supported_transcr
     exon_info = get_exon_info(gene, sqlite_path_organism, supported_transcripts, filter=filter)
     minimum, _ = get_max_min_exon_genomic_positions(exon_info)
     genomic_coordinates_per_transcript = {}
-
     for exon in exon_info:
         if exon[0] not in genomic_coordinates_per_transcript:
             genomic_coordinates_per_transcript[exon[0]] = [(exon[1] - minimum, exon[2] - minimum)]
         else:
             genomic_coordinates_per_transcript[exon[0]].append((exon[1] - minimum, exon[2] - minimum))
-
     return genomic_coordinates_per_transcript
 
 
@@ -223,7 +227,6 @@ def genomic_orf_coordinate_ranges(gene, sqlite_path_organism, supported_transcri
             for exon in transcript_coordinates:
                 if region[1] == exon[1]:
                     difference = region[1] - region[0]
-
                     genomic_exon = genomic_coordinates[transcript][transcript_coordinates.index(exon)]
                     genomic_orf = (genomic_exon[1] - difference, genomic_exon[1])
                     if transcript in genomic_orf_structures:
@@ -280,37 +283,51 @@ def genomic_junction_scores(gene_name, sqlite_path_organism, sqlite_path_reads, 
 def get_reads_per_transcript_location(transcript_id, sqlite_path_reads):
     infile = SqliteDict(sqlite_path_reads)
     if transcript_id not in infile:
-        print("No unambiguous reads support this gene")
+        print("No unambiguous reads support this gene", transcript_id)
         return None
     reads = infile[transcript_id]["unambig"]
     return reads
+
+
+def get_transcript_genomic_exon_dict(genomic, transcriptomic):
+    genomic_transcriptomic_exon_dict = {}
+    for transcript in transcriptomic: 
+        t_list = sorted(transcriptomic[transcript])
+        g_list = sorted(genomic[transcript])
+        for pair in zip(t_list, g_list):
+            if pair[0] not in genomic_transcriptomic_exon_dict:
+                genomic_transcriptomic_exon_dict[pair[0]] = pair[1]
+
+    return genomic_transcriptomic_exon_dict
 
 
 def get_reads_per_genomic_location_asite(gene, sqlite_path_reads, sqlite_path_organism, supported_transcripts, genomic_exon_coordinates, filter=True):
     # get the number of reads supporting each genomic position to be used in the display of support of the
     # supertranscript model. This function takes the reads mapped for each transcript of a gene and uses a combination
     # of genomic and transcriptomic ranges to translate each transcript position to a genomic one.
-
     gene_info = get_gene_info(gene, sqlite_path_organism)
     genomic_read_dictionary = {}
-    counted_reads = []
     for read_file in sqlite_path_reads:
+
         infile = SqliteDict(read_file)
         for transcript in gene_info:
+            counted_reads = []
+
             if filter:
                 if transcript[0] not in supported_transcripts:
+                    print 'filtered'
                     continue
             if transcript[0] not in infile:
-                print("No unambiguous reads support this gene")
+                print("No unambiguous reads support this transcript", transcript[0])
                 continue
             transcript_read_dictionary = infile[transcript[0]]["unambig"]
             genomic_ranges = sorted(genomic_exon_coordinates[transcript[0]])
 
-
             exon_junctions = string_to_integer_list(transcript[1].split(","))
+
             sequence = transcript[2]
             exons = exons_of_transcript(transcript[0], sqlite_path_organism)
-            transcript_ranges = get_exon_coordinate_ranges(sequence, exons, exon_junctions)
+            transcript_ranges = get_exon_coordinate_ranges(sequence, exon_junctions)
 
             for length in transcript_read_dictionary:
                 for location in transcript_read_dictionary[length]:
@@ -332,8 +349,79 @@ def get_reads_per_genomic_location_asite(gene, sqlite_path_reads, sqlite_path_or
                                     genomic_read_dictionary[genomic_asite] += transcript_read_dictionary[length][location]
                                 counted_reads.append((length, genomic_asite))
                         range_counter += 1
+    # print genomic_read_dictionary
     return genomic_read_dictionary
 
+
+def get_reads_per_genomic_location_asite_faster(gene, sqlite_path_reads, sqlite_path_organism, supported_transcripts, genomic_exon_coordinates, transcript_exon_coordinate_ranges,filter=True):
+    # get the number of reads supporting each genomic position to be used in the display of support of the
+    # supertranscript model. This function takes the reads mapped for each transcript of a gene and uses a combination
+    # of genomic and transcriptomic ranges to translate each transcript position to a genomic one.
+    gene_info = get_gene_info(gene, sqlite_path_organism)
+    genomic_read_dictionary = {}
+    for read_file in sqlite_path_reads:
+        counted_exons = {}
+        gene_info.sort(key=lambda a: len(a[2]))
+
+        infile = SqliteDict(read_file)
+        # for i in infile.keys(): 
+        #     if not i.isupper():
+        #         print i
+        for transcript in gene_info:
+            counted_reads = []
+
+            if filter:
+                if transcript[0] not in supported_transcripts:
+                    print 'filtered'
+                    continue
+            if transcript[0] not in infile:
+                print("No unambiguous reads support this transcript", transcript[0])
+                continue
+            transcript_read_dictionary = infile[transcript[0]]["unambig"]
+            genomic_ranges = sorted(genomic_exon_coordinates[transcript[0]])
+            genomic_transcriptomic_exon_dict = get_transcript_genomic_exon_dict(genomic_exon_coordinates, transcript_exon_coordinate_ranges)
+
+            exon_junctions = string_to_integer_list(transcript[1].split(","))
+            exons = exons_of_transcript(transcript[0], sqlite_path_organism)
+            transcript_ranges = get_exon_coordinate_ranges(transcript[2], exon_junctions)
+
+
+            for transcript_exon in transcript_ranges:
+                exon_count_total = 0
+                if genomic_transcriptomic_exon_dict[transcript_exon] not in counted_exons:
+                    for exon in counted_exons:
+                        genomic_start = genomic_transcriptomic_exon_dict[transcript_exon][0]
+                        genomic_stop = genomic_transcriptomic_exon_dict[transcript_exon][1]
+                        if exon[0] in range(genomic_start, genomic_stop)  and exon[1] in range(genomic_start, genomic_stop):
+                            print "Within ranges: ", exon, genomic_transcriptomic_exon_dict[transcript_exon]
+                    for length in transcript_read_dictionary:
+                        sorted_read_positions = sorted(transcript_read_dictionary[length])
+                        relevant_reads = [i for i in sorted_read_positions if i in range(transcript_exon[0], transcript_exon[1])]
+                        for location in relevant_reads:
+                            position = location + infile["offsets"]["fiveprime"]["offsets"][length]
+                            difference_between_read_position_and_exon_asite = position - transcript_exon[0]
+
+
+                            genomic_asite = genomic_transcriptomic_exon_dict[transcript_exon][
+                                                0] + difference_between_read_position_and_exon_asite
+
+                            if (length, genomic_asite) not in counted_reads:
+                                if genomic_asite not in genomic_read_dictionary:
+                                    genomic_read_dictionary[genomic_asite] = transcript_read_dictionary[length][location]
+
+                                else:
+                                    genomic_read_dictionary[genomic_asite] += transcript_read_dictionary[length][location]
+
+                                counted_reads.append((length, genomic_asite))
+                                exon_count_total += transcript_read_dictionary[length][location]
+
+                    counted_exons[genomic_transcriptomic_exon_dict[transcript_exon]] = exon_count_total
+                else: 
+                    a = 1
+                    # print counted_exons
+                    # print genomic_transcriptomic_exon_dict[transcript_exon], counted_exons[genomic_transcriptomic_exon_dict[transcript_exon]]
+
+    return genomic_read_dictionary
 
 def get_reads_per_genomic_location_fiveprime(gene, sqlite_path_reads, sqlite_path_organism, supported_transcripts, genomic_exon_coordinates,
                                              filter):
@@ -360,7 +448,7 @@ def get_reads_per_genomic_location_fiveprime(gene, sqlite_path_reads, sqlite_pat
             exon_junctions = string_to_integer_list(transcript[1].split(","))
             sequence = transcript[2]
             exons = exons_of_transcript(transcript[0], sqlite_path_organism)
-            transcript_ranges = get_exon_coordinate_ranges(sequence, exons, exon_junctions)
+            transcript_ranges = get_exon_coordinate_ranges(sequence, exon_junctions)
 
             for length in transcript_read_dictionary:
                 for position in transcript_read_dictionary[length]:
@@ -408,7 +496,7 @@ def get_read_ranges_genomic_location(gene, sqlite_path_reads, sqlite_path_organi
             exon_junctions = string_to_integer_list(transcript[1].split(","))
             sequence = transcript[2]
             exons = exons_of_transcript(transcript[0], sqlite_path_organism)
-            transcript_ranges = get_exon_coordinate_ranges(sequence, exons, exon_junctions)
+            transcript_ranges = get_exon_coordinate_ranges(sequence, exon_junctions)
 
             for length in transcript_read_dictionary:
                 for position in transcript_read_dictionary[length]:

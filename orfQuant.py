@@ -1,13 +1,18 @@
 from tripsSplice import genomic_exon_coordinate_ranges
 from tripsSplice import genomic_orf_coordinate_ranges
 from tripsSplice import genomic_junction_positions
+from tripsSplice import get_gene_info
 from sqlitedict import SqliteDict
 
 
 from tripsSplice import get_protein_coding_transcript_ids
 from tripsSplice import get_reads_per_genomic_location_asite
+from tripsSplice import get_reads_per_genomic_location_asite_faster
+
 from tripsSplice import genomic_junction_scores
 from tripsSplice import get_start_stop_codon_positions
+from tripsSplice import transcript_exon_coordinate_ranges
+import tripsSplice
 
 from tripsCount import count_read_supporting_regions_per_transcript
 
@@ -330,20 +335,21 @@ def orfQuant(gene, sqlite_path_organism, sqlite_path_reads, supported, counts, e
 
 
 
-def incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads):
+def incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads, force=False):
     # Run the ORFquant algorithm on the files that do not have a OPM value stored for the required trancripts
     # Store calculated OPMs for a file back in the read sqlitedict under "OPM"
     # Returns the average OPMs of the selected files for this locus 
-    print "gene", gene
-    print "sqlitepath", sqlite_path_organism
-    print "sqlite_path_reads",sqlite_path_reads
+    gene_info = get_gene_info(gene, sqlite_path_organism)
+    transcripts = [transcript[0] for transcript in gene_info]
     coding = get_protein_coding_transcript_ids(gene, sqlite_path_organism)
     exons = genomic_exon_coordinate_ranges(gene, sqlite_path_organism, coding)
 
+    transcript_exon_coordinate_ranges = tripsSplice.transcript_exon_coordinate_ranges(gene_info)
     transcript_OPMs = {}
     read_files = []
     for file in sqlite_path_reads:
-        print(file)
+        if force:read_files.append(file)
+        print file
         infile = SqliteDict(file)
         for transcript in coding:
             if transcript in infile:
@@ -352,6 +358,7 @@ def incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads):
 						transcript_OPMs[transcript].append(infile[transcript]["OPM"])
 					else:
 						transcript_OPMs[transcript] = [infile[transcript]["OPM"]]
+                    
 
 				else:
 					if file not in read_files:
@@ -360,24 +367,41 @@ def incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads):
 
 
     for file in read_files:
-        genomic_read_positions = get_reads_per_genomic_location_asite(gene, [file], sqlite_path_organism,
+        genomic_read_positions_1 = get_reads_per_genomic_location_asite(gene, [file], sqlite_path_organism,
                                                                   coding, exons, filter=True)
+
+        genomic_read_positions_2 = get_reads_per_genomic_location_asite_faster(gene, [file], sqlite_path_organism,
+                                                                  coding, exons, transcript_exon_coordinate_ranges, filter=True)
+
+        set1 = set(genomic_read_positions_1.items())
+        set2 = set(genomic_read_positions_2.items())
+        print set1 ^ set2
+        print 
+        print 
+
+        print set1 - set2 
+
+        genomic_read_positions = genomic_read_positions_1 
         counts = count_read_supporting_regions_per_transcript(exons, genomic_read_positions)
 
-        orfQuant_res = orfQuant(gene, sqlite_path_organism, [file], coding, counts, exons, filter=True)
+        if genomic_read_positions != {}: # don't run calculation if no reads map to gene
+            orfQuant_res = orfQuant(gene, sqlite_path_organism, [file], coding, counts, exons, filter=True)
+
         infile = SqliteDict(file, autocommit=False)
-        for i in infile: 
-            if i[0] != "E":
-                print i
-        for transcript in orfQuant_res:
+
+        for transcript in transcripts:
             transcript_dict = infile[transcript].copy()
-            transcript_dict['OPM'] = orfQuant_res[transcript]
+
+            if transcript in orfQuant_res:
+                transcript_dict['OPM'] = orfQuant_res[transcript]
+                if transcript not in transcript_OPMs:
+                    transcript_OPMs[transcript] = [orfQuant_res[transcript]]
+                else:
+                    transcript_OPMs[transcript].append(orfQuant_res[transcript])
+            
             infile[transcript] = transcript_dict
 
-            if transcript not in transcript_OPMs:
-                transcript_OPMs[transcript] = [orfQuant_res[transcript]]
-            else:
-                transcript_OPMs[transcript].append(orfQuant_res[transcript])
+
         infile.commit()
         infile.close()
 
@@ -390,12 +414,14 @@ def incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads):
 
 
 # if __name__ == "__main__":
-#     gene = "phpt1"
+#     # gene = "phpt1"
+#     gene = "SARS-COV2"
+
 #     # sqlite_path_organism = "/home/jackt/Tools/Trips-Viz/Trips-Viz-master/trips_annotations/homo_sapiens/old_homo_sapiens.Gencode_v25.sqlite"
-#     sqlite_path_organism = "/home/jackt/Tools/Trips-Viz/Trips-Viz-master/trips_annotations/homo_sapiens/homo_sapiens.Gencode_v25.sqlite"
+#     sqlite_path_organism = '/home/jack/projects/trips/Trips-Viz/trips_annotations_sample/sarscov2/sarscov2.sarscov2_homo_sapiens.sqlite'
 
 #     # sqlite_path_reads = ["/home/jackt/Tools/Trips-Viz/Trips-Viz-master/trips_shelves/rnaseq/homo_sapiens/Park16/SRR3306574.sqlite"]
-#     sqlite_path_reads = [ '/home/jackt/Tools/Trips-Viz/Trips-Viz-master/trips_shelves/riboseq/homo_sapiens/Park16/SRR3306586.sqlite', '/home/jackt/Tools/Trips-Viz/Trips-Viz-master/trips_shelves/riboseq/homo_sapiens/Park16/SRR3306587.sqlite']
-#     orfQuant_res = incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads)
+#     sqlite_path_reads =  ['/home/jack/projects/trips/Trips-Viz/trips_shelves/riboseq/sarscov2/Finkel20/SRR12216749.sqlite']
+#     orfQuant_res = incl_OPM_run_orfQuant(gene, sqlite_path_organism, sqlite_path_reads, force=True)
 
 #     print orfQuant_res
