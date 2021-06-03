@@ -1,3 +1,4 @@
+flask==0.12.2
 flask_recaptcha==0.4.2
 flask_login==0.4.1
 flask_security==3.0.0
