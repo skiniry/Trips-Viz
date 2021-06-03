@@ -6,7 +6,6 @@ from matplotlib import gridspec
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import StringIO
 import os 
 import re 
 import subprocess 

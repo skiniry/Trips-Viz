@@ -24,7 +24,7 @@ def interactiveplotpage(organism,transcriptome):
 	user_short_passed = True
 	global local
 	try:
-		print local
+		print (local)
 	except:
 		local = False
 

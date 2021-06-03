@@ -411,9 +411,6 @@ def extract_features(transcript, start, stop,profile):
 		diff = float(if_val)/float(oof_val+if_val+1)
 		if first_diff == False:
 			first_diff = diff
-		#print "diff, if_val, oof_val+1",diff, if_val, oof_val+1
-		#if transcript == "ENST00000262746" and stop == 1196:
-		#	print "if_val, oof_val, diff", if_val, oof_val+1, diff
 		diff_list.append(diff)
 		if if_val > 0:
 			standard_cov += 1
@@ -426,28 +423,14 @@ def extract_features(transcript, start, stop,profile):
 	mod_inframe_sum = sum(sorted(if_values)[:-1])
 	standard_coverage = standard_cov/float(if_len/3)
 	median_diff  = mod_inframe_sum/((max(minusone_sum, plusone_sum)+1)+mod_inframe_sum)
-	#median_diff = sorted(diff_list)[int(-len(diff_list)*0.5)]
-	
-	#if transcript == "ENST00000349431" and stop == 1282:
-	#	print "start", start
-	#	print "diff list, ", diff_list, 
-	#	print "sorted(diff_list), [int(-len(diff_list)*0.5)], median_diff",sorted(diff_list), int(-len(diff_list)*0.5), median_diff
-	#	sys.exit()
-	
-	
 	if_values_len = len(if_values)/2
-	
 	split = sum(if_values[:if_values_len])/(if_values_sum+1)
-	#print "transcript, start, stop, if_Values, if_values_sum, split", transcript, start, stop, if_values, if_values_sum, split
-	#median_diff = sorted(diff_list)[-len(diff_list)/4]
 	return [sru, if_cov,median_diff,read_density,standard_coverage,split,first_diff]
 	
 	
 def create_training_set(profile_dict,traninfo_dict,short_code,MINLEN):
-	print "create traning set called"
 	filename = short_code+".training.csv"
 	outfile = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-	#outfile = open("training.csv","w")
 	outfile.write(HEADER)
 	#Positive cases
 	acceptable_trans = []

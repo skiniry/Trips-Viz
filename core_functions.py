@@ -74,41 +74,33 @@ def fetch_studies(username, organism, transcriptome):
 	cursor = connection.cursor()
 	accepted_studies = {}
 	study_access_list = []
-	#print "username", username
 	#get a list of organism id's this user can access
 	if username != None:
-		#print "username is not none", username
 		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(username))
 		result = (cursor.fetchone())
 		user_id = result[0]
-		#print "user_id", user_id
 		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchall())
 		for row in result:
-			#print "result row", row
 			study_access_list.append(int(row[0]))
 			
 	cursor.execute("SELECT organism_id from organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 	result = (cursor.fetchone())
 	if result:
 		organism_id = int(result[0])
-	#print "organism id", organism_id
 	#keys are converted from int to str as javascript will not accept a dictionary with ints for keys.
 	cursor.execute("SELECT study_id,study_name,private from studies WHERE organism_id = '{}';".format(organism_id))
 	result = (cursor.fetchall())
 	if result != []:
 		if result[0]:
 			for row in result:
-				#print "STARTING STUDY_ID", row[0]
 				if row[2] == 0:
 					accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 				elif row[2] == 1:
-					#print "study is private", row[0]
 					if row[0] in study_access_list:
 						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 	logging.debug("Closing trips.sqlite connection")				
 	connection.close()
-	#print "returning accepted studies", accepted_studies
 	return accepted_studies
 
 
@@ -222,8 +214,6 @@ def fetch_file_paths(file_list,organism):
 				file_path_dict[row[0]][row[3]] = ("{}/{}/{}.sqlite".format(config.UPLOADS_DIR,study_name,row[1].replace(".shelf","").replace(".sqlite","")))
 	logging.debug("fetch_file_paths closing connection")
 	connection_ffp.close()
-	#for file_id in file_path_dict["riboseq"]:
-	#	print file_path_dict["riboseq"][file_id]
 	return file_path_dict
 
 
@@ -681,8 +671,6 @@ def calculate_coverages(sqlite_db,longest_tran_list,ambig_type, region, traninfo
 	total_trans = 0
 	for tran in longest_tran_list:
 		total_trans += 1
-		if total_trans%100 == 0:
-			print "total_trans", total_trans
 		unambig_dict = {}
 		ambig_dict = {}
 		coverage_dict["unambig_fiveprime_coverage"][tran] = 0
@@ -736,7 +724,6 @@ def calculate_coverages(sqlite_db,longest_tran_list,ambig_type, region, traninfo
 
 # Builds a profile, applying offsets
 def build_profile(trancounts, offsets, ambig,minscore=None,scores=None):
-	#print "build profile called wth trancounts", trancounts
 	minreadlen = 15
 	maxreadlen = 150
 	profile = {}
@@ -750,15 +737,10 @@ def build_profile(trancounts, offsets, ambig,minscore=None,scores=None):
 		ambig_trancounts = {}
 	for readlen in unambig_trancounts:
 		if minscore != None:
-			#print "minscore not None", minscore
 			if readlen in scores:
-				#print "readlen", readlen
-				#print "scores[readlen]", scores[readlen]
 				if scores[readlen] < minscore:
-					#print "score is less than minscore skipping"
 					continue
 			else:
-				#print "readlen not in scores, skipping", readlen
 				continue
 		if readlen < minreadlen or readlen > maxreadlen:
 			continue

@@ -73,7 +73,7 @@ try:
 	app.register_blueprint(gene_regulation_query)
 
 except Exception as e:
-	print "E: CANT IMPORT SUBMODULES: ",e
+	print ("E: CANT IMPORT SUBMODULES: ",e)
 	pass
 
 from threading import Lock
@@ -102,10 +102,6 @@ recaptcha = ReCaptcha(app=app)
 app.config['UPLOAD_FOLDER'] = '/static/tmp'
 
 
-
-#print app.url_map
-#
-
 #change cookie name and path, this avoids cookies clashing with other flask apps on the same server 
 try:
 	if sys.argv[1] == "true":
@@ -125,28 +121,12 @@ login_manager.session_protection = 'basic'
 
 
 
-'''
-@app.route('/longhome', methods=['GET', 'POST'])
-def index():
-    if request.method == 'GET':
-        return render_template('longtask.html', email="unknown")
 
-
-
-@app.route('/longtask', methods=['POST'])
-def longtask():
-    print "longtask route called"
-    task = long_task.delay()
-    print "task, task.id", task, task.id
-    print "returning 202"
-    return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
-'''
 
 @app.route('/status/<task_id>')
 #taskstatus_blueprint = Blueprint("taskstatus", __name__, template_folder="templates")
 #@taskstatus_blueprint.route('/status/<task_id>', methods=['POST'])
 def taskstatus(task_id):
-    #print "task status called", 
     task = find_orfs.AsyncResult(task_id)
     if task.state == 'PENDING':
         # job did not start yet
@@ -173,49 +153,7 @@ def taskstatus(task_id):
             'total': 1,
             'status': str(task.info),  # this is the exception raised
         }
-    #print "response", response
     return jsonify(response)
-
-
-#print app.url_map 
-
-'''
-
-@celery.task(bind=True)
-def long_task(self):
-    print "long_Task called"
-    outfile = open("longtask.txt","a")
-    """Background task that runs a long function with progress reports."""
-    verb = ['Starting up', 'Booting', 'Repairing', 'Loading', 'Checking']
-    adjective = ['master', 'radiant', 'silent', 'harmonic', 'fast']
-    noun = ['solar array', 'particle reshaper', 'cosmic ray', 'orbiter', 'bit']
-    message = ''
-    total = random.randint(10, 50)
-    for i in range(total):
-        if not message or random.random() < 0.25:
-            message = '{0} {1} {2}...'.format(random.choice(verb),
-                                              random.choice(adjective),
-                                              random.choice(noun))
-        print "message", message
-        outfile.write(message+"\n")
-        self.update_state(state='PROGRESS',meta={'current': i, 'total': total,'status': message})
-        time.sleep(1)
-    return {'current': 100, 'total': 100, 'status': 'Task completed!','result': 42}
-
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -352,7 +290,7 @@ def contactus():
 def settingspage():
 	global local
 	try:
-		print local
+		print (local)
 	except:
 		local = False
 	logging.debug("Connecting to trips.sqlite")
@@ -364,7 +302,6 @@ def settingspage():
 	#If user is not logged in and has rejected cookies they cannot use this page, so redirect to the homepage.
 	if user == None:
 		return redirect(url_for('homepage',message="To use the settings page you either need to be logged in or allow cookies. Click the cookie policy link at the top left of the page to allow cookies."))
-	print "settings user", user
 	#get user_id
 	cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
 	result = (cursor.fetchone())
@@ -428,7 +365,7 @@ def settingspage():
 def downloadspage():
 	global local
 	try:
-		print local
+		print (local)
 	except:
 		local = False
 	organism_dict = {"Scripts":["bam_to_sqlite.py","tsv_to_sqlite.py","create_annotation_sqlite.py","create_transcriptomic_to_genomic_sqlite.py"]}
@@ -484,7 +421,7 @@ def download_file():
 def uploadspage():
 	global local
 	try:
-		print local
+		print (local)
 	except:
 		local = False
 	organism_dict = {}
@@ -508,7 +445,6 @@ def uploadspage():
 	for row in result:
 		organism = row[0]
 		transcriptome = row[1]
-		#print ("organism, transcriptome", organism, transcriptome)
 		if organism not in organism_dict:
 			organism_dict[organism] = [transcriptome]
 		else:
@@ -528,7 +464,6 @@ def uploadspage():
 			else:
 				organism_dict[organism_name].append(transcriptome)
 			org_id_dict[organism_id] = [organism_name,transcriptome]	
-	#print ("organism dict0", organism_dict)
 	study_dict = {}
 	cursor.execute("SELECT study_id,study_name,organism_id from studies where owner = {}".format(user_id))
 	result = cursor.fetchall()
@@ -539,7 +474,7 @@ def uploadspage():
 			#organism_dict[organism] = [transcriptome]
 			org_id_dict[row[2]] = [row[0],transcriptome]
 		study_dict[int(row[0])] = [row[1].replace("_{}".format(user_id),"",1),org_id_dict[row[2]][0],org_id_dict[row[2]][1],[]]
-	#print ("organism dict1", organism_dict)
+
 	transcriptome_dict = {}
 	cursor.execute("SELECT organism_id,organism_name,transcriptome_list from organisms where owner = {}".format(user_id))
 	result = cursor.fetchall()
@@ -569,9 +504,6 @@ def uploadspage():
 		seq_dict[row[0]] = [row[1]]
 	logging.debug("Closing trips.sqlite connection")
 	connection.close()
-	#print ("passing file dict to uploads.html", file_dict)
-	#print "organism_dict", organism_dict
-	#print "transcriptome dict", transcriptome_dict
 	return render_template('uploads.html',
 						   local=local,
 						   user=user,
@@ -596,7 +528,6 @@ def upload_file():
 		user,logged_in = fetch_user()
 		
 		for f in uploaded_files:
-			#print "f", f
 			cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
 			result = (cursor.fetchone())
 			user_id = result[0]
@@ -880,7 +811,7 @@ def anno_query():
 def saved():
 	global local
 	try:
-		print local
+		print (local)
 	except:
 		local = False
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
@@ -956,7 +887,6 @@ def savedquery():
 		else:
 			label_list = (label.strip(" ")).split(",")
 			str_list = str(label_list).strip("[]")
-			print "SELECT * FROM users_saved_cases WHERE user_id = {} AND label IN ({}) and organism = '{}';".format(user_id,str_list,organism)
 			cursor.execute("SELECT * FROM users_saved_cases WHERE user_id = {} AND label IN ({}) and organism = '{}';".format(user_id,str_list,organism))
 	else:
 		if label == "":
@@ -964,7 +894,6 @@ def savedquery():
 		else:
 			label_list = (label.strip(" ")).split(",")
 			str_list = str(label_list).strip("[]")
-			print "SELECT * FROM users_saved_cases WHERE user_id = {} AND label IN ({});".format(user_id,str_list)
 			cursor.execute("SELECT * FROM users_saved_cases WHERE user_id = {} AND label IN ({});".format(user_id,str_list))
 	result = cursor.fetchall()
 	total_rows = 0
@@ -1099,27 +1028,21 @@ def short(short_code):
 @app.before_request
 def func():
 	session.permanent = True
-#	consent = request.cookies.get("cookieconsent_status")
-#	#print session
-#	if consent == "deny":
-#		#session = {}
-#		session.permanent = False
-#		#app.permanent_session_lifetime = timedelta(minutes=5)
-  
+
   
   
 @app.after_request
 def after_request_func(response):
 	consent = request.cookies.get("cookieconsent_status")
-	if consent == "deny":
-		session.clear()
-		for cookie_name in request.cookies:
-			if cookie_name != "cookieconsent_status":
-				response.delete_cookie(cookie_name)
-				if cookie_name == "tripsviz_session" or cookie_name == "session":
-					response.delete_cookie(cookie_name,path='/',domain='trips.ucc.ie')
-				else:
-					response.delete_cookie(cookie_name,path='/',domain='.ucc.ie')
+	#if consent == "deny":
+	#	session.clear()
+	#	for cookie_name in request.cookies:
+	#		if cookie_name != "cookieconsent_status":
+	#			response.delete_cookie(cookie_name)
+	#			if cookie_name == "tripsviz_session" or cookie_name == "session":
+	#				response.delete_cookie(cookie_name,path='/',domain='trips.ucc.ie')
+	#			else:
+	#				response.delete_cookie(cookie_name,path='/',domain='.ucc.ie')
 	return response
 
 
@@ -1133,12 +1056,6 @@ def homepage(message=""):
 	connection.text_factory = str
 	cursor = connection.cursor()
 	consent = request.cookies.get("cookieconsent_status")
-	#If user rejects cookies then do not track them and delete all other cookies
-	#if consent == "deny":
-	#	for cookie_name in request.cookies:
-	#		if cookie_name != "cookieconsent_status":
-	#			print "redirecting"
-	#			return redirect(url_for('delete_cookies'))
 	user,logged_in = fetch_user()
 	
 	
@@ -1202,7 +1119,6 @@ def transcriptomepage(organism):
 	result = cursor.fetchall()
 	for row in result:
 		org_access_list.append(str(row[0]))
-	#print "org access list", org_access_list
 	cursor.execute("SELECT transcriptome_list from organisms WHERE organism_name = '{}' AND (private = 0 OR organism_id IN ({})) ;".format(organism, str(org_access_list).strip("[]") ))
 	result = (cursor.fetchall())
 	if result:
@@ -1228,7 +1144,6 @@ def plogpage(organism,transcriptome):
 @app.route('/settingsquery', methods=['GET','POST'])
 #@login_required
 def settingsquery():
-	print "settingquery called "
 	data = ast.literal_eval(request.data)
 	logging.debug("Connecting to trips.sqlite")
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
@@ -1236,7 +1151,6 @@ def settingsquery():
 	cursor = connection.cursor()
 	
 	user,logged_in = fetch_user()
-	print "settings query", user
 	if logged_in == True:
 		new_password = data['new_password']
 		new_password2 = data['new_password2']
@@ -1330,15 +1244,12 @@ def deletequery():
 	cursor.execute("Select user_id from users where username = '{}';".format(user))
 	result = cursor.fetchone()
 	user_id = result[0]
-	print "user_id", user_id
-	#print ("DATA", data)
 	for key in data:
 		file_id = data[key]["file_id"]
 		if "filecheck" in data[key]:
 			cursor.execute("SELECT owner, study_id, file_name FROM files WHERE file_id = {}".format(file_id))
 			result = cursor.fetchone()
 			owner = result[0]
-			print "owner", owner
 			study_id = result[1]
 			filename = result[2]
 			cursor.execute("SELECT * FROM studies WHERE study_id = {}".format(study_id))
@@ -1352,7 +1263,6 @@ def deletequery():
 			deletion_time = curr_time+keep_time
 			cursor.execute("INSERT INTO deletions VALUES({},'{}',{})".format(file_id,full_path,deletion_time))
 			if owner == user_id:
-				print "deleting file", file_id
 				cursor.execute("DELETE FROM files WHERE file_id = {}".format(file_id))
 		
 		cursor.execute("UPDATE files SET file_description = '{}' WHERE file_id = {}".format(data[key]["file_desc"] ,file_id))
@@ -1365,12 +1275,8 @@ def deletequery():
 			for seq_type in filepath_dict:
 				if file_id in filepath_dict[seq_type]:
 					filepath = filepath_dict[seq_type][file_id]
-					#print "filepath", filepath
 					opendict = SqliteDict(filepath,autocommit=True)
-					#print "BEFORE", opendict["cutadapt_removed"]
 					opendict["cutadapt_removed"] = int(data[key]["cutadapt_removed"])
-					#print "AFTER", opendict["cutadapt_removed"]
-					#print "cutadapt removed", int(data[key]["cutadapt_removed"])
 					opendict.close()
 			
 		if data[key]["rrna_removed"] != '0':
@@ -1497,7 +1403,6 @@ def deletestudyquery():
 		# Change organism/transcriptome assembly if applicable
 		organism_name = data[study_id][3]
 		assembly_name = data[study_id][4]
-		#print "organism name, assembly_name", organism_name, assembly_name
 		cursor.execute("SELECT organism_id FROM studies WHERE study_id = {}".format(study_id))
 		org_id = cursor.fetchone()[0]
 		cursor.execute("SELECT organism_name,transcriptome_list FROM organisms WHERE organism_id = {}".format(org_id))
@@ -1506,7 +1411,6 @@ def deletestudyquery():
 			old_organism = result[0]
 			old_assembly = result[1]
 			if old_organism != organism_name or old_assembly != assembly_name:
-				#print "{}: Changing from {} to {} or {} to {}".format(old_study_name,old_organism,organism_name, old_assembly, assembly_name)
 				#Check if the new orgnaism and new assembly are a valid combination
 				cursor.execute("SELECT organism_id  FROM organisms WHERE organism_name = '{}' AND transcriptome_list = '{}'".format(organism_name, assembly_name))
 				result = cursor.fetchone()
@@ -1514,7 +1418,6 @@ def deletestudyquery():
 					return "Invalid organism/transcriptome combo for study {}".format(new_study_name)
 				else:
 					cursor.execute("UPDATE studies SET organism_id = {} WHERE study_id = {}".format(result[0],study_id))
-					#print "Org_id is {}".format(result[0])
 					pass
 					#update study_id with new org_id
 				
@@ -1636,7 +1539,7 @@ def dataset_breakdown(organism,transcriptome):
 	#ip = request.environ['REMOTE_ADDR']
 	global local
 	try:
-		print local
+		print (local)
 	except:
 		local = False
 		
@@ -1893,8 +1796,6 @@ def estimate_orfquery():
 		gene = tran_gene_dict[transcript]
 
 		tran_count += 1
-		if tran_count%100 == 0:
-			print "tran_count", tran_count
 		profile = {}
 		for file_id in file_paths_dict["riboseq"]:
 			sqlite_db = SqliteDict(file_paths_dict["riboseq"][file_id])
