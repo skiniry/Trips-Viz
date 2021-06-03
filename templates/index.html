@@ -577,6 +577,7 @@ $("#query").click(function() {
 					else {
 						// if data is an error message or just populating the transcript table, do not send to update_progress
 						jdata = JSON.parse(data);
+						console.log("Status is "+jdata["status"]);
 						if (jdata["status"] == "return_str") {
 							var graph = $("#container");
 							graph.html(jdata["result"]);
@@ -584,6 +585,7 @@ $("#query").click(function() {
 							$("#container").show();
 							}
 						else if (jdata["status"] == "tran_list") {
+							console.log("populate populate_jquery_dialog called");
 							var splitdata = jdata['result'].split(":");
 							populate_jquery_dialog(splitdata);
 							$("#myTable").tablesorter({sortList: [[4,0]]});
