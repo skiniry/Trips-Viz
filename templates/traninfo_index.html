@@ -528,6 +528,8 @@ $("#traninfoquery").click(function() {
 						var splitdata = data.split("?~");
 						var table_link = document.getElementById('table_link');
 						var base_url = "{{ url_for('static',filename='') }}";
+						fa_div.style.visibility = "hidden";
+						te_div.style.visibility = "visible";
 						table_link.href = base_url+"tmp/"+splitdata[2]
 						table_link.download = splitdata[2]
 						table_link.text = "Download "+splitdata[1]+" rows as csv"
@@ -537,13 +539,12 @@ $("#traninfoquery").click(function() {
 								splitrow = splitdata[i].split(".;")
 								table.row.add(splitrow).draw(false);
 								}
-								table.draw()
-								fa_div.style.visibility = "hidden";
-								te_div.style.visibility = "visible";
-								var graph = $("#container");
-								graph.html("");
-								$("#loading-div-background").hide();
-								$("#container").show();
+						table.draw()
+						
+						var graph = $("#container");
+						graph.html("");
+						$("#loading-div-background").hide();
+						$("#container").show();
 						}
 				if (data.slice(0, 2) == "FA"){
 							//update link to point to temporary csv
