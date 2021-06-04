@@ -1,3 +1,4 @@
+
 import os
 import time
 from datetime import date
@@ -16,8 +17,6 @@ from werkzeug.exceptions import BadRequest
 import config
 from werkzeug import secure_filename
 from sqlitedict import SqliteDict
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
 import smtplib
 import uuid
 import random 
@@ -31,6 +30,12 @@ from diff_exp_routes import diff_plotpage_blueprint,diffquery_blueprint
 from traninfo_routes import traninfo_plotpage_blueprint, traninfoquery_blueprint	
 from orfquery_routes import translated_orf_blueprint,orfquery_blueprint,find_orfs#, taskstatus_blueprint
 
+if sys.version_info[0] == 2:
+	from email.MIMEMultipart import MIMEMultipart 
+	from email.MIMEText import MIMEText
+elif sys.version_info[0] == 3:
+	from email.mime.multipart import MIMEMultipart
+	from email.mime.text import MIMEText
 
 
 root_logger = logging.getLogger()
