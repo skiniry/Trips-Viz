@@ -2761,7 +2761,7 @@ def aggregate_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, 
 		all_rows.append(input_list)
 		tmp_te_file.write("\n")
 	tmp_te_file.close()
-	os.chmod("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename), 0777)
+	os.chmod("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename), 0o660)
 	#if both rnaseq and riboseq files, sort by te, else sort by the relevant count
 	anyfile = False
 	for seq_type in all_seq_types:
@@ -2969,7 +2969,7 @@ def sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, org
 				all_rows.append(input_list)
 				#tmp_te_file.write("\n")
 	#tmp_te_file.close()
-	os.chmod("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename), 0777)
+	os.chmod("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename), 0o660)
 	#if both rnaseq and riboseq files, sort by te, else sort by the relevant count
 	anyfile = False
 	if len(file_paths_dict["riboseq"]) != 0 and len(file_paths_dict["rnaseq"]) != 0:
