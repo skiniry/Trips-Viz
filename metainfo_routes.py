@@ -996,8 +996,6 @@ def metainfoquery():
 				#print"new offsets", poffsets
 				for transcript in principal_transcripts:
 					tran_count += 1
-					if tran_count%1000 == 0:
-						print"tran_count", tran_count
 					profile = {}
 					if transcript not in sqlite_db:
 						continue
