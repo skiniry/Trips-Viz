@@ -29,7 +29,7 @@ def diffpage(organism,transcriptome):
 	user_short_passed = True
 	global local
 	try:
-		print local
+		pass
 	except:
 		local = False
 
@@ -135,7 +135,6 @@ def prepare_return_str(input_string):
 diffquery_blueprint = Blueprint("diffquery", __name__, template_folder="templates")
 @diffquery_blueprint.route('/diffquery', methods=['POST'])
 def diffquery():
-	print "DIFFQUERY IS CALLED"
 	#global user_short_passed
 	user_short_passed = True
 	data = ast.literal_eval(request.data)
@@ -189,14 +188,10 @@ def diffquery():
 		elif genetype == "noncoding":
 			trancursor.execute("SELECT * from transcripts WHERE principal = 1 AND (tran_type = 'noncoding' OR tran_type = 0)")
 	else:
-		#print "SELECT * from transcripts WHERE transcript IN ({});".format(str(transcript_list).strip("[]"))
 		trancursor.execute("SELECT * from transcripts WHERE transcript IN ({});".format(str(transcript_list).strip("[]")))
 	result =  trancursor.fetchall()
 	traninfo_dict = {}
 	for row in result:
-		#print ("row",row)
-		#if result[1] == "DDX3Y":
-		#	print "RESULT", result
 		traninfo_dict[row[0]] = {"transcript":str(row[0]) , "gene":row[1], "length":row[2] , "cds_start":row[3] , "cds_stop":row[4] , "seq":row[5] ,
 				"strand":row[6], "stop_list":row[7].split(","),"start_list":row[8].split(","), "exon_junctions":row[9].split(","),
 				"tran_type":row[10], "principal":row[11]}
@@ -263,7 +258,6 @@ def diffquery():
 	else:
 		ambiguous = False
 	
-	print "CHecking file boxes"
 	if len(master_file_dict["riboseq1"]["file_ids"]) == 0 and len(master_file_dict["riboseq2"]["file_ids"]) == 0 and len(master_file_dict["rnaseq1"]["file_ids"]) == 0 and len(master_file_dict["rnaseq2"]["file_ids"]) == 0:
 		return prepare_return_str("Error: No files selected.")
 	# User can decide to look at just riboseq fold-change, rnaseq fold-change or TE fold-change
@@ -378,7 +372,6 @@ def diffquery():
 				count_dict[tran]["rna1"] += rna1
 				count_dict[tran]["ribo2"] += ribo2
 				count_dict[tran]["rna2"] += rna2
-				#print ribo1,ribo2,rna1,rna2
 				if label == "TE":
 					deseq_count_file.write("{},{},{},{}".format(ribo1,ribo2,rna1,rna2))
 				elif label == "Riboseq":
@@ -391,9 +384,7 @@ def diffquery():
 			counts.append(count_list)
 			deseq_count_file.write("\n")
 		deseq_count_file.close()
-		#print "{}/R/deseq2_triplicates.R {} {} {} TE".format(config.SCRIPT_LOC, deseq_basename,deseq_count_filename, deseq_sample_filename)
 		subprocess.call("{}/R/deseq2_triplicates.R {} {} {} {} {}".format(config.SCRIPT_LOC, deseq_basename,deseq_count_filename, deseq_sample_filename, label,no_groups),shell=True)
-		#print "tar -czvf {0}.tar.gz -C {1}/static/tmp/ {2} {3} {0}_deseq2_RIBOSEQ.txt {0}_deseq2_RNASEQ.txt {0}_deseq2_TE.txt".format(deseq_basename,config.SCRIPT_LOC, deseq_count_filename, deseq_sample_filename)
 		if label == "TE":
 			subprocess.call("tar -C {1}/static/tmp/ -czvf {1}/static/tmp/{0}.tar.gz  {0}_deseq_counts.csv {0}_deseq_sample_info.csv {0}_DESeq2_RIBOSEQ.txt {0}_DESeq2_RNASEQ.txt {0}_DESeq2_TE.txt".format(filename,config.SCRIPT_LOC, deseq_count_filename, deseq_sample_filename),shell=True)
 		elif label == "Riboseq":
@@ -435,9 +426,7 @@ def diffquery():
 			rna_file = open("{0}/static/tmp/{1}_DESeq2_RNASEQ.txt".format(config.SCRIPT_LOC,filename)).readlines()
 			for line in rna_file[1:]:
 				splitline = line.split(",")
-				#print splitline[0]
 				transcript = splitline[0].split("___")[1]
-				#print transcript
 				gene = splitline[0].split("___")[0]
 				basemean = splitline[1]
 				log2fc = splitline[2]
@@ -455,8 +444,6 @@ def diffquery():
 		#DELETE GENES FROM DESEQ_DICT THAT DON'T HAVE A padj for either rna and ribo (these have low counts)
 		del_list = []
 		for gene in deseq_dict:
-			if gene == "PRX":
-				print "deseq_dict[prx]",deseq_dict[gene]
 			if deseq_dict[gene]["rna_padj"] == "NA" and  deseq_dict[gene]["ribo_padj"] == "NA":
 				del_list.append(gene)
 		
@@ -583,7 +570,6 @@ def diffquery():
 				count_dict[tran]["rna1"] += rna1
 				count_dict[tran]["ribo2"] += ribo2
 				count_dict[tran]["rna2"] += rna2
-				#print ribo1,ribo2,rna1,rna2
 				if label == "TE":
 					deseq_count_file.write("{},{},{},{}".format(ribo1,ribo2,rna1,rna2))
 				elif label == "Riboseq":
@@ -596,9 +582,7 @@ def diffquery():
 			counts.append(count_list)
 			deseq_count_file.write("\n")
 		deseq_count_file.close()
-		#print "{}/R/deseq2_triplicates.R {} {} {} TE".format(config.SCRIPT_LOC, deseq_basename,deseq_count_filename, deseq_sample_filename)
 		subprocess.call("{}/R/anota2seq.R {} {} {} {} {} {}".format(config.SCRIPT_LOC, deseq_basename,deseq_count_filename, deseq_sample_filename, label,no_groups, minzscore/100),shell=True)
-		#print "tar -czvf {0}.tar.gz -C {1}/static/tmp/ {2} {3} {0}_deseq2_RIBOSEQ.txt {0}_deseq2_RNASEQ.txt {0}_deseq2_TE.txt".format(deseq_basename,config.SCRIPT_LOC, deseq_count_filename, deseq_sample_filename)
 		if label == "TE":
 			subprocess.call("tar -C {1}/static/tmp/ -czvf {1}/static/tmp/{0}.tar.gz  {0}_deseq_counts.csv {0}_deseq_sample_info.csv {0}_anota2seq_RIBOSEQ.csv {0}_anota2seq_BUFFERED.csv {0}_anota2seq_mRNA.csv".format(filename,config.SCRIPT_LOC, deseq_count_filename, deseq_sample_filename),shell=True)
 		elif label == "Riboseq":
@@ -609,15 +593,11 @@ def diffquery():
 		sig_translated = []
 		sig_rna = []
 		sig_buffered = []
-		print "finding sig tranlsated genes"
 		if os.path.isfile("{0}/static/tmp/{1}_anota2seq_sig_translated_genes.csv".format(config.SCRIPT_LOC,filename)):
-			print "file exits"
 			sig_translated_file = open("{0}/static/tmp/{1}_anota2seq_sig_translated_genes.csv".format(config.SCRIPT_LOC,filename)).readlines()
 			for line in sig_translated_file[1:]:
-				#print "line", line
 				splitline = line.split(",")
 				gene = splitline[1].split("___")[0]
-				#print "gene", gene
 				sig_translated.append(gene)
 		if os.path.isfile("{0}/static/tmp/{1}_anota2seq_sig_rna_genes.csv".format(config.SCRIPT_LOC,filename)):
 			sig_rna_file = open("{0}/static/tmp/{1}_anota2seq_sig_rna_genes.csv".format(config.SCRIPT_LOC,filename)).readlines()
@@ -641,7 +621,6 @@ def diffquery():
 				log2fc = splitline[10]
 				lfcSE = splitline[3]
 				padj = splitline[9]
-				#print "gene, tran, log2fc, padj", gene,transcript, log2fc,padj
 				if gene not in deseq_dict:
 					deseq_dict[gene] = {"te_padj":"NA","ribo_padj":padj,"rna_padj":"NA","ribo_fc":log2fc,"rna_fc":"NA","tran":transcript,
 						"ribo1":count_dict[transcript]["ribo1"],"ribo2":count_dict[transcript]["ribo2"], "rna1":count_dict[transcript]["rna1"],
@@ -653,9 +632,7 @@ def diffquery():
 			rna_file = open("{0}/static/tmp/{1}_anota2seq_mRNA.csv".format(config.SCRIPT_LOC,filename)).readlines()
 			for line in rna_file[1:]:
 				splitline = line.split(",")
-				#print splitline[0]
 				transcript = splitline[1].split("___")[1]
-				#print transcript
 				gene = splitline[1].split("___")[0]
 				basemean = splitline[1]
 				log2fc = splitline[8]
@@ -774,13 +751,10 @@ def diffquery():
 		dds = deseq.DESeqDataSetFromMatrix(countData=count_matrix,colData=design_matrix,design=design)
 		dds = deseq.DESeq(dds)
 		try:
-			print dds.rx2("SeqType")
-			#print dds@SeqType
 			dollar = base.__dict__["$"]
-			print dollar(dds, "SeqType")
 			dds.SeqType = relevel(dds.SeqType,"rnaseq")
 		except Exception as e:
-			print "ERRROR", e
+			pass
 		#normalized_count_matrix = deseq.counts(dds, normalized=True)
 		comparison = deseq.resultsNames(dds)
 		deseq_result = deseq.results(dds)
@@ -827,7 +801,6 @@ def diffquery():
 					if master_transcript_dict[group][tran]["max_cov"] > max_group_cov:
 						max_group_cov = master_transcript_dict[group][tran]["max_cov"]
 				except Exception as e:
-					print e
 					pass
 			if max_group_cov < min_cov:
 				del_list.append(tran)
@@ -923,9 +896,7 @@ def diffquery():
 			z_score = (fc-master_dict[tran][groupname]["mean"])/master_dict[tran][groupname]["standard_dev"]
 			z_scores.append(z_score)
 			geo_mean = master_dict[tran][groupname]["geometric_mean"]
-			#print "LABEL IS", label
 			if label == "TE":
-				#print "label is te"
 				csv_file.write("{},{},{},{},{},{},".format(groupname,fc,geo_mean,master_dict[tran][groupname]["mean"],master_dict[tran][groupname]["standard_dev"],z_score))
 				riboseq1_count = (2**transcript_dict[tran]["riboseq1"])*transcript_dict["ribo1_modifier"]-0.0001
 				riboseq2_count = (2**transcript_dict[tran]["riboseq2"])*transcript_dict["ribo2_modifier"]-0.0001
@@ -939,22 +910,18 @@ def diffquery():
 					rnaseq1_count = 0
 				if rnaseq2_count < 0.1:
 					rnaseq2_count = 0
-				#print "counts", riboseq1_count, riboseq2_count, rnaseq1_count, rnaseq2_count
 				csv_file.write("{},{},{},{},".format(riboseq1_count,riboseq2_count,rnaseq1_count,rnaseq2_count))
 				if gene not in ribo_vs_rna_dict:
-					#print "gene not in ribo vs rna dict"
 					ribo_vs_rna_dict[gene] = {"tran":tran,
 											"ribo1":2**transcript_dict[tran]["riboseq1"],
 											"ribo2":2**transcript_dict[tran]["riboseq2"],
 											"rna1":2**transcript_dict[tran]["rnaseq1"],
 											"rna2":2**transcript_dict[tran]["rnaseq2"]}
 				else:
-					#print "gene was in ribo vs rna dict"
 					ribo_vs_rna_dict[gene]["ribo1"] += 2**transcript_dict[tran]["riboseq1"]
 					ribo_vs_rna_dict[gene]["ribo2"] += 2**transcript_dict[tran]["riboseq2"]
 					ribo_vs_rna_dict[gene]["rna1"] += 2**transcript_dict[tran]["rnaseq1"]
 					ribo_vs_rna_dict[gene]["rna2"] += 2**transcript_dict[tran]["rnaseq2"]
-				#print "ribo rna dict gene is now", ribo_vs_rna_dict[gene]
 				if mapped_reads_norm:
 					csv_file.write("{},{},{},{},".format((2**transcript_dict[tran]["riboseq1"])-0.0001,(2**transcript_dict[tran]["riboseq2"])-0.0001,(2**transcript_dict[tran]["rnaseq1"])-0.0001,(2**transcript_dict[tran]["rnaseq2"])-0.0001))
 
@@ -1071,7 +1038,6 @@ def diffquery():
 	else:
 		short_code = html_args["user_short"]
 		user_short_passed = True
-	#print "Sending ribo vs rna dict", len(ribo_vs_rna_dict.keys())
 	connection.close()
 	if plottype == "z_score":
 		if app.debug == True:
@@ -1166,12 +1132,6 @@ def diffquery():
 
 # Given either two or four filepaths, calculates a z-score, places the z-scores in a master dict
 def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rnaseq2_filepath,master_dict, longest_tran_list, mapped_reads_norm,label,region,traninfo_dict, minreads, minzscore,ambiguous,min_cov):
-	print "CALCULATE Z SCORE CALLED"
-
-	#if minreads != 0:
-	#	minreads = log(minreads,2)
-	#else:
-	#	minreads = -1000
 	riboseq1_tot_reads = 0.001
 	riboseq2_tot_reads = 0.001
 	rnaseq1_tot_reads = 0.001
@@ -1199,7 +1159,6 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 			opendict = sqlite_db["{}_threeprime_totals".format(ambig_type)]
 		elif region == "all":
 			opendict = sqlite_db["{}_all_totals".format(ambig_type)]
-		#print "RIBOSEQ 1", opendict["ENST00000359462"]
 		if mapped_reads_norm == True:
 			riboseq1_tot_reads += float(sqlite_db["noncoding_counts"])
 			riboseq1_tot_reads += float(sqlite_db["coding_counts"])
@@ -1375,9 +1334,7 @@ def calculate_zscore(riboseq1_filepath, riboseq2_filepath, rnaseq1_filepath, rna
 		elif label == "Rnaseq":
 			current_min_reads = min(transcript_dict[transcript]["rnaseq1"]/rna1_modifier,transcript_dict[transcript]["rnaseq2"]/rna2_modifier)
 		if minreads != 0:
-			#print "minreads not zero", current_min_reads
 			if current_min_reads < minreads:
-				#print "deleting transcript beacuase its reads {} were less than the min {}".format(current_min_reads, minreads)
 				del_list.append(transcript)
 
 	for transcript in transcript_dict:
