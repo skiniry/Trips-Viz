@@ -140,7 +140,6 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 				if max_val > y_max:
 					y_max = max_val
 			except Exception as e:
-				print "Error", e
 				pass
 			labels.append(file_names)
 			start_visible.append(True)
@@ -152,7 +151,6 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 			
 		else:
 			normalized_reads = {}
-			print "Normalization is true, normalizing by factor", item[8]
 			for pos in filename_reads:
 				normalized_reads[pos] = filename_reads[pos]*item[8]
 			try:
@@ -160,7 +158,6 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 				if max_val > y_max:
 					y_max = max_val
 			except Exception as e:
-				print "Error", e
 				pass
 			labels.append(file_names)
 			start_visible.append(True)
