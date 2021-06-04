@@ -295,7 +295,6 @@ def create_profiles(file_paths_dict,accepted_transcript_list,ambig,total_files,m
 		for file_id in file_paths_dict[seq_type]:
 			file_count += 1
 			prog_count += (100*(1/tot_file_ids))
-			#print "prog_count", prog_count
 			try:
 				self_obj.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Building profiles {}/{}".format(file_count,tot_file_ids)})
 			except:
@@ -444,19 +443,14 @@ def create_training_set(profile_dict,traninfo_dict,short_code,MINLEN):
 		attempts = 0
 		while acceptable_cases < CASES_PER_TRAN and attempts < MAX_ATTEMPTS and tot_positive < 30000:
 			attempts += 1
-			#print attempts
 			gene = traninfo_dict[transcript]["gene"]
 			cds_start = traninfo_dict[transcript]["cds_start"]
 			cds_stop = traninfo_dict[transcript]["cds_stop"]
 			if cds_stop-cds_start < ((MINLEN*2)+100):
 				continue
-			#print "cds start, cds_stop-MINLEN", cds_start, cds_stop-MINLEN
 			start = random.randint(cds_start+100,cds_stop-MINLEN)
-			#print "start, cds_start", start, cds_start
 			while start%3 != cds_start%3:
-				#print "finding new start"
 				start = random.randint(cds_start+100,cds_stop-MINLEN)
-				#print start
 			stop = start+MINLEN
 			[sru, if_cov,median_diff,read_density,standard_coverage,split,first_diff] = extract_features(transcript, start, stop,profile_dict[transcript]["riboseq"])
 			if read_density >MIN_READ_DENSITY:
@@ -464,11 +458,8 @@ def create_training_set(profile_dict,traninfo_dict,short_code,MINLEN):
 				acceptable_trans.append(transcript)
 				acceptable_cases += 1
 				tot_positive += 1
-				if tot_positive%100 == 0:
-					print "tot positive", tot_positive
 
 			
-	#sys.exit()
 	#Negative cases, wrong frame (min highrame)
 	for transcript in acceptable_trans:
 		if traninfo_dict[transcript]["cds_start"] == None:
@@ -491,8 +482,6 @@ def create_training_set(profile_dict,traninfo_dict,short_code,MINLEN):
 				outfile.write("{},{},{},{},NULL,0,{},{},{},{},{},{}\n".format(gene, transcript,start, stop, sru, if_cov,median_diff,read_density,split,first_diff))
 				acceptable_cases += 1
 				tot_negative += 1
-				if tot_negative%100 == 0:
-					print "tot negative", tot_negative
 	
 	#negative cases 3'trailer	
 	for transcript in acceptable_trans:
@@ -516,8 +505,6 @@ def create_training_set(profile_dict,traninfo_dict,short_code,MINLEN):
 			outfile.write("{},{},{},{},NULL,0,{},{},{},{},{},{}\n".format(gene, transcript,cds_start, cds_stop, sru, if_cov,median_diff,read_density,split,first_diff))
 			acceptable_cases += 1
 			tot_negative += 1
-			if tot_negative%100 == 0:
-				print "tot negative", tot_negative	
 	outfile.close()
 	
 	
@@ -584,16 +571,13 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 	testfile = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,test_filename)).readlines()
 	outfile = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,prediction_filename),"w")
 	outfile.write("{},prediction\n".format(testfile[0].replace("\n","")))
-	print "neural net called"
 	returnstr = "Table|"
 	columns = len(feature_list)
 	model = create_model(columns)
-	print "model created"
 	
 	openfile = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,training_filename)).readlines()
 	headers = openfile[0].replace(" ","").replace("\n","").split(",")
 	
-	print headers
 	index_list = []
 	
 	for feature in feature_list:
@@ -604,8 +588,6 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 			
 			return_str =  "Could not find feature {} in training dataset: {}".format(feature, training_filename)
 			return {'current': 100, 'total': 100, 'status': 'return_str','result': returnstr}
-	print "index list", index_list
-	print "loading dataset"
 	dataset = np.loadtxt("{}/static/tmp/{}".format(config.SCRIPT_LOC,training_filename), delimiter=",",skiprows=1,usecols=index_list)
 	# split into input (X) and output (Y) variables
 	X = dataset[:,1:columns]
@@ -618,11 +600,6 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 	model.fit(X, Y, nb_epoch=600, batch_size=50, validation_split=0.3,verbose=0)
 	# evaluate the model
 	scores = model.evaluate(X, Y)
-	
-	#print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
-	
-	
-
 	
 	testset = np.loadtxt("{}/static/tmp/{}".format(config.SCRIPT_LOC,test_filename), delimiter=",",skiprows=1,usecols=index_list[1:])
 	X = testset[:,0:columns]
@@ -639,26 +616,17 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 		stop = splitrow[3]
 		
 		#	continue
-		#print splitrow
 		prediction = predictions[tup_count][0]
-		#if tran == "ENST00000232905":
-		#	print "tran, start, stop,X[tup_count], prediction", tran, start, stop, X[tup_count], prediction
-		#print "start, stop, prediction", start, stop, prediction,X[tup_count]
 		tup_count += 1
 		splitrow.append(prediction)
-		#outfile.write("{},{},{},{},{},{},{},{},{}\n".format(splitrow[0],splitrow[1],splitrow[2],splitrow[3],splitrow[4],splitrow[5],splitrow[6],splitrow[7],splitrow[8]))
 		
 		if prev_row == []:
 			prev_row = splitrow
-			#print "prev row was empty, prev row is now", prev_row
 			continue
 		if tran == prev_row[1] and stop == prev_row[3]:
 			if prediction > prev_row[-1]:
-				#print "prediction greater than prev_row prediction replacing prev_row {} with splitrow {}".format(prev_row, splitrow)
 				prev_row = splitrow
-				#print "splitrow now", splitrow
 		else:
-			#Gene	 transcript	start	 stop	 start_codon	 type	 sru	 coverage	median_diff	read_density	split	first_diff	prediction
 			gene = prev_row[0]
 			transcript = prev_row[1]
 			start = prev_row[2]
@@ -671,8 +639,6 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 			read_density = prev_row[9]
 			split = prev_row[10]
 			first_diff = prev_row[11]
-			
-			#print "current tran and stop is {} and {} which is different to previous tran and stop which is {} and {}", prev_row
 			outfile.write("{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(prev_row[0],prev_row[1],prev_row[2],prev_row[3],prev_row[4],prev_row[5],prev_row[6],prev_row[7],prev_row[8],prev_row[9],prev_row[10],prev_row[11],prev_row[12]))
 			prev_row = splitrow
 	outfile.close()
@@ -722,7 +688,6 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 	all_values = []
 	tot_loc = 0
 	locus_num = len(accepted_orf_dict.keys())
-	#print "locus num", locus_num
 	for locus in accepted_orf_dict:
 		tot_loc += 1
 		if tot_loc%100 == 0:
@@ -732,15 +697,11 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 			except:
 				pass
 			prog_count = 300+( 100*(tot_loc/float(locus_num)))
-			#print "tot_loc, locus_num", tot_loc, locus_num
-			#print "100*(tot_loc/float(locus_num))",100*(tot_loc/float(locus_num))
-			#print "features extracted, prog_count", prog_count
 		for stop in accepted_orf_dict[locus]:
 			best_values = {"start":-1,"high_frame_count":1,"low_frame_count":1,"start_score":-10,"stop_score":1,"final_score":-10000,"coverage":0,"length":0,
 				  "transcript":locus,"stop":0,"proteomics_count":0,"ratio":0,"inframe_count":0,"start_ratio":0,"stop_ratio":0,"high_ratio":0,"low_ratio":0,
 				  "stop_geo":0,"start_geo":0}
 			for start in accepted_orf_dict[locus][stop]:
-				#print "start stop", start, stop
 				transcript = accepted_orf_dict[locus][stop][start]["transcript"]
 				best_values["transcript"] = transcript
 				if best_values["start"] == -1:
@@ -766,11 +727,8 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 				po_count = 0
 				if_cov = 0.0
 				if_len = (stop-start)/3
-				#print "prot_profile", prot_profile
 				for p in range(start+1, transcriptome_stop,3):
-					#print "p", p
 					if p-1 in prot_profile:
-						#print "p-1 in prot_profile", prot_profile[p-1]
 						proteomics_count += prot_profile[p-1]
 
 				if_cov = 0.0
@@ -792,13 +750,10 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 					else:
 						plusone_values.append(0)
 				for x in range(4,len(inframe_values)-4):
-					#print "x", x
 					if max(inframe_values[x],minusone_values[x],plusone_values[x]) > 0:
 						if_cov_total += 1
 						if "highest_frame_diff_check" in data:
-							#print "highest frame check"
 							if inframe_values[x] > max(minusone_values[x],plusone_values[x]):
-								#print "{} is greater than {} and {}".format()
 								if_cov += 1
 						else:
 							if inframe_values[x] > min(minusone_values[x],plusone_values[x]):
@@ -809,24 +764,10 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 					if_cov = if_cov*100
 				else:
 					if_cov = 0
-				#if inframe_values[:4] == inframe_values[4:8]:
-				#	start_score = 1
-				#else:
-				#	stat, start_score = mannwhitneyu(inframe_values[:4], inframe_values[4:8],alternative="less")
-				#	#if transcript == "ENST00000358435":
-				#	#	print ("start score, inframe_values[:4], inframe_values[4:8]", start, stop, start_score, inframe_values[:4], inframe_values[4:8])
 				start_score_raw = (float(sum(inframe_values[4:8]))+1)/(float(sum(inframe_values[:4]))+1)
 				start_score = np.log(start_score_raw)
-				#start_geo = geo_mean(inframe_values[:8])
-				#logging.debug(inframe_values[:4], inframe_values[4:8], start_score)
-				#start_score = sum(inframe_values[4:8])-sum(inframe_values[:4])
 				stop_score_raw = (float(sum(inframe_values[-8:-4]))+1)/(float(sum(inframe_values[-4:]))+1)
 				stop_score = np.log(stop_score_raw)
-				#if stop_score < -1000:
-				#	print stop_score_raw, stop_score, sum(inframe_values[-8:-4])+1, sum(inframe_values[-4:])+1
-				#stop_geo = geo_mean(inframe_values[-8:])
-				
-				#stop_score = sum(inframe_values[-8:-4])-sum(inframe_values[-4:])
 				inframe_sum = float(sum(inframe_values[4:-4]))
 				highframe_sum = float(max(sum(minusone_values[4:-4]),sum(plusone_values[4:-4])))
 				lowframe_sum = float(min(sum(minusone_values[4:-4]),sum(plusone_values[4:-4])))
@@ -835,10 +776,6 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 					if i != 0:
 						non_zero_counts += 1
 				read_density = non_zero_counts/(float(length)/3)	
-				#print "transcript", locus, inframe_sum, if_len
-				#print "inframe_values",inframe_values
-				#print "minusone value", minusone_values
-				#print "plusone values", plusone_values
 				if sum(minusone_values[4:-4]) == highframe_sum:
 					highframe_list = minusone_values[4:-4]
 				else:
@@ -846,37 +783,17 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 					
 				high_frame_count = inframe_sum - highframe_sum
 				lowest_frame_count = inframe_sum - lowframe_sum
-				#stat, high_frame_count = wilcoxon(inframe_values[4:-4],highframe_list)
-				#if inframe_sum > highframe_sum:
-				#	high_frame_count = high_frame_count/2
-				#else:
-				#	high_frame_count =  1-(high_frame_count/2)
-				
-				
 				
 				if sum(minusone_values[4:-4]) == lowframe_sum:
 					lowframe_list = minusone_values[4:-4]
 				else:
 					lowframe_list = plusone_values[4:-4]
 					
-				
-				#stat, low_frame_count = wilcoxon(inframe_values[4:-4],lowframe_list)
-				#if inframe_sum > lowframe_sum:
-				#	lowest_frame_count = low_frame_count/2
-				#else:
-				#	lowest_frame_count =  1-(low_frame_count/2)
-				
 				#Ratios 
 				start_ratio = float(sum(inframe_values[4:8]))/float((sum(inframe_values[:4])+1))
 				stop_ratio = float(sum(inframe_values[-8:-4]))/float((sum(inframe_values[-4:])+1))
 				high_ratio = inframe_sum/(highframe_sum+1)
 				low_ratio = inframe_sum/(lowframe_sum+1)
-				#print start, stop , start_ratio, start_score, inframe_values[:4], inframe_values[4:8]
-				#print start_ratio, stop_ratio, high_ratio, low_ratio
-				#high_frame_count = sum(inframe_values[4:-4]) - max(sum(minusone_values[4:-4]),sum(plusone_values[4:-4]))
-				#lowest_frame_count =  - min(sum(minusone_values[4:-4]),sum(plusone_values[4:-4]))
-				#BREAKPOINT
-				
 				final_score_values = []
 				if "start_increase_check" in data:
 					final_score_values.append(start_score)
@@ -899,25 +816,8 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 				# value and the best value, e.g if current start score is 50 and best start score is 100, current start becomes 0.5 and best becomes 1,
 				# another e.g if current coverage is 0.8 and best coverage is 0.2, current coverage becomes 1, best coverage becomes 0.25
 				final_score = sum(final_score_values)
-				#logging.debug("start", start)
-				#logging.debug("final score", final_score)
-				#print "start score", start_score
-				#print "best_score", best_values["start_score"]
-				#print "\nHHHHHHHIGHFRAEM VLAUE", high_frame_count
-				#if np.isnan(high_frame_count):
-				#	high_frame_count = 1.0
-				#if np.isnan(lowest_frame_count):
-				#	lowest_frame_count = 1.0
-				#if np.isnan(start_score):
-				#	start_score = 1.0
-				#if np.isnan(stop_score):
-				#	stop_score = 1.0
-				#if transcript == "ENST00000341423":
-				#	print "\nLLLLoowf rame count",start, stop, low_frame_count
 				if all_cases == False:
 					if start_score > best_values["start_score"] or (start_score == best_values["start_score"] and start < best_values["start"]):
-						#if transcript == "ENST00000358435":
-						#	print "updating start score",start_score
 						best_values["start"] = start
 						best_values["stop"] = transcriptome_stop
 						best_values["transcript"] = transcript
@@ -971,10 +871,6 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 								stop_ratio,
 								high_ratio,
 								low_ratio])
-			#if best_values["final_score"] > 0:
-		
-			#if transcript == "ENST00000358435":
-			#	print "best_values", best_values
 			if all_cases == False:
 				all_values.append([gene,
 								best_values["transcript"],
@@ -1002,7 +898,6 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 								best_values["high_ratio"],
 								best_values["low_ratio"]])
 	len_all_rows = float(len(all_values))
-	#print "all values", all_values
 	logging.debug("LENGTH OF ALL ROWS {}".format(len_all_rows))
 	if len_all_rows == 0:
 		return None
@@ -1158,14 +1053,10 @@ def write_to_file(sorted_all_values,filename,sequence_dict,organism,transcriptom
 @celery_application.task(bind=True)
 def find_orfs(self,data,user,logged_in):
 	logging.debug("orfquery called")
-	print "orfquery called"
-	print "data", data
 	logging.debug("Data: {}".format(data))
-	print "self", self
-	global user_short_passed
-	print "connecting to sqlite"
 	logging.debug("orfquery Connecting to trips.sqlite")
 	logging.debug("config script loc: {}".format(config.SCRIPT_LOC))
+	global user_short_passed
 	connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
 	cursor = connection.cursor()
 	cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
@@ -1185,9 +1076,8 @@ def find_orfs(self,data,user,logged_in):
 	prog_count = 0
 	if "nnet_check" in data:
 		output = "nnet"
-		print "\n\n\n\n\nOUTPUT IS NNET"
 	else:
-		print "\n\n\n\n\nnnet_check not in data", data
+		pass
 	file_paths_dict = fetch_file_paths(data["file_list"],organism)
 	#Find out which studies have all files of a specific sequence type selected (to create aggregates)
 	try:
@@ -1231,7 +1121,6 @@ def find_orfs(self,data,user,logged_in):
 						#Check if aggregate file exists
 						agg_filename = "{}/aggregate_0.5_{}.sqlite".format(study_path, seq_type)
 						if not os.path.isfile(agg_filename):
-							print "agg filename does not exist", agg_filename
 							sub_file_paths_dict = {seq_type:{}}
 							for file_id in study_file_ids:
 								sub_file_paths_dict[seq_type][file_id] = file_paths_dict[seq_type][file_id]
@@ -1335,7 +1224,6 @@ def find_orfs(self,data,user,logged_in):
 
 	
 	if "saved_check" in data:
-		print "Excluding saved cases"
 		connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
 		cursor = connection.cursor()
 		#if filter previously saved cases is turned on, then we query the sqlite database here and remove hits from transcript_list
@@ -1347,7 +1235,6 @@ def find_orfs(self,data,user,logged_in):
 			filtered_transcripts[str(tran[0])].append(int(tran[1]))
 		cursor.close()
 		connection.close()
-	print "generating settings string"
 	settings_string = "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(organism,transcriptome,str(start_codons).strip("[]").replace("'",""),min_cds,max_cds,
 						min_len,max_len,min_avg,max_avg,str(accepted_orftypes[0]),str(data["file_list"]).strip("[]").replace("'",""),
 					  str(custom_tran_list).strip("[]").replace("'",""),cons_score)
@@ -1535,7 +1422,6 @@ def find_orfs(self,data,user,logged_in):
 				except:
 					pass
 				prog_count =100+( 100*(rows/total_trans) )
-				#print "rows, prog_count",rows, prog_count
 			#logging.debug("row", row)
 			transcript = str(row[0])
 			start_codon = str(row[1])
@@ -1572,7 +1458,6 @@ def find_orfs(self,data,user,logged_in):
 
 	#logging.debug("accepted orf dict", accepted_orf_dict)
 	logging.debug("accepted orf dict built")
-	print "accepted orf dict built"
 	try:
 		self.update_state(state='PROGRESS',meta={'current': 50, 'total': tot_prog,'status': "accepted orf dict built"})
 	except:
@@ -1648,12 +1533,10 @@ def find_orfs(self,data,user,logged_in):
 		self.update_state(state='PROGRESS',meta={'current': 400, 'total': tot_prog,'status': "Features extracted"})
 	except:
 		pass
-	print "writing to file"
 	if output != "nnet":
 		returnstr = write_to_file(sorted_all_values,filename,sequence_dict,organism,transcriptome,file_string)
 
 	
-	print "creating returnstr"
 	logging.debug("creating returnstr")
 	returnstr += "|"
 	returnstr += "Min,0,0,0,0,0,0.,/"
