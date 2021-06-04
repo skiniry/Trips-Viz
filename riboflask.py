@@ -73,9 +73,6 @@ def get_user_defined_seqs(seq,seqhili):
 
 def merge_dicts(dict1,dict2):
 	for nuc in dict2:
-		#print "nuc", nuc
-		#print dict1
-		#print dict2[nuc]
 		if nuc not in dict1:
 			dict1[nuc] = dict2[nuc]
 		else:
@@ -121,7 +118,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
 			return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
 	else:
-		print "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome)
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome))
 	connection.close()
 	cursor = transhelve.cursor()
@@ -148,9 +144,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	# Check if the 'coding_regions' table exists
 	cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coding_regions';")
 	result = cursor.fetchone()
-	#print ("CODING REGION RESULT",result)
 	if result != None:
-		print ("Result is <not> empty")
 		cursor.execute("SELECT * from coding_regions WHERE transcript = '{}'".format(tran))
 		result = cursor.fetchall()
 		for row in result:
@@ -196,9 +190,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	all_rna_reads, rna_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, False,noisered, primetype,"rnaseq",readscore,pcr,get_mismatches=mismatches,self_obj=self)
 	#self.update_state(state='PROGRESS',meta={'current': 100, 'total': 100,'status': "Fetching Ribo-Seq Reads"})
 	all_subcodon_reads,ribo_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,ribocoverage, organism, True,noisered, primetype,"riboseq",readscore,secondary_readscore,pcr,get_mismatches=mismatches,self_obj=self)
-	#print "riboseq var dict",ribo_seqvar_dict
 	seq_var_dict = merge_dicts(ribo_seqvar_dict, rna_seqvar_dict)
-	#print "all subcodon reads", all_subcodon_reads
 	try:
 		rnamax = max(all_rna_reads.values())
 	except:
