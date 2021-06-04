@@ -1,3 +1,4 @@
+
 import sys
 import matplotlib
 matplotlib.use('agg')
@@ -9,7 +10,6 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.font_manager import FontProperties
-import StringIO
 import os
 import re
 import subprocess
@@ -47,8 +47,13 @@ from bokeh.models import (
 	PrintfTickFormatter,
 	ColorBar
 )
-import RNA
-
+#ViennaRNA can be installed from here https://github.com/ViennaRNA/ViennaRNA
+try:
+	import RNA
+	vienna_rna = True
+except:
+	print ("Could not import the RNA module, ViennaRNA needs to be installed (https://github.com/ViennaRNA/ViennaRNA), MFE will not be plotted on traninfo plot")
+	vienna_rna = False
 
 
 redhex="#FF5F5B"
@@ -237,7 +242,7 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 
 	plot_gc = True
 	plot_mfe = True
-	if plot_mfe == True:
+	if plot_mfe == True and vienna_rna == True:
 		step_size = 2
 		window_size = 60
 		mfe_dict = collections.OrderedDict()
@@ -355,7 +360,7 @@ def gc_metagene(title, short_code, background_col, readlength_col, title_size, a
 
 	plot_gc = True
 	plot_mfe = False
-	if plot_mfe == True:
+	if plot_mfe == True and vienna_rna == True:
 		step_size = 10
 		window_size = 60
 		mfe_dict = collections.OrderedDict()
