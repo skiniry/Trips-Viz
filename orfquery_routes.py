@@ -21,7 +21,6 @@ import bokeh.models as bmo
 from bokeh.io import show
 import random
 from scipy.stats import mannwhitneyu,wilcoxon,zscore
-from statsmodels.stats.multitest import multipletests
 from bokeh.models import (
 	TapTool,
 	OpenURL,
