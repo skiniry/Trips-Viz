@@ -1,3 +1,4 @@
+
 from flask import Blueprint, render_template, abort, request, url_for,jsonify
 from flask import current_app as app
 import sqlite3
@@ -36,13 +37,7 @@ from bokeh.models import (
 	PrintfTickFormatter,
 	ColorBar
 )
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Activation, Dropout, Embedding, LSTM,BatchNormalization
 import numpy as np
-from tensorflow.keras import optimizers
-from tensorflow.keras import backend as K
-from tensorflow.keras import metrics
-from tensorflow.keras.optimizers import RMSprop
 import email
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
