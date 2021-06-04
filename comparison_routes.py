@@ -20,7 +20,7 @@ def comparisonpage(organism, transcriptome):
 	user_short_passed = False
 	global local
 	try:
-		print local
+		pass
 	except:
 		local = False
 
