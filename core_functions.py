@@ -295,7 +295,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 			url += "&rna_studies="
 			for study_id in rnaseq_studies:
 				url += str(study_id)+","
-        if proteomics_studies:
+		if proteomics_studies:
 			url += "&proteomics_studies="
 			for study_id in proteomics_studies:
 				url += str(study_id)+","
