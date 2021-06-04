@@ -77,7 +77,6 @@ line_tooltip_css = """
 
 @celery_application.task(bind=True)
 def mismatches(self, master_dict, title, short_code, background_col,title_size, axis_label_size, subheading_size,marker_size):
-	print "mismatches plot called"
 	fig, ax = plt.subplots( figsize=(23,12))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
 	ax.set_xlabel('Position', fontsize="26")
@@ -113,7 +112,6 @@ def calc_factor(master_dict):
 	zeroes = len(string_maxval)-1
 	zeroes_string = "0"*zeroes
 	factor = int("1"+zeroes_string)
-	print "factor", factor
 	for key in master_dict:
 		master_dict[key] = float(master_dict[key])/factor
 	return master_dict, zeroes
@@ -122,7 +120,6 @@ def calc_factor(master_dict):
 
 @celery_application.task(bind=True)
 def readlen_dist(self, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,celery_availability):
-	print "readlen plot called", celery_availability
 	master_dict, factor = calc_factor(master_dict)
 	returnstr = "Readlen,Count\n"
 	for key in master_dict:
@@ -162,7 +159,6 @@ def readlen_dist(self, master_dict,title,short_code,background_col,readlength_co
 
 @celery_application.task(bind=True)
 def mismatch_pos(self, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size):
-	print "readlen plot called"
 	fig, ax = plt.subplots( figsize=(23,12))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
 	ax.set_xlabel('Read Length', fontsize="26")
@@ -196,7 +192,6 @@ def mismatch_pos(self, master_dict,title,short_code,background_col,readlength_co
 
 @celery_application.task(bind=True)
 def nuc_comp(self, master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size,legend_size):
-	#print "readlen plot called"
 	#issue when using celery, seems to convert the integers to strings, change them back here
 	fixed_master_dict = {}
 	for nuc in master_dict:
@@ -207,7 +202,6 @@ def nuc_comp(self, master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_directio
 	master_dict = fixed_master_dict
 	labels = ["A","T","G","C"]
 	returnstr = "Position,A,T,G,C\n"
-	print "master_dict", master_dict
 	
 	for i in range(0,maxreadlen):
 		returnstr += "{},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(i,master_dict["A"][i],master_dict["T"][i],master_dict["G"][i],master_dict["C"][i])
@@ -215,7 +209,6 @@ def nuc_comp(self, master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_directio
 	ax = plt.subplot(111)
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
 	ax.set_xlabel('Position (nucleotides)',labelpad=-10,fontsize=axis_label_size)
-	print "nuc comp type", nuc_comp_type
 	if nuc_comp_type == "nuc_comp_per":
 		ax.set_ylim(0,100)
 		ax.set_ylabel('Percent %',fontsize=axis_label_size,labelpad=50)
@@ -230,7 +223,6 @@ def nuc_comp(self, master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_directio
 	width = 0.95
 	#plot it
 	
-	print "NUC COMP", short_code
 	title_str = "{} ({})".format(title,short_code)
 	ax.set_title(title_str, y=1.05,fontsize=title_size)
 	a_line = ax.plot(master_dict["A"].keys(), master_dict["A"].values(), label=labels, color=a_col, linewidth=6)
@@ -266,7 +258,6 @@ def mrna_dist_readlen(self, mrna_dist_dict,mrna_readlen_per,short_code,backgroun
 	
 	if mrna_readlen_per == False:
 		mrna_dist_dict, factor = calc_mrnadist_factor(mrna_dist_dict)
-	print "mrna readlen plot called"
 	#print mrna_dist_dict
 	returnstr = "Readlength,5_leader,start_codon,cds,stop_codon,3_trailer\n"
 	
@@ -331,11 +322,7 @@ def dinuc_bias(self, master_count_dict,short_code,background_col,title_size, axi
 	bar_l = [i for i in range(16)]
 	tick_pos = [i+(bar_width/2) for i in bar_l]
 	ind = np.arange(N)    # the x locations for the groups
-
-	print "ind", ind, tick_pos
-
 	p1 = plt.bar(ind, master_count_dict.values(), bar_width, color='#9ACAFF',linewidth=4,edgecolor='#9ACAFF')
-
 	plt.ylabel('Count (x 10 {})'.format(factor),fontsize=axis_label_size,labelpad=100)
 	plt.xlabel('Dinculeotide',fontsize=axis_label_size,labelpad=-10)
 	title_str = "Dinucleotide composition ({})".format(short_code)
@@ -357,7 +344,6 @@ def calc_meta_factor(inlist):
 	zeroes = len(string_maxval)-1
 	zeroes_string = "0"*zeroes
 	factor = int("1"+zeroes_string)
-	print "factor", factor
 	for i in range(0,len(inlist)):
 		inlist[i] = float(inlist[i])/factor
 	return inlist, zeroes
@@ -366,7 +352,6 @@ def calc_meta_factor(inlist):
 
 @celery_application.task(bind=True)
 def metagene_plot(self, readlen_list, fiveprime_list, threeprime_list,metagene_type,title,minreadlen, maxreadlen,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end, metagene_aggregate):
-	#print "fiveprime list", fiveprime_list
 	fig, ax = plt.subplots( figsize=(22,13))
 	ind = np.array(readlen_list)
 	file_colors = ["#FF4A45","#4286f4","#42f450","#f4f142","#ff9e16","#a800aa"]
@@ -469,12 +454,9 @@ def calc_trip_factor(read_dict):
 			if count > maxval:
 				maxval = int(count)
 	string_maxval = str(maxval)
-	print "stirng maxval", string_maxval
 	zeroes = len(string_maxval)-1
-	print "zeroes", zeroes
 	zeroes_string = "0"*zeroes
 	factor = int("1"+zeroes_string)
-	print "factor", factor
 	for i in range(0,len(read_dict["frame1"])):
 		read_dict["frame1"][i] = float(read_dict["frame1"][i])/factor
 		read_dict["frame2"][i] = float(read_dict["frame2"][i])/factor
@@ -485,7 +467,6 @@ def calc_trip_factor(read_dict):
 
 @celery_application.task(bind=True)
 def trip_periodicity_plot(self, read_dict,title,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size):
-	#print "read dict",read_dict
 	read_dict, factor = calc_trip_factor(read_dict)
 	tot_high_count = 0.01
 	tot_low_count = 0.0
@@ -552,8 +533,6 @@ def make_autopct(values):
 
 @celery_application.task(bind=True)
 def mapped_reads_plot(self, unmapped, mapped_coding, mapped_noncoding, labels, ambiguous,cutadapt_removed, rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size, breakdown_per, pcr_duplicates,legend_size):
-	print "mapped noncoding", mapped_noncoding
-	print "ambiguous", ambiguous
 	fig, ax = plt.subplots(figsize=(22,13))
 	N = len(unmapped)
 	bar_width = 0.35
@@ -561,9 +540,6 @@ def mapped_reads_plot(self, unmapped, mapped_coding, mapped_noncoding, labels, a
 	tick_pos = [i+(bar_width/2) for i in bar_l]
 	ind = np.arange(N)    # the x locations for the groups
 	all_reads_count = 0
-	print "ind", ind, tick_pos
-	
-	print "LABELS ", labels
 	title_str = "Reads breakdown ({})".format(short_code)
 	plt.title(title_str,fontsize=title_size)
 	plt.xticks(tick_pos, labels)
@@ -578,7 +554,6 @@ def mapped_reads_plot(self, unmapped, mapped_coding, mapped_noncoding, labels, a
 	
 	
 	plt.grid(color="white", linewidth=2,linestyle="solid")
-	print "cutadapt removed", cutadapt_removed
 	totals = []
 	for i in range(0,len(unmapped)):
 		curr_total = 0
@@ -986,7 +961,6 @@ def replicate_comp(self, labels, transcript_dict,min_log_val,short_code,backgrou
 @celery_application.task(bind=True)
 def most_freq_unmapped(self, file_paths_dict,short_code):
 	#self.update_state(state='PROGRESS',meta={'current': 0, 'total': 100,'status': "Most frequent unmapped reads"})
-	print "most freq unmapped called"
 	master_dict = {}
 	for filetype in file_paths_dict:
 		for file_id in file_paths_dict[filetype]:
@@ -1017,7 +991,6 @@ def most_freq_unmapped(self, file_paths_dict,short_code):
 	for tup in top_reads[::-1]:
 		html_table += ("<tr><td>{0}</td><td>{1}</td>    <td><a href='https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&LINK_LOC=blasthome&QUERY=%3E{2}_unmapped_sequence%0A{0}' target='_blank'>Blast</a></td></tr>".format(tup[0], tup[1],studyname))
 	html_table += ("</table>")
-	print "returning html_table"
 	return {'current': 100, 'total': 100, 'status': 'Complete','result': html_table}
 
 
@@ -1112,7 +1085,6 @@ def rust_dwell(self, codon_count_dict,short_code,background_col,title_size, axis
 	
 	min_count = float(min(codon_count_dict.values()))+0.000001
 	max_count = float(max(codon_count_dict.values()))
-	#print "min_count, max_count",min_count,max_count
 	max_rust_ratio = (max_count/(min_count))
 	aa_dict = {"gly":["GGT","GGC","GGA","GGG"],
 			   "arg":["AGA","AGG","CGT","CGC","CGA","CGG"],
@@ -1288,12 +1260,9 @@ def calc_mrnadist_factor(mrna_dist_dict):
 			if count > maxval:
 				maxval = int(count)
 	string_maxval = str(maxval)
-	print "stirng maxval", string_maxval
 	zeroes = len(string_maxval)-1
-	print "zeroes", zeroes
 	zeroes_string = "0"*zeroes
 	factor = int("1"+zeroes_string)
-	print "factor", factor
 	for key in mrna_dist_dict:
 		for region in mrna_dist_dict[key]:
 			mrna_dist_dict[key][region] = float(mrna_dist_dict[key][region])/factor
