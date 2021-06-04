@@ -1,3 +1,6 @@
+
+
+
 flask==0.12.2
 flask_recaptcha==0.4.2
 flask_login==0.4.1
@@ -6,3 +9,7 @@ email_validator==1.1.0
 bokeh==0.12.14
 celery==4.4.7
 mpld3==0.3
+matplotlib==3.4.2
+pandas==0.22.0
+Werkzeug==0.14.1
+sqlitedict==1.5.0
