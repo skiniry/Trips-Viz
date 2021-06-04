@@ -72,7 +72,6 @@ line_tooltip_css = """
 
 
 def nuc_freq_plot(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,filename):
-	#print "readlen plot called"
 	labels = ["A","T","G","C"]
 	returnstr = "Position,A,T,G,C\n"
 	minpos = min(master_dict.keys())
@@ -108,7 +107,6 @@ def nuc_freq_plot(master_dict,title,short_code, background_col,readlength_col,ti
 	width = 0.95
 	#plot it
 	ax = plt.subplot(111)
-	print "NUC COMP", short_code
 	title_str = "{} ({})".format(title,short_code)
 	ax.set_title(title_str, y=1.05,fontsize=title_size)
 	a_line = ax.plot(x_pos, a_counts, label=labels, color="blue", linewidth=4)
@@ -129,7 +127,6 @@ def nuc_freq_plot(master_dict,title,short_code, background_col,readlength_col,ti
 
 
 def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,traninfo):
-	print "readlen dist called"
 	labels = ["Exon Junctions","CDS markers"]
 	start_visible=[True,True]
 	stop_codons = ["TAG","TAA","TGA"]
@@ -246,9 +243,7 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 		mfe_dict = collections.OrderedDict()
 		for i in range(0,len(seq)-(window_size),step_size):
 			seq_window = str(seq[i:i+window_size])
-			print ":"+seq_window+":"
 			(ss, mfe) = RNA.fold(seq_window)
-			print mfe, seq_window
 			mfe_dict[i+(window_size/2)] = abs(mfe)
 	if plot_gc == True:
 		step_size = 2
@@ -372,9 +367,7 @@ def gc_metagene(title, short_code, background_col, readlength_col, title_size, a
 			seqlen = len(seq)
 			for i in range(0,len(seq)-(window_size),step_size):
 				seq_window = str(seq[i:i+window_size])
-				#print ":"+seq_window+":"
 				(ss, mfe) = RNA.fold(seq_window)
-				#print mfe, seq_window
 				if i < cds_start:
 					per = (i+(window_size/2)/cds_start)*5
 				if i >= cds_start and i <= cds_stop:
@@ -457,7 +450,6 @@ def gc_metagene(title, short_code, background_col, readlength_col, title_size, a
 					per = per*500
 					per += 1000
 					per = int(per)
-				#print "mid_window, per, cds_start, cds_stop", mid_window, per, cds_start, cds_stop
 				if per not in a_dict:
 					a_dict[per] = [final_a]
 				else:
@@ -804,10 +796,8 @@ def nuc_comp_box(master_dict,filename,nucleotide,title_size,box_colour,axis_labe
 			for item in t_list4:
 				grouplist.append("Group 4")
 				gclist.append(item)
-	#print "CATs \n\n\n\n\n\n",cats
 	df = pd.DataFrame({"group":grouplist,"gc":gclist})
 	groups = df.groupby('group')
-	#print df, groups
 	q1 = groups.quantile(q=0.25)
 	q2 = groups.quantile(q=0.5)
 	q3 = groups.quantile(q=0.75)
@@ -827,13 +817,10 @@ def nuc_comp_box(master_dict,filename,nucleotide,title_size,box_colour,axis_labe
 		return group[(group.gc > upper.loc[cat]['gc']) | (group.gc < lower.loc[cat]['gc'])]['gc']
 			
 	# prepare outlier data for plotting, we need coordinates for every outlier.
-	print "out", out
 	if not out.empty:
 		outx = []
 		outy = []
 		for keys in out.index:
-			print "keys", keys
-			print "keys[0]", keys[0]
 			try:
 				outx.append(keys[0])
 				outy.append(out.loc[keys[0]].loc[keys[1]])
@@ -884,12 +871,10 @@ def nuc_comp_box(master_dict,filename,nucleotide,title_size,box_colour,axis_labe
 
 
 def lengths_box(master_dict,filename,box_colour,short_code,title_size,marker_size, axis_label_size):
-	print "master dict", master_dict
 	gc_list = master_dict[1]["lengths"]
 	gc_list2 = master_dict[2]["lengths"]
 	gc_list3 = master_dict[3]["lengths"]
 	gc_list4 = master_dict[4]["lengths"]
-	print "gc_list", gc_list
 	cats = []
 	grouplist = []
 	gclist = []
@@ -914,12 +899,8 @@ def lengths_box(master_dict,filename,box_colour,short_code,title_size,marker_siz
 			grouplist.append("Lengths_G4")
 			gclist.append(item)
 
-	print "CATs \n\n\n\n\n\n",cats
-	print "gropulist", grouplist
-	print "lengths", gclist
 	df = pd.DataFrame({"group":grouplist,"lengths":gclist})
 	groups = df.groupby('group')
-	print df, groups
 	q1 = groups.quantile(q=0.25)
 	q2 = groups.quantile(q=0.5)
 	q3 = groups.quantile(q=0.75)
@@ -943,7 +924,6 @@ def lengths_box(master_dict,filename,box_colour,short_code,title_size,marker_siz
 		outx = []
 		outy = []
 		for keys in out.index:
-			#print "KEYS", keys
 			outx.append(keys[0])
 			outy.append(out.loc[keys[0]].loc[keys[1]])
 		
@@ -990,7 +970,6 @@ def lengths_box(master_dict,filename,box_colour,short_code,title_size,marker_siz
 
 
 def codon_usage(codon_dict,short_code,title_size, axis_label_size, marker_size,filename):
-	print "codon USAGE plot"
 	allxvals = []
 	allyvals = []
 	alllabels = []
@@ -1089,7 +1068,6 @@ def make_autopct(values):
 	return my_autopct
 
 def gene_count(short_code, background_col, title_size, axis_label_size, subheading_size, marker_size,coding,noncoding):
-	print "mapped reads plot called"
 	labels = ["","Genes","Transcripts",""]
 	fig, ax = plt.subplots(figsize=(23,12))
 	N = 4
@@ -1098,8 +1076,6 @@ def gene_count(short_code, background_col, title_size, axis_label_size, subheadi
 	tick_pos = [i+(bar_width/2) for i in bar_l]
 	ind = np.arange(N)    # the x locations for the groups
 	all_reads_count = 0
-	print "ind", ind, tick_pos
-	print "LABELS ", labels
 	title_str = "Reads breakdown ({})".format(short_code)
 	plt.title(title_str,fontsize=title_size)
 	plt.xticks(tick_pos, labels)
