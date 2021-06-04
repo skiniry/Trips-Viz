@@ -199,7 +199,6 @@ def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcripto
 	for i in range(0,len(sorted_min_exp_list)):
 		cur_count+=1
 		if cur_count == 300:
-			#print "bin count {} threshold {} standard deviation {} mean {}".format(bin_count, bin_list[bin_count][2], bin_list[bin_count][1],bin_list[bin_count][0])
 			#To x we add the log2(min exp) of the 300th (or multiple of) item in min exp list
 			bin_count += 1
 			try:
@@ -219,11 +218,6 @@ def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcripto
 			continue
 		z_score = (sorted_min_exp_list[i][2]-bin_list[bin_count][0])/(bin_list[bin_count][1])
 		
-		#print bin_list[bin_count], sorted_min_exp_list[i][1], z_score
-		#print bin_list[bin_count][2]
-
-
-		#print "count, mean, std dev, z_score",sorted_min_exp_list[i][1], bin_list[bin_count][0], bin_list[bin_count][1], z_score
 		if gene_list == "":
 			if sorted_min_exp_list[i][2] <= bin_list[bin_count][2] and sorted_min_exp_list[i][2] >= bin_list[bin_count][3]:
 				nonde_xvals.append(sorted_min_exp_list[i][1])
@@ -265,7 +259,6 @@ def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcripto
 				negzscores.append((sorted_min_exp_list[i][2]-bin_list[bin_count][0])/(bin_list[bin_count][1]))
 
 
-	#print upper_thresholds_x,upper_thresholds_y
 	# Add z score thresholds for the last bin, which wouldn't have been covered in the above loop
 	upper_thresholds_x.append((sorted_min_exp_list[-1][1])*0.99)
 	upper_thresholds_y.append(bin_list[bin_count][2])
@@ -394,7 +387,6 @@ def ribo_vs_rna(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 	hili_y_values = []
 	hili_genes = []
 	hili_trans = []
-	#print "RIBO RNA DICT", ribo_rna_dict
 	for gene in ribo_rna_dict:
 		if label == "TE":
 			if gene not in gene_list:
@@ -545,14 +537,12 @@ def ribo_vs_rna(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 @celery_application.task(bind=True)
 def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore):
 	#Convert gene_list from string to list
-	#print ("gene list passed to deseq2_plot", gene_list)
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
 		split_list = gene_list.split(" ")
 		gene_list = []
 		for item in split_list:
 			gene_list.append(item.strip(" ").upper())
-	#print ("gene list after",gene_list)
 	x_values = []
 	y_values = []
 	basemeans = []
@@ -595,7 +585,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 
 	largest_fc = 0
 
-	#print "RIBO RNA DICT", ribo_rna_dict
 	for gene in ribo_rna_dict:
 		if label == "TE":
 			x = ribo_rna_dict[gene]["rna_fc"]
@@ -660,7 +649,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 							rnadown_genes.append(gene)
 							rnadown_trans.append(ribo_rna_dict[gene]["tran"])
 				else:
-					#print "Gene in highlighted gene list", gene
 					highlight_y_values.append(y)
 					highlight_x_values.append(x)
 					highlight_basemeans.append(basemean)
@@ -675,10 +663,8 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 			if "NA" in ribo_padj:
 				ribo_padj = 1
 			ribo_padj = float(ribo_padj)
-			#print "ribo padj", ribo_padj
 			if gene not in gene_list:
 				if ribo_padj > (minzscore/100):
-					#print "ribo padj is greater than minzscore/100",str(minzscore/100)
 					if ribo_rna_dict[gene]["ribo1"] != 0:
 						y_values.append(log(ribo_rna_dict[gene]["ribo1"],2))
 					else:
@@ -730,7 +716,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 				if rna_padj > (minzscore/100):
 					basemeans.append(basemean)
 					lfcses.append(lfcSE)
-					#print "rna_padj {} is greather than the cutoff {}".format(rna_padj, minzscore/100)
 					if ribo_rna_dict[gene]["rna1"] != 0:
 						y_values.append(log(ribo_rna_dict[gene]["rna1"],2))
 					else:
@@ -743,7 +728,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 					genes.append(gene)
 					trans.append(ribo_rna_dict[gene]["tran"])
 				else:
-					#print "rna_padj {} is lesser than the cutoff {}".format(rna_padj, minzscore/100)
 					if ribo_rna_dict[gene]["rna1"] != 0:
 						teup_y_values.append(log(ribo_rna_dict[gene]["rna1"],2))
 					else:
@@ -770,8 +754,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 				highlight_genes.append(gene)
 				highlight_trans.append(ribo_rna_dict[gene]["tran"])
 				
-	#print "y values", y_values[:10]
-	#print "x values", x_values[:10]
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes,'basemeans':basemeans,'lfcses':lfcses})
 	if label == "TE":
 		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
@@ -793,10 +775,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 	p.ygrid.grid_line_color = "#cccccc"
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='gray')
 
-	#print "teup x values", teup_x_values[:10]
-	#print "teup y values", teup_y_values[:10]
-	#print "highlight genes", highlight_genes,highlight_y_values,highlight_x_values
-	#print "rna up genes", teup_genes
 
 	if highlight_genes != []:
 		source = ColumnDataSource({'x':highlight_x_values, 'y':highlight_y_values, 'trans':highlight_trans,'genes':highlight_genes,'basemeans':highlight_basemeans,'lfcses':highlight_lfcses})
@@ -823,7 +801,6 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 		source = ColumnDataSource({'x':rnadown_x_values, 'y':rnadown_y_values, 'trans':rnadown_trans,'genes':rnadown_genes,'basemeans':rnadown_basemeans,'lfcses':rnadown_lfcses})
 		p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#00ff99',legend="Significant genes")
 	
-	#legend_label=name)
 
 	p.legend.location = "top_left"
 	p.legend.click_policy="hide"
@@ -904,15 +881,12 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore,sig_translated,sig_rna,sig_buffering):
 	#Convert gene_list from string to list
 	# ("gene list passed to deseq2_plot", gene_list)
-	print "sig translated", sig_translated
-	print "len)sig_translated",len(sig_translated)
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
 		split_list = gene_list.split(" ")
 		gene_list = []
 		for item in split_list:
 			gene_list.append(item.strip(" ").upper())
-	#print ("gene list after",gene_list)
 	x_values = []
 	y_values = []
 	basemeans = []
@@ -967,7 +941,6 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 	rnadown_trans = []	
 	
 	largest_fc = 0
-	#print "RIBO RNA DICT", ribo_rna_dict
 	for gene in ribo_rna_dict:
 		if label == "TE":
 			x = ribo_rna_dict[gene]["rna_fc"]
@@ -1050,16 +1023,12 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 							buffereddown_trans.append(ribo_rna_dict[gene]["tran"])
 
 				else:
-					#print "Gene in highlighted gene list", gene
 					highlight_y_values.append(y)
 					highlight_x_values.append(x)
 					highlight_basemeans.append(basemean)
 					highlight_lfcses.append(lfcSE)
 					highlight_genes.append(gene)
 					highlight_trans.append(ribo_rna_dict[gene]["tran"])
-	print "te up genes", teup_genes
-	#print "y values", y_values[:10]
-	#print "x values", x_values[:10]
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes,'basemeans':basemeans,'lfcses':lfcses})
 	if label == "TE":
 		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
@@ -1081,14 +1050,11 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 	p.ygrid.grid_line_color = "#cccccc"
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='gray')
 
-	#print "teup x values", teup_x_values[:10]
-	#print "teup y values", teup_y_values[:10]
 	
 	if highlight_genes != []:
 		source = ColumnDataSource({'x':highlight_x_values, 'y':highlight_y_values, 'trans':highlight_trans,'genes':highlight_genes,'basemeans':highlight_basemeans,'lfcses':highlight_lfcses})
 		p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#000000',legend="Highlighted Genes")
 	
-	print "teup x vals, teup y vals", teup_x_values, teup_y_values
 	source = ColumnDataSource({'x':teup_x_values, 'y':teup_y_values, 'trans':teup_trans,'genes':teup_genes,'basemeans':teup_basemeans,'lfcses':teup_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#00ff99',legend="Translation up")
 	source = ColumnDataSource({'x':tedown_x_values, 'y':tedown_y_values, 'trans':tedown_trans,'genes':tedown_genes,'basemeans':tedown_basemeans,'lfcses':tedown_lfcses})
@@ -1099,8 +1065,6 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 	source = ColumnDataSource({'x':buffereddown_x_values, 'y':buffereddown_y_values, 'trans':buffereddown_trans,'genes':buffereddown_genes,'basemeans':buffereddown_basemeans,'lfcses':buffereddown_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#ffcc66',legend="Buffered down")
 	
-	print "rnaup genes", len(rnaup_genes)
-	print "rnadown genes", len(rnadown_genes)
 	source = ColumnDataSource({'x':rnaup_x_values, 'y':rnaup_y_values, 'trans':rnaup_trans,'genes':rnaup_genes,'basemeans':rnaup_basemeans,'lfcses':rnaup_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#cc0099',legend="mRNA abundacne up")
 	source = ColumnDataSource({'x':rnadown_x_values, 'y':rnadown_y_values, 'trans':rnadown_trans,'genes':rnadown_genes,'basemeans':rnadown_basemeans,'lfcses':rnadown_lfcses})
