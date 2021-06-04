@@ -139,7 +139,6 @@ def readlen_dist(self, master_dict,title,short_code,background_col,readlength_co
 	ax.set_title(title_str,y=1.05,fontsize=title_size)
 	logging.warn("Width is ", width)
 	read_length_list = test_list = [int(i) for i in master_dict.keys()]
-	print read_length_list, master_dict.values(), width, readlength_col, 0, "center"
 	ax.bar(read_length_list, master_dict.values(), width, color=readlength_col, linewidth=0, align="center")
 	ax.set_axis_bgcolor(background_col)
 	ax.tick_params('both', labelsize=marker_size)
@@ -246,7 +245,6 @@ def nuc_comp(self, master_dict,maxreadlen,title, nuc_comp_type,nuc_comp_directio
 def mrna_dist_readlen(self, mrna_dist_dict,mrna_readlen_per,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size):
 	#issue when using celery, seems to convert the integers to strings, change them back here
 	fixed_mrna_dist_dict = {}
-	print mrna_dist_dict
 	for label in mrna_dist_dict:
 		fixed_mrna_dist_dict[label] = {}
 		for readlen in mrna_dist_dict[label]:
@@ -258,7 +256,6 @@ def mrna_dist_readlen(self, mrna_dist_dict,mrna_readlen_per,short_code,backgroun
 	
 	if mrna_readlen_per == False:
 		mrna_dist_dict, factor = calc_mrnadist_factor(mrna_dist_dict)
-	#print mrna_dist_dict
 	returnstr = "Readlength,5_leader,start_codon,cds,stop_codon,3_trailer\n"
 	
 	
@@ -295,7 +292,6 @@ def mrna_dist_readlen(self, mrna_dist_dict,mrna_readlen_per,short_code,backgroun
 	
 	title_str = "mRNA distribution vs Readlengths ({})".format(short_code)
 	ax.set_title(title_str, y=1.05,fontsize=title_size)
-	print mrna_dist_dict["5_leader"].keys(), mrna_dist_dict["5_leader"].values()
 	five_leader_line = ax.plot(mrna_dist_dict["5_leader"].keys(), mrna_dist_dict["5_leader"].values(),label=labels, color='#ff6d6d', linewidth=4)
 	start_codon_line = ax.plot(mrna_dist_dict["start_codon"].keys(), mrna_dist_dict["start_codon"].values(),label=labels, color='#a38b22', linewidth=4)
 	cds_line = ax.plot(mrna_dist_dict["cds"].keys(), mrna_dist_dict["cds"].values(),label=labels, color='#00d8cd', linewidth=4)
@@ -338,7 +334,6 @@ def dinuc_bias(self, master_count_dict,short_code,background_col,title_size, axi
 
 
 def calc_meta_factor(inlist):
-	print inlist
 	maxval = max(inlist)
 	string_maxval = str(maxval)
 	zeroes = len(string_maxval)-1
@@ -662,7 +657,6 @@ def mapped_reads_plot(self, unmapped, mapped_coding, mapped_noncoding, labels, a
 		per = int(round((cutadapt_removed[i]/totals[i])*100,0))
 		lab1 += '<br><b>Cutadapt_removed:</b> {:,}  ({}%)'.format(cutadapt_removed[i], per)
 		#lab1 = (str(lab1).to_html())
-		print bar
 		tooltip1 = plugins.LineHTMLTooltip(bar, lab1,voffset=10, hoffset=30,css=line_tooltip_css)
 		plugins.connect(fig, tooltip1)
 
@@ -676,9 +670,6 @@ def mapped_reads_plot(self, unmapped, mapped_coding, mapped_noncoding, labels, a
 
 @celery_application.task(bind=True)
 def single_tran_de(self, single_tran_de_transcript, sorted_master_list, study_master_list, organism, transcriptome,single_tran_de_study):
-	print study_master_list
-	#sorted_master_list = study_master_list
-	#master_list.append((file_id, filename, range1_count,range2_count,file_desc))
 	xvals = []
 	yvals = []
 	labels = []
