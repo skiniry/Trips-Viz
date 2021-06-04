@@ -1,4 +1,5 @@
 
+
 import os
 import time
 from datetime import date
@@ -63,8 +64,10 @@ app = Flask(__name__, static_folder='static')
 
 tsks = ["tripsviz.orfquery_routes.find_orfs","tripsviz.riboflask.generate_plot","orfquery_routes.find_orfs","riboflask.generate_plot"]
 celery = Celery("celery", backend='redis://127.0.0.1:6379', broker='redis://127.0.0.1:6379')
-celery.autodiscover_tasks(tsks, force=True)
-
+try:
+	celery.autodiscover_tasks(tsks, force=True)
+except:
+	pass
 #celery = Celery('Trips', backend='redis://127.0.0.1:6379', broker='redis://127.0.0.1:6379', include=['app_module.tasks'])
 # Your line should also work, but sometimes it needs the apps configs
 #app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
