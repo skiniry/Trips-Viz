@@ -613,7 +613,7 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 
 # Converts an integer to base62, needed to encode short urls
 def integer_to_base62(num):
-	base = string.digits + string.lowercase + string.uppercase
+	base = string.digits + string.ascii_lowercase + string.ascii_uppercase
 	r = num % 62
 	res = base[r];
 	q = floor(num / 62)
@@ -625,7 +625,7 @@ def integer_to_base62(num):
 
 # Converts a base62 encoded string to an integer, needed to decode short urls
 def base62_to_integer(base62_str):
-	base = string.digits + string.lowercase + string.uppercase
+	base = string.digits + string.ascii_lowercase + string.ascii_uppercase
 	limit = len(base62_str)
 	res = 0
 	for i in xrange(limit):
