@@ -314,12 +314,6 @@ def query():
 						merged_reads = float(annotation_fit_results['merged_counts'])
 						annotated_cds_reads = float(annotation_fit_results["region_counts"]["coding"])
 						non_coding_reads = float(annotation_fit_results["region_counts"]["five_prime"] + annotation_fit_results["region_counts"]["three_prime"]) 
-						print 
-						print transcript[0]
-						print "annotated/total: ", annotated_cds_reads/total_reads
-						print "merged/total: ", merged_reads/total_reads
-						print "annotated/merged: ", annotated_cds_reads/merged_reads
-						print "annotated/non coding: ", annotated_cds_reads/non_coding_reads
 
 
 						if transcript[0] in TPM_RNA:
