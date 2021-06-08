@@ -10,9 +10,12 @@ import riboflask
 import collections
 from flask_login import current_user
 import logging
+from fetch_shelve_reads2 import get_reads
+import annotation_fit
 try:
 	from orfQuant import incl_OPM_run_orfQuant
 	from tripsTPM import TPM
+
 except:
 	pass
 
@@ -193,102 +196,7 @@ def query():
 	else:
 		sqlite_path_organism = "{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome)
 		transhelve = sqlite3.connect(sqlite_path_organism)
-	cursor = transhelve.cursor()
-	cursor.execute("SELECT * from transcripts WHERE transcript = '{}'".format(tran))
-	
-	result = cursor.fetchone()
-	inputtran = True
 
-	if result != None:
-		newtran = result[0]
-	else:
-		inputtran = False
-	if inputtran == False:
-		cursor.execute("SELECT * from transcripts WHERE gene = '{}'".format(tran))
-		result = cursor.fetchall()
-
-		if result != []:
-			if len(result) == 1:
-				tran = str(result[0][0])
-			else:
-				return_str = "TRANSCRIPTS"
-				if user == "test":
-					return_str = "QUANT_TRANSCRIPTS"
-					if len(file_paths_dict["riboseq"].values()) > 0:
-						pre_orfQuant_res = incl_OPM_run_orfQuant(tran, sqlite_path_organism, file_paths_dict["riboseq"].values())
-						pre_TPM_Ribo = TPM(tran, sqlite_path_organism, file_paths_dict["riboseq"].values(), "ribo")
-
-						max_TPM_Ribo = max(pre_TPM_Ribo.values())
-						TPM_Ribo = {transcript:round((pre_TPM_Ribo[transcript] / max_TPM_Ribo)*100, 2) for transcript in pre_TPM_Ribo}
-
-						max_orf = max(pre_orfQuant_res.values())
-						orfQuant_res = {transcript:round((pre_orfQuant_res[transcript] / max_orf)*100, 2) for transcript in pre_orfQuant_res}
-
-					else:
-						orfQuant_res = {transcript[0]:"Null" for transcript in result}
-						TPM_Ribo = {transcript[0]:"Null" for transcript in result}
-					
-					if len(file_paths_dict["rnaseq"].values()) > 0:
-						pre_TPM_RNA = TPM(tran, sqlite_path_organism, file_paths_dict["rnaseq"].values(), "rna")
-						max_TPM_RNA = max(pre_TPM_RNA.values())
-						TPM_RNA = {transcript:round((pre_TPM_RNA[transcript] / max_TPM_RNA)*100, 2) for transcript in pre_TPM_RNA}
-
-					else:
-						TPM_RNA = {transcript[0]:"Null" for transcript in result}
-
-
-				for transcript in result:
-					cursor.execute("SELECT length,cds_start,cds_stop,principal,version from transcripts WHERE transcript = '{}'".format(transcript[0]))
-					tran_result = cursor.fetchone()
-					tranlen = tran_result[0]
-					cds_start = tran_result[1]
-					cds_stop = tran_result[2]
-					if str(tran_result[3]) == "1":
-						principal = "principal"
-					else:
-						principal = ""
-					version = tran_result[4]
-					if cds_start == "NULL" or cds_start == None:
-						cdslen = "NULL"
-						threeutrlen = "NULL"
-					else:
-						cdslen = cds_stop-cds_start
-						threeutrlen = tranlen - cds_stop
-					if user == "test":
-						if transcript[0] in orfQuant_res:
-							OPM_coverage = orfQuant_res[transcript[0]]
-						else:
-							OPM_coverage = "NULL"
-
-						if transcript[0] in TPM_RNA:
-							RNA_coverage = TPM_RNA[transcript[0]]
-						else:
-							RNA_coverage = "NULL"
-
-						if transcript[0] in TPM_Ribo:
-							ribo_coverage = TPM_Ribo[transcript[0]]
-						else:
-							ribo_coverage = "NULL"
-
-						return_str += (":{},{},{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen, OPM_coverage, ribo_coverage, RNA_coverage))
-					else:
-						return_str += (":{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen,principal))
-				if app.debug == True:
-					return return_str, "NO_CELERY", {'Location': None}
-				else:
-					if user == "test":
-						return jsonify({'current': 400, 'total': 100, 'status': 'quant_tran_list','result': return_str}), 200, {'Location': ""} 
-					else:
-						return jsonify({'current': 400, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
-				
-		else:
-			return_str =  "ERROR! Could not find any gene or transcript corresponding to {}".format(tran)
-			logging.debug(return_str)
-			if app.debug == True:
-				return return_str, "NO_CELERY", {'Location': None}
-			else:
-				return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
-	transhelve.close()
 	if 'varlite' in data:
 		lite = "y"
 	else:
@@ -340,6 +248,110 @@ def query():
 	else:
 		short_code = data["user_short"]
 		user_short_passed = True
+
+	cursor = transhelve.cursor()
+	cursor.execute("SELECT * from transcripts WHERE transcript = '{}'".format(tran))
+	
+	result = cursor.fetchone()
+	inputtran = True
+
+	if result != None:
+		newtran = result[0]
+	else:
+		inputtran = False
+	if inputtran == False:
+		cursor.execute("SELECT * from transcripts WHERE gene = '{}'".format(tran))
+		result = cursor.fetchall()
+
+		if result != []:
+			if len(result) == 1:
+				tran = str(result[0][0])
+			else:
+				return_str = "TRANSCRIPTS"
+				if user == "test":
+					return_str = "QUANT_TRANSCRIPTS"
+					if len(file_paths_dict["riboseq"].values()) > 0:
+						pre_TPM_Ribo = TPM(tran, sqlite_path_organism, file_paths_dict["riboseq"].values(), "ribo")
+
+						max_TPM_Ribo = max(pre_TPM_Ribo.values())
+						TPM_Ribo = {transcript:round((pre_TPM_Ribo[transcript] / max_TPM_Ribo)*100, 2) for transcript in pre_TPM_Ribo}
+
+					else:
+						TPM_Ribo = {transcript[0]:"Null" for transcript in result}
+					
+					if len(file_paths_dict["rnaseq"].values()) > 0:
+						pre_TPM_RNA = TPM(tran, sqlite_path_organism, file_paths_dict["rnaseq"].values(), "rna")
+						max_TPM_RNA = max(pre_TPM_RNA.values())
+						TPM_RNA = {transcript:round((pre_TPM_RNA[transcript] / max_TPM_RNA)*100, 2) for transcript in pre_TPM_RNA}
+
+					else:
+						TPM_RNA = {transcript[0]:"Null" for transcript in result}
+
+
+				for transcript in result:
+					cursor.execute("SELECT length,cds_start,cds_stop,principal,version from transcripts WHERE transcript = '{}'".format(transcript[0]))
+					tran_result = cursor.fetchone()
+					tranlen = tran_result[0]
+					cds_start = tran_result[1]
+					cds_stop = tran_result[2]
+
+					if str(tran_result[3]) == "1":
+						principal = "principal"
+					else:
+						principal = ""
+					version = tran_result[4]
+					if cds_start == "NULL" or cds_start == None:
+						cdslen = "NULL"
+						threeutrlen = "NULL"
+					else:
+						cdslen = cds_stop-cds_start
+						threeutrlen = tranlen - cds_stop
+					if user == "test":
+						reads = get_reads(ambiguous, minread, maxread, transcript[0], file_paths_dict,tranlen,ribocoverage, organism, True,noisered, primetype,"riboseq",readscore,secondary_readscore,pcr,get_mismatches=mismatches)
+						annotation_fit_results = annotation_fit.annotation_fit(reads, transcript[0], transhelve)
+
+						total_reads = float(annotation_fit_results['total_reads'])
+						merged_reads = float(annotation_fit_results['merged_counts'])
+						annotated_cds_reads = float(annotation_fit_results["region_counts"]["coding"])
+						non_coding_reads = float(annotation_fit_results["region_counts"]["five_prime"] + annotation_fit_results["region_counts"]["three_prime"]) 
+						print 
+						print transcript[0]
+						print "annotated/total: ", annotated_cds_reads/total_reads
+						print "merged/total: ", merged_reads/total_reads
+						print "annotated/merged: ", annotated_cds_reads/merged_reads
+						print "annotated/non coding: ", annotated_cds_reads/non_coding_reads
+
+
+						if transcript[0] in TPM_RNA:
+							RNA_coverage = TPM_RNA[transcript[0]]
+						else:
+							RNA_coverage = "NULL"
+
+						if transcript[0] in TPM_Ribo:
+							ribo_coverage = TPM_Ribo[transcript[0]]
+						else:
+							ribo_coverage = "NULL"
+
+						return_str += (":{},{},{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen, round(annotated_cds_reads/total_reads, 2) * 100, ribo_coverage, RNA_coverage))
+					else:
+						return_str += (":{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen,principal))
+				if app.debug == True:
+					return return_str, "NO_CELERY", {'Location': None}
+				else:
+					if user == "test":
+						return jsonify({'current': 400, 'total': 100, 'status': 'quant_tran_list','result': return_str}), 200, {'Location': ""} 
+					else:
+						return jsonify({'current': 400, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
+				
+		else:
+			return_str =  "ERROR! Could not find any gene or transcript corresponding to {}".format(tran)
+			logging.debug(return_str)
+			if app.debug == True:
+				return return_str, "NO_CELERY", {'Location': None}
+			else:
+				return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+	transhelve.close()
+
 
 	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
