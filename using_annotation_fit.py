@@ -49,40 +49,30 @@ def get_base_coverage(reads, cutoff_list, tranlen):
 ambig = "unambig"
 minread = 5
 maxread = 150
-# file paths:  {'riboseq': {1: '/home/jack/projects/trips/Trips-Viz/trips_shelves/riboseq/sarscov2/Finkel20/SRR12216748.sqlite', 2: '/home/jack/projects/trips/Trips-Viz/trips_shelves/riboseq/sarscov2/Finkel20/SRR12216749.sqlite', 3: '/home/jack/projects/trips/Trips-Viz/trips_shelves/riboseq/sarscov2/Finkel20/SRR12216750.sqlite'}, 'rnaseq': {}, 'proteomics': {}}
-# transcript
-# tran len:  1713
 ribocoverage = False
-# organism = "escherichia_coli"
-# transcriptome = "Ensembl_k_12_ASM584v2"
-organism = "sarscov2"
-transcriptome = "sarscov2_homo_sapiens"
 noisered = False
 primetype = "fiveprime"
 readscore = 0
 secondary_readscore = 1
 pcr = False
 
-# ecoli_read_file = '/home/jack/projects/trips/Trips-Viz/trips_shelves/riboseq/escherichia_coli/Li14/SRR1067765.sqlite'
+organism = "sarscov2"
+transcriptome = "sarscov2_homo_sapiens"
+# organism = "homo_sapiens"
+# transcriptome = "Gencode_v25"
+
+
 # ecoli_sqlite = '/home/jack/projects/trips/Trips-Viz/trips_annotations_sample/escherichia_coli/escherichia_coli.Ensembl_k_12_ASM584v2.sqlite'
 sqlite = '/home/jack/projects/trips/Trips-Viz/trips_annotations_sample/sarscov2/sarscov2.sarscov2_homo_sapiens.sqlite'
-read_file = '/home/jack/projects/trips/Trips-Viz/trips_shelves/riboseq/sarscov2/Finkel20/SRR12216748.sqlite'
 
-def region_scores_calculation_to_csv(sqlite, readfile, output, ambig, minread, maxread, ribocoverage, organism, transcriptome, noisered, primetype, readscore, secondary_readscore, pcr):
+def region_scores_calculation_to_csv(sqlite, output, ambig, minread, maxread, ribocoverage, organism, transcriptome, noisered, primetype, readscore, secondary_readscore, pcr):
     data = {'five_prime_counts': [], 'merged_length': [], 'coding_counts': [], 'three_prime_length': [], 'three_prime_counts': [], 'coding_length': [], 'five_prime_length': [], 'merged_counts': [], 'total_reads': []}
     df = pd.DataFrame(data)
-
-
     file_paths_dict = get_file_paths("test", organism, transcriptome)
 
-    start = time.time()
-
     connection = get_annotation_connection(sqlite)
-    gene_list = get_genes_for_organism(connection, coding=True)[-100:]
+    gene_list = get_genes_for_organism(connection, coding=True)[-10:]
     total_genes = float(len(gene_list))
-
-    dic = SqliteDict(read_file)
-    offsets = get_offsets_for_read_file(read_file)
 
     for gene_number, gene in enumerate(gene_list):
         start = time.time()
@@ -171,4 +161,4 @@ def csv_to_stats_df(csv_path):
     #     print df[col] 
 
 # csv_to_stats_df('sarscov2_homo_sapiensout.csv')
-region_scores_calculation_to_csv(sqlite, read_file, "test_out.csv", ambig, minread, maxread, ribocoverage, organism, transcriptome, noisered, primetype, readscore, secondary_readscore, pcr)
+region_scores_calculation_to_csv(sqlite, "test_out.csv", ambig, minread, maxread, ribocoverage, organism, transcriptome, noisered, primetype, readscore, secondary_readscore, pcr)
