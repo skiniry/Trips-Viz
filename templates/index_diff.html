@@ -6,8 +6,7 @@
 
 <head>
 <link rel= "stylesheet" href= "{{ url_for('static', filename='css/diff_translation.css') }}">
-<script src="https://cdn.pydata.org/bokeh/release/bokeh-0.12.14.min.js"></script>
-<script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.14.min.js"></script>
+
 </head>
 
 
@@ -485,80 +484,19 @@ $("#diffquery").click(function() {
 		contentType: "application/json; charset=utf-8",
 		url: url,
 		data: JSON.stringify(qu),
-		success: function(data, status, request) {
-			status_url = request.getResponseHeader('Location');
-			if (request.statusText == "NO_CELERY") {
-				var graph = $("#container");
-				graph.html(data);
-				$("#loading-div-background").hide();
-				$("#container").show();
-				$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
-				document.getElementById('container').scrollIntoView();
-			}
-			else {
-		
-				jdata = JSON.parse(data);
-				if (jdata["status"] == "return_str") {
-					var graph = $("#container");
-					graph.html(jdata["result"]);
-					$("#loading-div-background").hide();
-					$("#container").show();
-				}
-				else {
-					update_progress(status_url, nanobar);
-					//$("#loading-div-background").hide();
-					}
-				}
+		success: function(data) {
+			var graph = $("#container");
+			graph.html(data);
+			$("#loading-div-background").hide();
+			$("#container").show();
+			$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+			document.getElementById('container').scrollIntoView();
+			
+
 	 },
 	 dataType: "html"
  });
 });
-
-
-
-
-
-
-
-
-
-
-
-function update_progress(status_url, nanobar) {
-	console.log("update progress called");
-	// send GET request to status URL
-	$.getJSON(status_url, function(data) {
-		// update UI
-		percent = parseInt(data['current'] * 100 / data['total']);
-		nanobar.go(percent);
-		//$(status_div.childNodes[1]).text(percent + '%');
-		//$(status_div.childNodes[2]).text(data['status']);
-		$("#loading_header").text(data['status'])
-		
-		console.log("data is "+data);
-
-		if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
-				var graph = $("#container");
-				graph.html(data["result"]);
-				$("#loading-div-background").hide();
-				$("#container").show();
-			}
-			else {
-				// rerun in 2 seconds
-				setTimeout(function() {
-					update_progress(status_url, nanobar);
-					}, 2000);
-				}
-				});
-				}
-
-
-
-
-
-
-
-
 
 
 

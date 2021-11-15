@@ -1,26 +1,27 @@
-
-
 import os
 import time
 from datetime import date
 import sys
+print ("PYTHON VERSION", sys.version)
 import sqlite3
 import logging
-from celery import Celery
 from flask import Flask,get_flashed_messages, render_template, request, send_from_directory, flash, redirect, url_for,jsonify, session
 from flask_recaptcha import ReCaptcha
-from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
-from flask_security import Security
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
+from flask_security import Security, current_user, auth_required, hash_password
+from flask_mail import Mail
 import ast
 import stats_plots
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.exceptions import BadRequest
 import config
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from sqlitedict import SqliteDict
 import smtplib
 import uuid
 import random 
+
+
 
 from core_functions import fetch_file_paths,generate_short_code,base62_to_integer,build_profile,User,fetch_user
 from metainfo_routes import metainfo_plotpage_blueprint, metainfoquery_blueprint
@@ -62,27 +63,10 @@ root_logger.addHandler(file_handler)
 #logging.basicConfig(filename=config.LOG_FILE,level=logging.DEBUG,format='%(asctime)s %(levelname)-8s %(message)s',datefmt='%Y-%m-%d %H:%M:%S')
 app = Flask(__name__, static_folder='static')
 
-tsks = ["tripsviz.orfquery_routes.find_orfs","tripsviz.riboflask.generate_plot","orfquery_routes.find_orfs","riboflask.generate_plot"]
-celery = Celery("celery", backend='redis://127.0.0.1:6379', broker='redis://127.0.0.1:6379')
-try:
-	celery.autodiscover_tasks(tsks, force=True)
-except:
-	pass
-#celery = Celery('Trips', backend='redis://127.0.0.1:6379', broker='redis://127.0.0.1:6379', include=['app_module.tasks'])
-# Your line should also work, but sometimes it needs the apps configs
-#app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 
-try:
-	
-	import riboflask_datasets
-	from gene_reg_routes import gene_regulation_page, gene_regulation_query
-	app.register_blueprint(gene_regulation_page)
-	app.register_blueprint(gene_regulation_query)
 
-except Exception as e:
-	print ("E: CANT IMPORT SUBMODULES: ",e)
-	pass
+
 
 from threading import Lock
 lock = Lock()
@@ -108,6 +92,35 @@ app.register_blueprint(traninfoquery_blueprint)
 app.config.from_pyfile('config.py')
 recaptcha = ReCaptcha(app=app)
 app.config['UPLOAD_FOLDER'] = '/static/tmp'
+app.config['SECURITY_PASSWORD_SALT'] = config.PASSWORD_SALT
+app.config['SECRET_KEY'] = config.FLASK_SECRET_KEY
+
+#Modify security messages so people can't tell which users have already signed up. 
+app.config['SECURITY_MSG_EMAIL_ALREADY_ASSOCIATED'] = (("Thank you. Confirmation instructions have been sent to %(email)s."),"error")
+app.config['USER_DOES_NOT_EXIST'] = (("Invalid credentials"), "error")
+app.config['INVALID_PASSWORD'] = (("Invalid credentials"), "error")
+
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = 'ribopipe@gmail.com'
+app.config['MAIL_PASSWORD'] = config.EMAIL_PASS
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #change cookie name and path, this avoids cookies clashing with other flask apps on the same server 
@@ -131,37 +144,7 @@ login_manager.session_protection = 'basic'
 
 
 
-@app.route('/status/<task_id>')
-#taskstatus_blueprint = Blueprint("taskstatus", __name__, template_folder="templates")
-#@taskstatus_blueprint.route('/status/<task_id>', methods=['POST'])
-def taskstatus(task_id):
-    task = find_orfs.AsyncResult(task_id)
-    if task.state == 'PENDING':
-        # job did not start yet
-        response = {
-            'state': task.state,
-            'current': 0,
-            'total': 1,
-            'status': 'Pending...'
-        }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'current': task.info.get('current', 0),
-            'total': task.info.get('total', 1),
-            'status': task.info.get('status', '')
-        }
-        if 'result' in task.info:
-            response['result'] = task.info['result']
-    else:
-        # something went wrong in the background job
-        response = {
-            'state': task.state,
-            'current': 1,
-            'total': 1,
-            'status': str(task.info),  # this is the exception raised
-        }
-    return jsonify(response)
+
 
 
 
@@ -169,8 +152,7 @@ def taskstatus(task_id):
 # Provides statistics on trips such as number of organisms, number of files, number of studies etc and lists updates.
 @app.route('/stats/')
 def statisticspage():
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 
@@ -255,7 +237,6 @@ def statisticspage():
 	result = cursor.fetchall()
 	for row in result:
 		news_string += "<tr><td>{}</td><td>{}</td></tr>".format(row[0], row[1])
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return render_template('statistics.html', no_organisms=no_organisms, no_studies=no_studies, riboseq_files=riboseq_files, rnaseq_files=rnaseq_files,org_breakdown_graph=org_breakdown_graph,year_plot=year_plot,news_string=news_string)
 
@@ -289,7 +270,63 @@ def contactus():
 
 
 
-
+# This is the page where users create a new login. 
+@app.route("/create", methods=["GET", "POST"])
+def create():
+	#if user is already logged in then redirect to homepage
+	if current_user.is_authenticated:
+		return redirect("/")
+	error=None
+	if request.method == 'POST':
+		username = str(request.form['username'])
+		password = str(request.form['password'])
+		password2 = str(request.form['password2'])
+		if recaptcha.verify() or local == True:
+			username_dict = {}
+			logging.debug("Connecting to trips.sqlite")
+			connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+			connection.text_factory = str
+			cursor = connection.cursor()
+			cursor.execute("SELECT username,password from users;")
+			result = (cursor.fetchall())
+			logging.debug("Closing trips.sqlite connection")
+			connection.close()
+			for row in result:
+				username_dict[row[0]] = row[1]
+			if username in username_dict:
+				error = "Error: {} is already registered".format(username)
+				return render_template('create.html',error=error)
+			if password == "":
+				error = "Password cannot be empty"
+				return render_template('create.html',error=error)
+			if password != password2:
+				error = "Passwords do not match"
+				return render_template('create.html',error=error)
+			hashed_pass = generate_password_hash(password)
+			logging.debug("Connecting to trips.sqlite")
+			connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+			connection.text_factory = str
+			cursor = connection.cursor()
+			cursor.execute("SELECT MAX(user_id) from users;")
+			result = cursor.fetchone()
+			max_user_id = int(result[0])
+			user_id = max_user_id+1
+			#Add -1 to study access list, causes problems when adding study id's later if we don't
+			# Last value is temp_user, set to 0 because this is not a temporary user (temporary users identified by uuid in session cookie only, no username or pw)
+			cursor.execute("INSERT INTO users VALUES ({},'{}','{}','-1','',0,0);".format(user_id, username, hashed_pass))
+			cursor.execute("INSERT INTO user_settings VALUES ('{0}','{1}','{2}','{3}',{4},'{5}','{6}','{7}','{8}','{9}','{10}','{11}','{12}','{13}','{14}','{15}','{16}','{17}','{18}',{19},'{20}',{21},{22});".format(config.MARKER_SIZE
+						,config.AXIS_LABEL_SIZE,config.SUBHEADING_SIZE,config.TITLE_SIZE, user_id,config.BACKGROUND_COL, config.READLENGTH_COL, config.METAGENE_FIVEPRIME_COL, 
+						config.METAGENE_THREEPRIME_COL, config.A_COL, config.T_COL,config.G_COL,config.C_COL, config.UGA_COL , config.UAG_COL, config.UAA_COL,  
+						config.UGA_COL , config.UAG_COL, config.UAA_COL,config.CDS_MARKER_SIZE,config.CDS_MARKER_COLOUR,config.LEGEND_SIZE, config.RIBO_LINEWIDTH))
+			connection.commit()
+			logging.debug("Closing trips.sqlite connection")
+			connection.close()
+			return redirect("/")
+		else:
+			error = 'Invalid Captcha. Please try again.'
+			return render_template('create.html',error=error)
+	else:
+		return render_template('create.html',error=error)
 
 
 #Allows users to change some global settings such as plot background colour, title size, tick label size, etc. 
@@ -301,8 +338,7 @@ def settingspage():
 		print (local)
 	except:
 		local = False
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -338,7 +374,6 @@ def settingspage():
 	cds_marker_colour = result[19]
 	legend_size = result[20]
 	ribo_linewidth = result[21]
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return render_template('settings.html',
 						   local=local,
@@ -377,8 +412,7 @@ def downloadspage():
 	except:
 		local = False
 	organism_dict = {"Scripts":["bam_to_sqlite.py","tsv_to_sqlite.py","create_annotation_sqlite.py","create_transcriptomic_to_genomic_sqlite.py"]}
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	try:
@@ -404,7 +438,6 @@ def downloadspage():
 					if "transcriptomic" in filename or org in filename:
 						organism_dict[org].append(filename)
 		
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 
 	return render_template('downloads.html',
@@ -433,8 +466,7 @@ def uploadspage():
 	except:
 		local = False
 	organism_dict = {}
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -510,7 +542,6 @@ def uploadspage():
 	result = cursor.fetchall()
 	for row in result:
 		seq_dict[row[0]] = [row[1]]
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return render_template('uploads.html',
 						   local=local,
@@ -529,8 +560,7 @@ def uploadspage():
 def upload_file():
 	if request.method == 'POST':
 		uploaded_files = request.files.getlist("file")
-		logging.debug("Connecting to trips.sqlite")
-		connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+		connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 		connection.text_factory = str
 		cursor = connection.cursor()
 		user,logged_in = fetch_user()
@@ -612,7 +642,6 @@ def upload_file():
 				cursor.execute("INSERT INTO deletions VALUES({},'{}',{})".format(new_file_id,upload_file_path,deletion_time))
 			connection.commit()
 			flash("File uploaded successfully")
-		logging.debug("Closing trips.sqlite connection")
 		connection.close()
 		return redirect("https://trips.ucc.ie/uploads")
 
@@ -622,8 +651,7 @@ def upload_file():
 @app.route('/uploadtranscriptome', methods = ['GET', 'POST'])
 #@login_required
 def upload_transcriptome():
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	user,logged_in = fetch_user()
@@ -663,7 +691,6 @@ def upload_transcriptome():
 				deletion_time = curr_time+keep_time
 				cursor.execute("INSERT INTO org_deletions VALUES({},'{}',{})".format(max_org_id,full_path,deletion_time))
 			connection.commit()
-			logging.debug("Closing trips.sqlite connection")
 			connection.close()
 		flash("File uploaded successfully")
 		return redirect("https://trips.ucc.ie/uploads")
@@ -673,10 +700,8 @@ def upload_transcriptome():
 @app.errorhandler(500)
 def handle_bad_request(e):
 	return_str =  'ERROR: '+str(e)+" please report this to tripsvizsite@gmail.com or via the contact page. "
-	if app.debug == True:
-		return return_str, "NO_CELERY", {'Location': None}
-	else:
-		return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+	return return_str
+
 
 # This is the page where users login. 
 @app.route("/user/login", methods=["GET", "POST"])
@@ -725,70 +750,55 @@ def login():
 	else:
 		return render_template('login.html',error=error)
 
-# This is the page where users create a new login. 
-@app.route("/create", methods=["GET", "POST"])
-def create():
-	#if user is already logged in then redirect to homepage
-	if current_user.is_authenticated:
-		return redirect("/")
-	error=None
-	if request.method == 'POST':
-		username = str(request.form['username'])
-		password = str(request.form['password'])
-		password2 = str(request.form['password2'])
-		if recaptcha.verify() or local == True:
-			username_dict = {}
-			logging.debug("Connecting to trips.sqlite")
-			connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
-			connection.text_factory = str
-			cursor = connection.cursor()
-			cursor.execute("SELECT username,password from users;")
-			result = (cursor.fetchall())
-			logging.debug("Closing trips.sqlite connection")
-			connection.close()
-			for row in result:
-				username_dict[row[0]] = row[1]
-			if username in username_dict:
-				error = "Error: {} is already registered".format(username)
-				return render_template('create.html',error=error)
-			if password == "":
-				error = "Password cannot be empty"
-				return render_template('create.html',error=error)
-			if password != password2:
-				error = "Passwords do not match"
-				return render_template('create.html',error=error)
-			hashed_pass = generate_password_hash(password)
-			logging.debug("Connecting to trips.sqlite")
-			connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
-			connection.text_factory = str
-			cursor = connection.cursor()
-			cursor.execute("SELECT MAX(user_id) from users;")
-			result = cursor.fetchone()
-			max_user_id = int(result[0])
-			user_id = max_user_id+1
-			#Add -1 to study access list, causes problems when adding study id's later if we don't
-			# Last value is temp_user, set to 0 because this is not a temporary user (temporary users identified by uuid in session cookie only, no username or pw)
-			cursor.execute("INSERT INTO users VALUES ({},'{}','{}','-1','',0,0);".format(user_id, username, hashed_pass))
-			cursor.execute("INSERT INTO user_settings VALUES ('{0}','{1}','{2}','{3}',{4},'{5}','{6}','{7}','{8}','{9}','{10}','{11}','{12}','{13}','{14}','{15}','{16}','{17}','{18}',{19},'{20}',{21},{22});".format(config.MARKER_SIZE
-						,config.AXIS_LABEL_SIZE,config.SUBHEADING_SIZE,config.TITLE_SIZE, user_id,config.BACKGROUND_COL, config.READLENGTH_COL, config.METAGENE_FIVEPRIME_COL, 
-						config.METAGENE_THREEPRIME_COL, config.A_COL, config.T_COL,config.G_COL,config.C_COL, config.UGA_COL , config.UAG_COL, config.UAA_COL,  
-						config.UGA_COL , config.UAG_COL, config.UAA_COL,config.CDS_MARKER_SIZE,config.CDS_MARKER_COLOUR,config.LEGEND_SIZE, config.RIBO_LINEWIDTH))
-			connection.commit()
-			logging.debug("Closing trips.sqlite connection")
-			connection.close()
-			return redirect("/")
-		else:
-			error = 'Invalid Captcha. Please try again.'
-			return render_template('create.html',error=error)
-	else:
-		return render_template('create.html',error=error)
+# Allows users to logout
+@app.route("/user/logout")
+@login_required
+def logout():
+	logout_user()
+	return redirect(url_for('homepage'))
+
+
+# callback to reload the user object
+@login_manager.user_loader
+def load_user(userid):
+	return User(userid)
+
+
+
+# Forgot password page. 
+#@app.route("/forgot", methods=["GET", "POST"])
+#def forgot():
+	##if user is already logged in then redirect to homepage
+	#if current_user.is_authenticated:
+		#return redirect("/")
+	#error=None
+	#if request.method == 'POST':
+		#emailaddress = str(request.form['emailaddress'])
+		#print ("address is ", emailaddress)
+		#return redirect("/")
+	#else:
+		#return render_template('forgot_password.html',error=error)
+		
+		
+@app.route("/reset", methods=["GET", "POST"])
+def reset():
+	return None
+
+
+
+
+
+
+
+
+
 
 # Called when user presses the save button on the orf_translation page. 
 @app.route('/anno_query', methods=['POST'])
 def anno_query():
 	data = ast.literal_eval(request.data)
 	user,logged_in = fetch_user()
-	connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	cursor = connection.cursor()
 	cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
 	result = (cursor.fetchone())
@@ -808,7 +818,6 @@ def anno_query():
 																						data["transcriptome"].strip()
 																						))
 	connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return ""
 
@@ -822,7 +831,7 @@ def saved():
 		print (local)
 	except:
 		local = False
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	advanced=False
@@ -854,7 +863,6 @@ def saved():
 		elif row[2] == 1:
 			if row[0] in organism_access_list:
 				organism_list.append(str(row[1]))
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	
 	return render_template('user_saved_cases.html',local=local,advanced=advanced,organism_list=organism_list)
@@ -867,8 +875,7 @@ def savedquery():
 	acceptable = 0
 	data = ast.literal_eval(request.data)
 	user,logged_in = fetch_user()
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	cursor = connection.cursor()
 	organism = data["organism"]
 	label = data["label"]
@@ -929,7 +936,6 @@ def savedquery():
 			total_rows += 1
 		else:
 			break
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return returnstr
 
@@ -939,8 +945,7 @@ def savedquery():
 @app.route('/del_query', methods=['POST'])
 def del_query():
 	data = ast.literal_eval(request.data)
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	cursor = connection.cursor()
 	try:
 		user = current_user.name
@@ -952,23 +957,19 @@ def del_query():
 	user_id = result[0]
 	cursor.execute("DELETE from users_saved_cases WHERE tran = '{}' and start = '{}' and stop = '{}' and trips_link = '{}' and label = '{}' and user_id = {};".format(data["transcript"],data["start"],data["stop"],data["trips_link"],data["label"],user_id))
 	connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return ""
 
 
 # Allows users to logout
-@app.route("/user/logout")
-@login_required
-def logout():
-	logout_user()
-	return redirect(login)
+#@app.route("/user/logout")
+#@login_required
+#def logout():
+#	logout_user()
+#	return redirect(login)
 
 
-# callback to reload the user object
-@login_manager.user_loader
-def load_user(userid):
-	return User(userid)
+
 
 # Points to robots.txt in static folder 
 @app.route('/robots.txt')
@@ -1017,8 +1018,7 @@ def short(short_code):
 		user = None
 	#First convert short code to an integer
 	integer = base62_to_integer(short_code)
-	logging.debug("short Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("SELECT url from urls WHERE url_id = '{}';".format(integer))
@@ -1029,15 +1029,10 @@ def short(short_code):
 	url += result[0]
 	#add a keyword to the url to prevent generating another shortcode
 	url += "&short={}".format(short_code)
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return redirect(url)
 
-@app.before_request
-def func():
-	session.permanent = True
 
-  
   
 @app.after_request
 def after_request_func(response):
@@ -1099,28 +1094,20 @@ def homepage(message=""):
 
 
 
-#This is the home page it show a list of organisms as defined by trips_dict
-@app.route('/predictions/')
-def predictionspage():
-	studies = ["park","xu","combo","battle"]
-	return render_template('index_predictions.html',studies=studies)
 
 #show a list of transcriptomes
 @app.route('/<organism>/')
 def transcriptomepage(organism):
 	transcriptomes = []
-	logging.debug("organism Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 
 	user,logged_in = fetch_user()
 	
 	user_id = -1
-	if user != None:
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
-		result = (cursor.fetchone())
-		user_id = result[0]
+	if current_user.is_authenticated:
+		user_id = current_user.id
 	
 	org_access_list = []
 	cursor.execute("SELECT organism_id from organism_access WHERE user_id = '{}';".format(user_id))
@@ -1133,7 +1120,6 @@ def transcriptomepage(organism):
 		for row in result:
 			transcriptomes.append(row[0])
 	transcriptomes = str(transcriptomes).strip("[]").replace("'","")
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return render_template('transcriptomes.html', transcriptomes=transcriptomes)
 
@@ -1153,8 +1139,7 @@ def plogpage(organism,transcriptome):
 #@login_required
 def settingsquery():
 	data = ast.literal_eval(request.data)
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -1233,7 +1218,6 @@ def settingsquery():
 	connection.commit()
 	cursor.execute("UPDATE user_settings SET comp_uaa_col = '{}' WHERE user_id = '{}';".format(data["comp_uaa_col"].strip(),user_id))
 	connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	flash("Settings have been updated")
 	return "Settings have been updated"
@@ -1245,8 +1229,7 @@ def deletequery():
 	data = ast.literal_eval(request.data)
 	
 	user,logged_in = fetch_user()
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("Select user_id from users where username = '{}';".format(user))
@@ -1315,7 +1298,6 @@ def deletequery():
 		
 		
 	connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	flash("File list updated")
 	return redirect("https://trips.ucc.ie/uploads")
@@ -1326,8 +1308,7 @@ def deletequery():
 #@login_required
 def deletestudyquery():
 	data = ast.literal_eval(request.data)
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -1431,7 +1412,6 @@ def deletestudyquery():
 				
 
 	connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	flash("Update successful")
 	return redirect("https://trips.ucc.ie/uploads")
@@ -1442,8 +1422,7 @@ def deletestudyquery():
 #@login_required
 def deletetranscriptomequery():
 	data = ast.literal_eval(request.data)
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -1507,7 +1486,6 @@ def deletetranscriptomequery():
 				cursor.execute("DELETE FROM studies WHERE study_id = {}".format(study_id))
 				cursor.execute("DELETE FROM files WHERE study_id = {}".format(study_id))
 			connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	flash("Update successful")
 	return redirect("https://trips.ucc.ie/uploads")
@@ -1517,8 +1495,7 @@ def deletetranscriptomequery():
 #@login_required
 def seqrulesquery():
 	data = ast.literal_eval(request.data)
-	logging.debug("Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -1534,7 +1511,6 @@ def seqrulesquery():
 		elif data[seq_type][0] == 'True':
 			cursor.execute("UPDATE seq_rules SET frame_breakdown = 1 WHERE seq_name = '{}' and user_id = {};".format(seq_type, user_id))
 	connection.commit()
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	flash("Update successful")
 	return redirect("https://trips.ucc.ie/uploads")
@@ -1577,8 +1553,7 @@ def dataset_breakdown(organism,transcriptome):
 	i = 0
 	cell_color_dict = {"HEK293":"#e00025","HeLa":"#150ed1","BJ fibroblast":"#0cfffa","fibroblast":"#00c6d1","MCF10A-ER-Src":"#00d100","HCT116":"#ffe900",
 						"U2OS":"#ffc042"}
-	logging.debug("Connecting to trips.sqlite")
-	orfquery_connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
+	orfquery_connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	orfquery_cursor = orfquery_connection.cursor()
 	for file_id in file_paths_dict["riboseq"]:
 		i += 1
@@ -1614,320 +1589,8 @@ def dataset_breakdown(organism,transcriptome):
 		studies.append(result[0])
 		study_colors.append('#BABABA')
 	orfquery_cursor.close()
-	logging.debug("Closing trips.sqlite connection")
 	orfquery_connection.close()
 	return riboflask_datasets.generate_plot(xlist,ylist,filenames,file_descs,studies,raw_reads,controls, cell_lines,control_colors, study_colors, cell_line_colors,transcript,start,stop)
-
-
-# Estimates the time taken to complete the orfquery search
-@app.route('/estimate_orfquery', methods=['POST'])
-def estimate_orfquery():
-	
-	return "Estimated time: < 15 minutes"
-	#return "Estimated time: 10 minutes"
-	acceptable = 0
-	data = ast.literal_eval(request.data)
-	html_args = data["html_args"]
-	organism = data["organism"]
-	file_paths_dict = fetch_file_paths(data["file_list"],organism)
-	tran_list = data["tran_list"]
-	accepted_orftype = data["region"]
-	try:
-		user = current_user.name
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
-		result = (cursor.fetchone())
-		user_id = result[0]
-	except:
-		user_id = None
-	if html_args["user_short"] == "None":
-		short_code = generate_short_code(data,organism,data["transcriptome"],"orf_translation")
-	else:
-		short_code = html_args["user_short"]
-		user_short_passed = True	
-	transcriptome = data["transcriptome"]
-	start_codons = []
-
-	if "sc_aug" in data:
-		start_codons.append("ATG")
-	if "sc_cug" in data:
-		start_codons.append("CTG")
-	if "sc_gug" in data:
-		start_codons.append("GTG")
-	if "sc_none" in data:
-		start_codons.append("None")
-		
-		
-	min_start_increase = float(data["min_start_increase"])
-	max_start_increase = float(data["max_start_increase"])
-
-	min_stop_decrease = float(data["min_stop_decrease"])
-	max_stop_decrease = float(data["max_stop_decrease"])
-
-	min_cds_ratio = float(data["min_cds_ratio"])
-	max_cds_ratio = float(data["max_cds_ratio"])
-	
-	min_coverage = float(data["min_coverage"])
-	max_coverage = float(data["max_coverage"])
-
-	min_lowest_frame_diff = float(data["min_lowest_frame_diff"])
-	max_lowest_frame_diff = float(data["max_lowest_frame_diff"])
-
-	min_highest_frame_diff = float(data["min_highest_frame_diff"])
-	max_highest_frame_diff = float(data["max_highest_frame_diff"])
-
-	min_cds = float(data["min_cds"])
-	max_cds = float(data["max_cds"])
-
-	min_len = float(data["min_len"])
-	max_len = float(data["max_len"])
-
-	min_avg = float(data["min_avg"])
-	max_avg = float(data["max_avg"])
-
-	filename = short_code+".csv"
-	if os.path.isfile("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename)):
-		return "Loading previous result."
-
-	if tran_list != "":
-		tran_list  = tran_list.replace(","," ")
-		for item in tran_list.split(" "):
-			user_defined_transcripts.append(item)
-
-	if accepted_orftype == "":
-		return "Error no accepted_orftypes selected:"
-	tran_gene_dict = {}
-	# structure of orf dict is transcript[stop][start] = {"length":x,"score":0,"cds_cov":0} each stop can have multiple starts
-	accepted_orf_dict = {}
-	user_defined_transcripts = []
-	tran_list = data["tran_list"]
-	ambig = False
-	if "ambig_check" in data:
-		ambig = True
-
-	filtered_transcripts = {}
-
-
-	if start_codons == []:
-		return "Error no start codon types selected:"
-
-	traninfo_connection = sqlite3.connect("{0}/{1}/{2}/{2}.v2.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism))
-	traninfo_cursor = traninfo_connection.cursor()
-	
-	principal_transcripts = []
-	traninfo_cursor.execute("SELECT transcript,gene FROM transcripts WHERE principal = 1;")
-	result = traninfo_cursor.fetchall()
-	for row in result:
-		principal_transcripts.append(str(row[0]))
-		tran_gene_dict[row[0]] = row[1]
-	
-	if accepted_orftype != "drops":
-		table_name = "{}".format(accepted_orftype)
-	else:
-		table_name = "cds"
-	
-	traninfo_cursor.execute("SELECT * FROM {} WHERE start_codon IN ({}) AND cds_coverage >= {} AND cds_coverage <= {} AND length >= {} AND length <= {} AND transcript IN ({});".format(table_name, str(start_codons).strip("[]"),min_cds,max_cds,min_len, max_len, str(principal_transcripts).strip("[]")))
-	result = traninfo_cursor.fetchall()
-	for row in result:
-		if user_defined_transcripts != []:
-			if row[0] not in user_defined_transcripts:
-				continue
-		if str(row[0]) not in accepted_orf_dict:
-			accepted_orf_dict[str(row[0])] = {}
-		if row[4] not in accepted_orf_dict[str(row[0])]:
-			accepted_orf_dict[str(row[0])][row[4]] = {}
-		accepted_orf_dict[str(row[0])][row[4]][row[3]] = {"length":row[2],
-													  "score":0,
-													  "cds_cov":row[6],
-													  "start_codon":str(row[1])}
-
-	# This will be populated with the users chosen file_ids and passed to the table, so that the trips link can use these files aswell.
-	file_string = ""
-
-	#Now build a profile for every transcript in accepted_transcripts
-	master_profile_dict = {}
-
-	# string based list of all acceptable transcripts, square brackets removed so that can be passed to sql
-	transcript_list = str(accepted_orf_dict.keys()).strip("[]")
-
-	#Mysql call will fail if we pass an empty list, so append NULL if thats the case
-	if transcript_list == []:
-		transcript_list.append("NULL")
-
-	all_scores = []
-	all_te = []
-	all_start_increases = []
-	all_stop_decreases = []
-	all_cds_ratios = []
-	all_results = []
-
-	cds_average_dict = {}
-	score_dict = {}
-
-	# keeps track of the number of hits per gene
-	gene_count_dict = {}
-	missing_file_ids = []
-
-	if file_paths_dict["rnaseq"] == {}:
-		if "te_check" in data:
-			del data["te_check"]
-	
-	if file_paths_dict["riboseq"] == {} and file_paths_dict["rnaseq"] == {}:
-		flash("Error no files selected")
-		return "Error no files selected"
-	returnstr = ""
-	
-	all_values = []
-	offset_dict = {}
-	for file_id in file_paths_dict["riboseq"]:
-		file_string += "{};".format(file_id)
-		sqlite_db = SqliteDict(file_paths_dict["riboseq"][file_id])
-		try:
-			offsets = sqlite_db["offsets"]["fiveprime"]["offsets"]
-			offset_dict[file_id] = offsets
-		except:
-			offset_dict[file_id] = {}
-		sqlite_db.close()
-	tran_count = 0
-	best_high_frame = 0
-	best_low_frame = 0
-	best_start_score = 0
-	best_stop_score = 0
-	best_inframe_cov = 0
-	tran_samples = 0
-	start_time = time.time()
-	
-	for transcript in accepted_orf_dict:
-		tran_samples += 1
-		if tran_samples == 50:
-			break
-			
-		gene = tran_gene_dict[transcript]
-
-		tran_count += 1
-		profile = {}
-		for file_id in file_paths_dict["riboseq"]:
-			sqlite_db = SqliteDict(file_paths_dict["riboseq"][file_id])
-			if transcript not in sqlite_db:
-				continue
-			offsets = offset_dict[file_id]
-		
-			subprofile = build_profile(sqlite_db[transcript], offsets,ambig)
-			for pos in subprofile:
-				if pos not in profile:
-					profile[pos] = 0
-				profile[pos] += subprofile[pos]
-			
-		for stop in accepted_orf_dict[transcript]:
-			best_values = {"start":-1,"high_frame_count":-1,"low_frame_count":-1,"start_score":-1,"stop_score":-1,"final_score":-1,"coverage":0}
-			for start in accepted_orf_dict[transcript][stop]:
-				length = stop-start
-				inframe_count = 0
-				minframe_count = 0
-				highframe_count = 0
-
-				if_cl = []
-				mo_count = 0
-				po_count = 0
-				if_cov = 0.0
-				if_len = 0.0
-				
-				for x in range(start+8, stop-9,3):
-					curr_mo = 0
-					curr_po = 0
-					if_len += 1
-					if x-1 in profile:
-						mo_count += profile[x-1]
-						curr_mo = profile[x-1]
-					if x+1 in profile:
-						po_count += profile[x+1]
-						curr_po = profile[x+1]
-					if x in  profile:
-						if_cl.append(profile[x])
-						if "highest_frame_diff_check" in data:
-							if profile[x] > max(curr_mo, curr_po):
-								if_cov += 1
-						else:
-							if profile[x] > min(curr_mo, curr_po):
-								if_cov += 1
-				if_cov = if_cov/if_len
-				
-				#In frame count discards the highest peak
-				inframe_count = sum(sorted(if_cl)[:-1])
-					
-				lowest_frame_count = inframe_count - min(mo_count,po_count)
-				high_frame_count = inframe_count - max(mo_count, po_count)
-				before_start = 0
-				after_start = 0
-				for y in range(start-7,start+7,3):
-					if y in profile:
-						if y < start:
-							before_start += profile[y]
-						else:
-							after_start += profile[y]
-				start_score = after_start-before_start
-				
-				before_stop = 0
-				after_stop = 0
-				for z in range(stop-9,stop+7,3):
-					if z in profile:
-						if z < stop:
-							before_stop += profile[z]
-						else:
-							after_stop += profile[z]
-				stop_score = before_stop-after_stop
-				final_score_values = []
-				if "start_increase_check" in data:
-					final_score_values.append(start_score)
-				if "stop_decrease_check" in data:
-					final_score_values.append(stop_score)
-				if "lowest_frame_diff_check" in data:
-					final_score_values.append(lowest_frame_count)
-				if "highest_frame_diff_check" in data:
-					final_score_values.append(high_frame_count)
-				if "coverage_check" in data:
-					final_score_values.append(if_cov)
-				final_score = sum(final_score_values)
-				if final_score > best_values["final_score"] or (final_score == best_values["final_score"] and start > best_values["start"]):
-					best_values["start"] = start
-					best_values["high_frame_count"] = high_frame_count
-					best_values["low_frame_count"] = lowest_frame_count
-					best_values["start_score"] = start_score
-					best_values["stop_score"] = stop_score
-					best_values["final_score"] = final_score
-					best_values["coverage"] = if_cov
-					if high_frame_count > best_high_frame:
-						best_high_frame = high_frame_count
-					if lowest_frame_count > best_low_frame:
-						best_low_frame = lowest_frame_count
-					if stop_score > best_stop_score:
-						best_stop_score = stop_score
-					if start_score > best_start_score:
-						best_start_score = start_score
-					if if_cov > best_inframe_cov:
-						best_inframe_cov = if_cov
-			if best_values["final_score"] > 0:
-				all_values.append([gene,
-								transcript,
-								best_values["start"],
-								stop,
-								length,
-								best_values["high_frame_count"],
-								best_values["low_frame_count"],
-								best_values["stop_score"],
-								best_values["start_score"],
-								best_values["coverage"]])
-			
-	total_time = time.time()-start_time
-	total_trans = len(accepted_orf_dict.keys())/50
-	estimated_seconds = total_trans*total_time
-	
-	if estimated_seconds > 3600:
-		return "Estimated time: {} hours".format(round((estimated_seconds/60)/60,1))
-	elif estimated_seconds > 60:
-		return "Estimated time: {} minutes".format(round(estimated_seconds/60,0))
-	else:
-		return "Estimated time: < 1 minute"
-
 
 
 
@@ -1948,4 +1611,4 @@ if __name__ == '__main__':
 	if local == False:
 		app.run(host='0.0.0.0',debug=False)
 	else:
-		app.run(host='0.0.0.0', port=port_no, debug=True)
+		app.run(host='0.0.0.0', port=port_no, debug=True,threaded=True)

@@ -327,21 +327,18 @@ for (var i in sorted_study_ids) {
 	study_td.setAttribute('type', 'text');
 	study_td.setAttribute('value', study_dict[study_id][0]);
 	study_td.setAttribute('id', 'studyname_'+study_id);
-	
 	var org_td = document.createElement("td");
 	var select_td = document.createElement("select");
 	select_td.name = "organism";
 	select_td.id = "organism_"+study_id
+	select_td.className="orgdrop"
 	var curr_organism = study_dict[study_id][1]
-	console.log("TRANSCRIPTOME DICT IS",organism_dict);
 	for (var organism_id in organism_dict) {
-		console.log("ORGANISM_ID"+organism_id);
 		var option = document.createElement("option");
 		option.value = organism_id
 		option.text = organism_id
 		select_td.appendChild(option);
 	}
-	
 	for(var i, j = 0; i = select_td.options[j]; j++) {
 		if(i.value == curr_organism) {
 			select_td.selectedIndex = j;
@@ -350,10 +347,6 @@ for (var i in sorted_study_ids) {
 	}
 	org_td.appendChild(select_td);
 	
-	//var txt = document.createTextNode(study_dict[study_id][1]);
-	//org_td.appendChild(txt);
-	
-	
 	
 	var assembly_td = document.createElement("td");
 	var select2_td = document.createElement("select");
@@ -361,14 +354,17 @@ for (var i in sorted_study_ids) {
 	select2_td.id = "assembly_"+study_id
 	var curr_assembly = study_dict[study_id][2]
 	for (var organism_id in organism_dict) {
-		var option = document.createElement("option");
-		for (var i in organism_dict[organism_id])    {
-			option.value = organism_dict[organism_id][i]
-			option.text = organism_dict[organism_id][i]
+		if (curr_organism == organism_id) {
+			for (var i in organism_dict[organism_id])    {
+				var option = document.createElement("option");
+				option.value = organism_dict[organism_id][i]
+				option.text = organism_dict[organism_id][i]
+				console.log("assembly", organism_dict[organism_id][i]);
+				select2_td.appendChild(option);
+				}
 			}
-		select2_td.appendChild(option);
+		
 		}
-	
 	for(var i, j = 0; i = select2_td.options[j]; j++) {
 		if(i.value == curr_assembly) {
 			select2_td.selectedIndex = j;
@@ -376,20 +372,6 @@ for (var i in sorted_study_ids) {
 		}
 		}
 	assembly_td.appendChild(select2_td);
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	//var assembly_td = document.createElement("td");
-	//var txt = document.createTextNode(study_dict[study_id][2]);
-	//assembly_td.appendChild(txt);
-	
 	var access_td = document.createElement("input");
 	access_td.setAttribute('type', 'text');
 	access_td.setAttribute('value', study_dict[study_id][3]);
@@ -411,6 +393,27 @@ for (var i in sorted_study_ids) {
 	study_table.appendChild(tr);
 }
 
+// Listen for changes in the organism dropdown menus in the my studies section and change assembly dropdown accordingly
+$('.orgdrop').on('change', function () {
+  var assembly_id = $(this).attr('id').replace("organism_","assembly_");
+  var assembly_td = document.getElementById(assembly_id);
+  // Clear all options from selected assembly dropdown
+  assembly_td.innerHTML = "";
+  // Get the value of the currently selected organism
+  var curr_organism = $(this).val()
+  // Find the selected org in the org_dict and populate the assembly dropdown with it's values
+  for (var organism_id in organism_dict) {
+		if (curr_organism == organism_id) {
+			for (var i in organism_dict[organism_id])    {
+				var option = document.createElement("option");
+				option.value = organism_dict[organism_id][i]
+				option.text = organism_dict[organism_id][i]
+				assembly_td.appendChild(option);
+				}
+			}
+		
+		}
+});
 
 
 

@@ -10,6 +10,8 @@
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.js"></script>
+	<script src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.3.2.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdn.bokeh.org/bokeh/release/bokeh-2.3.2.min.js" crossorigin="anonymous"></script>
 	<script src="//cdnjs.cloudflare.com/ajax/libs/nanobar/0.2.1/nanobar.min.js"></script>
 	<link rel="stylesheet" href="{{ url_for('static', filename='css/sofia.css') }}">
 	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.css"/>
@@ -39,12 +41,13 @@
 								<li><a href="{{ url_for('settingspage') }}"><span>Settings</span></a></li>
 								<li><a href="{{ url_for('uploadspage') }}"><span>Uploads</span></a></li>
 								<li><a href="{{ url_for('saved') }}"><span>Saved ORFs</span></a></li>
-								{% if current_user.is_authenticated %}
-										<li><a href="{{ url_for('logout') }}"><span>Logout</span></a></li>
-								{% endif %}
+
 								{% if not current_user.is_authenticated %}
-										<li><a href="{{ url_for('login') }}"><span>Sign In</span></a></li>
+										<li><a href="{{ url_for('login')}}"><span>Sign In</span></a></li>
 										<li><a href="{{ url_for('create') }}"><span>Sign Up</span></a></li>
+								{% endif %}
+								{% if current_user.is_authenticated %}
+										<li><a href="{{ url_for('logout')}}"><span>Sign Out</span></a></li>
 								{% endif %}
 								
 								<!--{% if current_user.name == "114224403@umail.ucc.ie" %}
@@ -161,21 +164,10 @@ window.addEventListener('load', function(){
 										}
 									}
 				
-				
-				
-				
-				
-				
+
 				
 					   })
 					   });
-
-
-
-
-
-
-
 
 
 

@@ -1,4 +1,3 @@
-
 import sys
 import matplotlib
 matplotlib.use('agg')
@@ -16,6 +15,7 @@ import subprocess
 import shelve
 import mpld3
 from mpld3 import plugins,utils
+from new_plugins import InteractiveLegendPlugin,TopToolbar,DownloadProfile,DownloadPNG
 import collections
 from mpld3.utils import get_id
 import pandas as pd
@@ -94,7 +94,7 @@ def nuc_freq_plot(master_dict,title,short_code, background_col,readlength_col,ti
 		g_counts.append(master_dict[i]["G"])
 		c_counts.append(master_dict[i]["C"])
 		
-	fig, ax = plt.subplots( figsize=(23,12))
+	fig, ax = plt.subplots( figsize=(13,12))
 	#rects1 = ax.bar([20,21,22,23,24,25,26,27,28], [100,200,100,200,100,200,100,200,100], 0.1, color='r',align='center')
 	ax.set_xlabel('Position (nucleotides)',fontsize=axis_label_size)
 
@@ -118,11 +118,11 @@ def nuc_freq_plot(master_dict,title,short_code, background_col,readlength_col,ti
 	t_line = ax.plot(x_pos, t_counts, label=labels, color="red", linewidth=4)
 	g_line = ax.plot(x_pos, g_counts, label=labels, color="green", linewidth=4)
 	c_line = ax.plot(x_pos, c_counts, label=labels, color="orange", linewidth=4)
-	ax.set_axis_bgcolor(background_col)
+	ax.set_facecolor(background_col)
 	ax.tick_params('both', labelsize=marker_size)
 	plt.grid(color="white", linewidth=2,linestyle="solid")
-	ilp = plugins.InteractiveLegendPlugin([a_line, t_line, g_line, c_line], ["A","T","G","C"], alpha_unsel=0,alpha_sel=1,start_visible=True)
-	plugins.connect(fig, ilp,plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
+	ilp = InteractiveLegendPlugin([a_line, t_line, g_line, c_line], ["A","T","G","C"], alpha_unsel=0,alpha_sel=1,start_visible=True)
+	plugins.connect(fig, ilp,TopToolbar(yoffset=750,xoffset=600),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)	
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><a href='https://trips.ucc.ie/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download results as fasta file</b></button></a> </div>".format(short_code,filename)
 	graph += mpld3.fig_to_html(fig)
@@ -188,7 +188,7 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 			if best_stop_pos != 10000000:
 				frame_orfs[frame].append((start, best_stop_pos))
 	y_max = 100
-	fig = plt.figure(figsize=(23,12))
+	fig = plt.figure(figsize=(13,8))
 
 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
 	ax_main.spines['bottom'].set_visible(False)
@@ -199,20 +199,20 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 	cds_markers = ax_main.plot((cds_start+1,cds_start+1), (0, y_max), color="black",linestyle = 'solid', linewidth=2)
 	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max), color="black",linestyle = 'solid', linewidth=2)
 	ax_f1 = plt.subplot2grid((30,1), (26,0),rowspan=1,sharex=ax_main)
-	ax_f1.set_axis_bgcolor(color_dict['frames'][0])
+	ax_f1.set_facecolor(color_dict['frames'][0])
 	ax_f2 = plt.subplot2grid((30,1), (27,0),rowspan=1,sharex=ax_main)
-	ax_f2.set_axis_bgcolor(color_dict['frames'][1])
+	ax_f2.set_facecolor(color_dict['frames'][1])
 	ax_f3 = plt.subplot2grid((30,1), (28,0),rowspan=1,sharex=ax_main)
-	ax_f3.set_axis_bgcolor(color_dict['frames'][2])
+	ax_f3.set_facecolor(color_dict['frames'][2])
 	ax_nucseq = plt.subplot2grid((30,1), (29,0),rowspan=1,sharex=ax_main)
 	ax_nucseq.set_xlabel('Transcript: {} Length: {} nt'.format(tran, tranlen), fontsize=subheading_size, labelpad=10)
 
 	#plot a dummy exon junction at postion -1, needed in cases there are no exon junctions, this wont be seen
 	allexons = ax_main.plot((-1,-1), (0, 1), alpha=0.01,color='black',linestyle = '-.', linewidth=2)
 	for exon in exon_junctions:
-		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.01,color='black',linestyle = '-.', linewidth=3)
+		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.95,color='black',linestyle = '-.', linewidth=3)
 	xy = 0
-	ax_nucseq.set_axis_bgcolor(background_col)
+	ax_nucseq.set_facecolor(background_col)
 	mrnaseq = seq.replace("T","U")
 	color_list = ["#FF4A45","#64FC44","#5687F9"]
 	char_frame = 0
@@ -250,6 +250,8 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 			seq_window = str(seq[i:i+window_size])
 			(ss, mfe) = RNA.fold(seq_window)
 			mfe_dict[i+(window_size/2)] = abs(mfe)
+	else:
+		mfe_dict = {}
 	if plot_gc == True:
 		step_size = 2
 		window_size = 60
@@ -305,7 +307,7 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 	if leg_offset <0:
 		leg_offset = 0
 
-	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=30,xoffset=leg_offset)
+	ilp = InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=30,xoffset=leg_offset)
 	htmllabels = {1:[],2:[],3:[]}
 	all_start_points = {1:[],2:[],3:[]}
 
@@ -317,9 +319,9 @@ def nuc_comp_single(tran, master_dict,title,short_code,background_col,readlength
 	ax_f2.axes.get_yaxis().set_ticks([])
 	ax_f1.axes.get_yaxis().set_ticks([])
 
-	plugins.connect(fig, ilp, plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=""),plugins.DownloadPNG(returnstr=tran))
+	plugins.connect(fig, ilp, TopToolbar(yoffset=750,xoffset=600),DownloadProfile(returnstr=""),DownloadPNG(returnstr=tran))
 
-	ax_main.set_axis_bgcolor(background_col)
+	ax_main.set_facecolor(background_col)
 	# This changes the size of the tick markers, works on both firefox and chrome.
 	ax_main.tick_params('both', labelsize=marker_size)
 	ax_main.xaxis.set_major_locator(plt.MaxNLocator(3))
@@ -339,7 +341,7 @@ def gc_metagene(title, short_code, background_col, readlength_col, title_size, a
 	color_dict = {'frames': ['#FF4A45', '#64FC44', '#5687F9']}
 	gene = ""
 	y_max = 100
-	fig = plt.figure(figsize=(23,12))
+	fig = plt.figure(figsize=(13,8))
 
 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
 	ax_main.spines['bottom'].set_visible(False)
@@ -509,13 +511,13 @@ def gc_metagene(title, short_code, background_col, readlength_col, title_size, a
 	if leg_offset <0:
 		leg_offset = 0
 
-	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=30,xoffset=leg_offset)
+	ilp = InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=30,xoffset=leg_offset)
 	htmllabels = {1:[],2:[],3:[]}
 
 
-	plugins.connect(fig, ilp, plugins.TopToolbar(yoffset=0))
+	plugins.connect(fig, ilp, TopToolbar(yoffset=420,xoffset=130))
 
-	ax_main.set_axis_bgcolor(background_col)
+	ax_main.set_facecolor(background_col)
 	# This changes the size of the tick markers, works on both firefox and chrome.
 	ax_main.tick_params('both', labelsize=marker_size)
 	ax_main.xaxis.set_major_locator(plt.MaxNLocator(3))
@@ -567,7 +569,7 @@ def nuc_comp_scatter(master_dict,filename,title_size,axis_label_size,marker_size
 	full_title = "{}% ({})".format(nucleotide,short_code)
 	y_lab = "{} %".format(nucleotide)
 
-	p = figure(plot_width=2200, plot_height=1800,x_axis_label="", title=full_title,y_axis_label=y_lab,toolbar_location="below",
+	p = figure(plot_width=1300, plot_height=1300,x_axis_label="", title=full_title,y_axis_label=y_lab,toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	p.title.align="center"
 	p.title.align="center"
@@ -633,7 +635,7 @@ def lengths_scatter(master_dict,filename,title_size,axis_label_size,marker_size,
 	full_title = "Lengths ({})".format(short_code)
 	y_lab = "Length"
 
-	p = figure(plot_width=2200, plot_height=1800,x_axis_label="", title=full_title,y_axis_label=y_lab,toolbar_location="below",
+	p = figure(plot_width=1300, plot_height=1300,x_axis_label="", title=full_title,y_axis_label=y_lab,toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	p.title.align="center"
 	p.title.align="center"
@@ -736,11 +738,6 @@ def nuc_comp_box(master_dict,filename,nucleotide,title_size,box_colour,axis_labe
 			for item in c_list4:
 				grouplist.append("Group 4")
 				gclist.append(item)
-	
-
-	
-	
-	
 	if nucleotide == "GC":
 		cats.append("Group 1")
 		for item in gc_list:
@@ -833,7 +830,7 @@ def nuc_comp_box(master_dict,filename,nucleotide,title_size,box_colour,axis_labe
 				pass
 	full_title = "{}% ({})".format(nucleotide,short_code)
 	y_lab = '{} %'.format(nucleotide)
-	p = figure(plot_width=2200, plot_height=1800,tools="reset,pan,box_zoom,save,hover,tap", background_fill_color="#efefef", x_range=cats, toolbar_location="below",title=full_title,y_axis_label=y_lab)
+	p = figure(plot_width=1300, plot_height=1300,tools="reset,pan,box_zoom,save,hover,tap", background_fill_color="#efefef", x_range=cats, toolbar_location="below",title=full_title,y_axis_label=y_lab)
 	p.title.align="center"
 	p.title.text_font_size = title_size
 	p.xaxis.axis_label_text_font_size = axis_label_size
@@ -933,7 +930,7 @@ def lengths_box(master_dict,filename,box_colour,short_code,title_size,marker_siz
 			outy.append(out.loc[keys[0]].loc[keys[1]])
 		
 	full_title = "Lengths ({})".format(short_code)
-	p = figure(plot_width=2200, plot_height=1800,tools="reset,pan,box_zoom,save,hover,tap",title=full_title, background_fill_color="#efefef", x_range=cats, toolbar_location="below")
+	p = figure(plot_width=1300, plot_height=1300,tools="reset,pan,box_zoom,save,hover,tap",title=full_title, background_fill_color="#efefef", x_range=cats, toolbar_location="below")
 	p.title.align="center"
 	p.title.text_font_size = title_size
 	p.xaxis.axis_label_text_font_size = axis_label_size
@@ -999,9 +996,9 @@ def codon_usage(codon_dict,short_code,title_size, axis_label_size, marker_size,f
     "GAT":"Aspartic Acid", "GAC":"Aspartic Acid", "GAA":"Glutamic Acid", "GAG":"Glutamic Acid",
     "GGT":"Glycine", "GGC":"Glycine", "GGA":"Glycine", "GGG":"Glycine"}
 
-	codon_list = ["ATG","TTT","TTC","CTT", "CTC", "CTA", "CTG","TTA","TTG", "AGT", "AGC","TCT", "TCC", "TCA", "TCG","TAT", "TAC","TGT", "TGC","TGG","CCT", "CCC", "CCA", "CCG",
-			   "CAT", "CAC", "CAA", "CAG","AGA", "AGG","CGT", "CGC", "CGA", "CGG","ATT", "ATC", "ATA","ACT", "ACC", "ACA", "ACG","AAT", "AAC", "AAA", "AAG",
-				"GTT", "GTC", "GTA", "GTG","GCT", "GCC", "GCA", "GCG","GAT", "GAC", "GAA", "GAG","GGT", "GGC", "GGA", "GGG","TAG","TAA","TGA"]
+	codon_list = ["ATG","TTT","TTC","CTT", "CTC", "CTA", "CTG","TTA","TTG", "AGT", "AGC","TCT", "TCC", "TCA", "TCG","TAT", "TAC","TGT", "TGC","TGG","CCT", "CCC", "CCA",
+			   "CCG","CAT", "CAC", "CAA", "CAG","AGA", "AGG","CGT", "CGC", "CGA", "CGG","ATT", "ATC", "ATA","ACT", "ACC", "ACA", "ACG","AAT", "AAC", "AAA", "AAG","GTT",
+			   "GTC", "GTA", "GTG","GCT", "GCC", "GCA", "GCG","GAT", "GAC", "GAA", "GAG","GGT", "GGC", "GGA", "GGG","TAG","TAA","TGA"]
 
 	curr_count = 0
 	for codon in codon_list:
@@ -1018,8 +1015,8 @@ def codon_usage(codon_dict,short_code,title_size, axis_label_size, marker_size,f
 	y_lab = 'Count'
 	min_y = min(0,min(allyvals))-.02
 	max_y = max(allyvals)*1.05
-	p = figure(plot_width=1800, plot_height=750,x_axis_label=x_lab,  y_axis_label=y_lab,title= full_title,toolbar_location="below",
-			   tools = "reset,pan,box_zoom,hover,tap,save",logo=None,y_range=(min_y,max_y))
+	p = figure(plot_width=1300, plot_height=1300,x_axis_label=x_lab,  y_axis_label=y_lab,title= full_title,toolbar_location="below",
+			   tools = "reset,pan,box_zoom,hover,tap,save",y_range=(min_y,max_y))
 	p.title.align="center"
 	p.title.text_font_size = title_size
 	p.xaxis.axis_label_text_font_size = axis_label_size
@@ -1074,7 +1071,7 @@ def make_autopct(values):
 
 def gene_count(short_code, background_col, title_size, axis_label_size, subheading_size, marker_size,coding,noncoding):
 	labels = ["","Genes","Transcripts",""]
-	fig, ax = plt.subplots(figsize=(23,12))
+	fig, ax = plt.subplots(figsize=(13,8))
 	N = 4
 	bar_width = 0.35
 	bar_l = [i for i in range(N)]
@@ -1087,7 +1084,7 @@ def gene_count(short_code, background_col, title_size, axis_label_size, subheadi
 	#plt.yticks(np.arange(0, 81, 10))
 	#plt.legend((p1[0], p2[0], p3[0],p4[0],p5[0],p6[0]), ('Cutadapt removed', 'rRNA removed', 'Unmapped', 'Ambiguous','Mapped noncoding', 'Mapped coding'))
 
-	ax.set_axis_bgcolor(background_col)
+	ax.set_facecolor(background_col)
 	ax.tick_params('y', labelsize=marker_size)
 	if len(labels) > 12:
 		marker_size = int(marker_size/(len(labels)/8))
@@ -1132,7 +1129,7 @@ def gene_count(short_code, background_col, title_size, axis_label_size, subheadi
 		lab1 += '<br><b>Coding:</b> {:,}  ({}%)'.format(coding[i], per)
 		tooltip1 = plugins.LineHTMLTooltip(bar, lab1,voffset=10, hoffset=30,css=line_tooltip_css)
 		plugins.connect(fig, tooltip1)
-	plugins.connect(fig, plugins.TopToolbar(xoffset=-13, yoffset=115),plugins.DownloadPNG(returnstr=title_str))
+	plugins.connect(fig, TopToolbar(yoffset=750,xoffset=600),DownloadPNG(returnstr=title_str))
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph += mpld3.fig_to_html(fig)

@@ -3,12 +3,13 @@ matplotlib.use('agg')
 from matplotlib import pyplot as plt
 import mpld3
 from mpld3 import plugins,utils
+from new_plugins import InteractiveLegendPlugin,TopToolbar,DownloadProfile,DownloadPNG
 from fetch_shelve_reads2 import get_reads
 import sqlite3
 import config
 import os
 import config
-from celery_app import celery_application
+
 
 def merge_dict(dict1,dict2):
 	master_dict = dict1
@@ -26,8 +27,8 @@ color_dict = {'frames': ['#FF4A45', '#64FC44', '#5687F9']}
 
 
 
-@celery_application.task(bind=True)
-def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_dict,lite, offset_dict,ribocoverage,organism,normalize, short_code, background_col, hili_start, 
+
+def generate_compare_plot(tran, ambig, min_read, max_read,master_filepath_dict,lite, offset_dict,ribocoverage,organism,normalize, short_code, background_col, hili_start, 
 				 hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col, title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,
 				 cds_marker_colour, legend_size,transcriptome):
 	labels = []
@@ -39,7 +40,7 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 	if normalize == True:
 		y_max = 0
 		
-	connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -93,7 +94,7 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 			rem = ((stop_pos-1)%3)+1
 			start_stop_dict[rem]["stops"][stop].append(stop_pos-1)
 
-	fig = plt.figure(figsize=(23,12))
+	fig = plt.figure(figsize=(13,8))
 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
 	if normalize != True:
 		label = 'Read count'
@@ -201,11 +202,11 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 	start_visible.append(True)
 	labels.append("CDS Markers")
 	ax_f1 = plt.subplot2grid((30,1), (27,0),rowspan=1,sharex=ax_main)
-	ax_f1.set_axis_bgcolor('lightgray')
+	ax_f1.set_facecolor('lightgray')
 	ax_f2 = plt.subplot2grid((30,1), (28,0),rowspan=1,sharex=ax_main)
-	ax_f2.set_axis_bgcolor('lightgray')
+	ax_f2.set_facecolor('lightgray')
 	ax_f6 = plt.subplot2grid((30,1), (29,0),rowspan=1,sharex=ax_main)
-	ax_f6.set_axis_bgcolor('lightgray')
+	ax_f6.set_facecolor('lightgray')
 	ax_f6.set_xlabel('Transcript: {}   Length: {} nt'.format(tran, tranlen), fontsize=subheading_size, labelpad=10)
 
 	for axis, frame in ((ax_f1, 1), (ax_f2, 2), (ax_f6, 3)):
@@ -241,9 +242,9 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 	if leg_offset <0:
 		leg_offset = 0
 	leg_offset += 230
-	ilp = plugins.InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85, xoffset=leg_offset, yoffset=20,start_visible=start_visible,fontsize=legend_size)
-	plugins.connect(fig, ilp,plugins.TopToolbar(yoffset=100),plugins.DownloadProfile(returnstr=returnstr),plugins.DownloadPNG(returnstr=title_str))
-	ax_main.set_axis_bgcolor(background_col)
+	ilp = InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85, xoffset=leg_offset, yoffset=20,start_visible=start_visible,fontsize=legend_size)
+	plugins.connect(fig, ilp,TopToolbar(yoffset=-50,xoffset=-300),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
+	ax_main.set_facecolor(background_col)
 	# This changes the size of the tick markers, works on both firefox and chrome.
 	ax_main.tick_params('both', labelsize=marker_size)
 	ax_main.xaxis.set_major_locator(plt.MaxNLocator(3))
@@ -252,5 +253,4 @@ def generate_compare_plot(self,tran, ambig, min_read, max_read,master_filepath_d
 	graph = "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	tot_prog = 100
 	graph +=  mpld3.fig_to_html(fig)
-	return {'current': 400, 'total': tot_prog, 'status': 'Complete','result': graph}
-	#return graph
+	return graph

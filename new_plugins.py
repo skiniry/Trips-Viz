@@ -369,11 +369,13 @@ class InteractiveLegendPlugin(plugins.PluginBase):
 				// for we pass the id for both the line and the markers. Either
 				// one might not exist on the D3 side
 				if(mpld3_element){
+					mpld3_element.visible = this.props.start_visible[i];
 					mpld3_elements.push(mpld3_element);
 				}
 			}
 
 			obj.mpld3_elements = mpld3_elements;
+			
 			obj.visible = this.props.start_visible[i]; // should become be setable from python side
 			legendItems.push(obj);
 

@@ -57,7 +57,7 @@ function populate_jquery_dialog_quant(splitdata) {
 		var dialog_div = document.getElementById('dialog-2');
 		dialog_div.innerHTML = "";
 
-		tablehtml = "<table id='myTable' class='tablesorter tran_select_box hover-highlight'>  <thead> <tr><th><b>Transcript</b></th> <th><b>Version</b></th>   <th><b>Length</b></th>    <th><b>5' Length</b></th>    <th><b>Cds length</b></th>    <th><b>3' Length</b></th>  <th>OPM</th> <th>TPM Ribo-seq</th> <th>TPM RNA-Seq</th> </tr></thead>"
+		tablehtml = "<table id='myTable' class='tablesorter tran_select_box hover-highlight'>  <thead> <tr><th><b>Transcript</b></th> <th><b>Version</b></th>   <th><b>Length</b></th>    <th><b>5' Length</b></th>    <th><b>Cds length</b></th>	<th><b>3' Length</b></th>  <th> % Annotation Fit</th>    <th> % Merged CDS Fit </th>    <th> % Covered Bases (>10)</th>	<th>TPM Ribo-seq</th> <th>Transcript Abundance TPM</th> </tr></thead>"
 		for(var i = 1; i < splitdata.length; i++) {
 				var sublist = splitdata[i].split(",");
 				tablehtml += "<tr>"

@@ -1,4 +1,3 @@
-
 from flask import Blueprint, render_template, abort, request, url_for,jsonify
 from flask import current_app as app
 import sqlite3
@@ -10,6 +9,7 @@ import logging
 import config
 from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_file_paths,generate_short_code,build_profile,build_proteomics_profile,nuc_to_aa,fetch_user
 import collections
+import json
 from flask_login import current_user
 from bokeh.plotting import figure, show, output_file
 from bokeh.embed import file_html, components
@@ -41,7 +41,7 @@ import numpy as np
 import email
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-#from celery import Celery
+
 
 
 
@@ -53,16 +53,7 @@ MAX_ATTEMPTS = 20
 CASES_PER_TRAN = 2
 
 
-#app.config['CELERY_BROKER_URL'] = 
-#app.config['CELERY_RESULT_BACKEND'] = 'redis://127.0.0.1:6379'
-#For live version:
-#celery = Celery("tripsviz.orfquery_routes", backend='redis://127.0.0.1:6379', broker='redis://127.0.0.1:6379')
 
-#For development:
-#celery = Celery("orfquery_routes", backend='redis://127.0.0.1:6379', broker='redis://127.0.0.1:6379')
-
-
-from celery_app import celery_application
 
 
 
@@ -249,7 +240,7 @@ def create_aggregate(file_paths_dict,study_path, seq_type):
 	
 
 
-def create_profiles(file_paths_dict,accepted_transcript_list,ambig,total_files,minscore,self_obj,tot_prog, prog_count):
+def create_profiles(file_paths_dict,accepted_transcript_list,ambig,total_files,minscore):
 	#logging.debug(file_paths_dict)
 	#If
 	file_count = 0
@@ -288,11 +279,7 @@ def create_profiles(file_paths_dict,accepted_transcript_list,ambig,total_files,m
 			continue
 		for file_id in file_paths_dict[seq_type]:
 			file_count += 1
-			prog_count += (100*(1/tot_file_ids))
-			try:
-				self_obj.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Building profiles {}/{}".format(file_count,tot_file_ids)})
-			except:
-				pass
+
 			#logging.debug("file_id", file_id)
 			
 			sqlite_db = SqliteDict(file_paths_dict[seq_type][file_id])
@@ -581,7 +568,7 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 		else:
 			
 			return_str =  "Could not find feature {} in training dataset: {}".format(feature, training_filename)
-			return {'current': 100, 'total': 100, 'status': 'return_str','result': returnstr}
+			return returnstr
 	dataset = np.loadtxt("{}/static/tmp/{}".format(config.SCRIPT_LOC,training_filename), delimiter=",",skiprows=1,usecols=index_list)
 	# split into input (X) and output (Y) variables
 	X = dataset[:,1:columns]
@@ -672,7 +659,7 @@ def neural_net(short_code,feature_list,organism,transcriptome,file_string):
 	
 	
 
-def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,profile_dict,self_obj,tot_prog, prog_count,all_cases):
+def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,profile_dict,all_cases):
 	logging.debug("extract values called")
 	best_high_frame = 0
 	best_low_frame = 0
@@ -686,11 +673,6 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 		tot_loc += 1
 		if tot_loc%100 == 0:
 			logging.debug("total transcripts {}".format(tot_loc))
-			try:
-				self_obj.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Extracting features, {}/{}".format(tot_loc,locus_num)})
-			except:
-				pass
-			prog_count = 300+( 100*(tot_loc/float(locus_num)))
 		for stop in accepted_orf_dict[locus]:
 			best_values = {"start":-1,"high_frame_count":1,"low_frame_count":1,"start_score":-10,"stop_score":1,"final_score":-10000,"coverage":0,"length":0,
 				  "transcript":locus,"stop":0,"proteomics_count":0,"ratio":0,"inframe_count":0,"start_ratio":0,"stop_ratio":0,"high_ratio":0,"low_ratio":0,
@@ -963,9 +945,6 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 			prev_value = curr_value
 		row[16] = rank
 		
-		
-		
-
 	for row in all_values:
 		normalised_score_values = []
 		#inframe count
@@ -993,7 +972,7 @@ def extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,prof
 		row.append(round(normalised_score,2))
 	logging.debug("sorting all values")
 	sorted_all_values = sorted(all_values, key=lambda x: x[-1],reverse=False)
-	logging.debug("LENGHT OF ALL SORTED ROWS {}".format(len(sorted_all_values)))
+	logging.debug("LENGTH OF ALL SORTED ROWS {}".format(len(sorted_all_values)))
 	final_rank = 1
 	for tup in sorted_all_values:
 		tup[17] = final_rank
@@ -1044,18 +1023,13 @@ def write_to_file(sorted_all_values,filename,sequence_dict,organism,transcriptom
 
 
 
-@celery_application.task(bind=True)
-def find_orfs(self,data,user,logged_in):
+
+def find_orfs(data,user,logged_in):
 	logging.debug("orfquery called")
-	logging.debug("Data: {}".format(data))
-	logging.debug("orfquery Connecting to trips.sqlite")
-	logging.debug("config script loc: {}".format(config.SCRIPT_LOC))
 	global user_short_passed
-	connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	cursor = connection.cursor()
-	cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
-	result = (cursor.fetchone())
-	user_id = result[0]
+
 	organism = data["organism"]
 	transcriptome = data["transcriptome"]
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -1074,16 +1048,14 @@ def find_orfs(self,data,user,logged_in):
 		pass
 	file_paths_dict = fetch_file_paths(data["file_list"],organism)
 	#Find out which studies have all files of a specific sequence type selected (to create aggregates)
-	try:
-		self.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Aggregating data"})
-	except:
-		pass
+
 	aggregate_dict = {}
 	full_studies = []
 	if minscore == 0:
 		for seq_type in file_paths_dict:
 			all_study_ids = []
-			all_file_ids = file_paths_dict[seq_type].keys()
+			all_file_ids = list(file_paths_dict[seq_type].keys())
+			print ("SELECT DISTINCT study_id FROM files WHERE file_id IN ({})".format(str(all_file_ids).strip("[").strip("]")))
 			cursor.execute("SELECT DISTINCT study_id FROM files WHERE file_id IN ({})".format(str(all_file_ids).strip("[").strip("]")))
 			result = cursor.fetchall()
 			for row in result:
@@ -1092,10 +1064,6 @@ def find_orfs(self,data,user,logged_in):
 			
 			for study_id in all_study_ids:
 				prog_count += 100*(1.0/float(len(all_study_ids)))
-				try:
-					self.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Aggregating data"})
-				except:
-					pass
 				cursor.execute("SELECT file_id FROM files WHERE study_id = {} AND file_type = '{}'".format(study_id,seq_type))
 				result = cursor.fetchall()
 				study_file_ids = []
@@ -1126,7 +1094,6 @@ def find_orfs(self,data,user,logged_in):
 							del file_paths_dict[seq_type][file_id]
 						#Add the aggregate to file_paths_dict
 						file_paths_dict[seq_type]["STUDY_"+str(study_id)] = "{}/aggregate_0.5_{}.sqlite".format(study_path, seq_type)	
-	logging.debug("Closing trips.sqlite connection")
 	cursor.close()
 	connection.close()	
 	prog_count = 100
@@ -1218,17 +1185,22 @@ def find_orfs(self,data,user,logged_in):
 
 	
 	if "saved_check" in data:
-		connection = sqlite3.connect("{}/trips.sqlite".format(config.SCRIPT_LOC))
-		cursor = connection.cursor()
-		#if filter previously saved cases is turned on, then we query the sqlite database here and remove hits from transcript_list
-		cursor.execute("SELECT tran,stop FROM users_saved_cases WHERE user_id = '{}' and organism = '{}';".format(user_id,organism))
-		result = cursor.fetchall()	
-		for tran in result:
-			if str(tran[0]) not in filtered_transcripts:
-				filtered_transcripts[str(tran[0])] = []
-			filtered_transcripts[str(tran[0])].append(int(tran[1]))
-		cursor.close()
-		connection.close()
+		if current_user.is_authenticated:
+			user_name = current_user.name
+			cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user_name))
+			result = (cursor.fetchone())
+			user_id = result[0]
+			connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
+			cursor = connection.cursor()
+			#if filter previously saved cases is turned on, then we query the sqlite database here and remove hits from transcript_list
+			cursor.execute("SELECT tran,stop FROM users_saved_cases WHERE user_id = '{}' and organism = '{}';".format(user_id,organism))
+			result = cursor.fetchall()	
+			for tran in result:
+				if str(tran[0]) not in filtered_transcripts:
+					filtered_transcripts[str(tran[0])] = []
+				filtered_transcripts[str(tran[0])].append(int(tran[1]))
+			cursor.close()
+			connection.close()
 	settings_string = "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(organism,transcriptome,str(start_codons).strip("[]").replace("'",""),min_cds,max_cds,
 						min_len,max_len,min_avg,max_avg,str(accepted_orftypes[0]),str(data["file_list"]).strip("[]").replace("'",""),
 					  str(custom_tran_list).strip("[]").replace("'",""),cons_score)
@@ -1262,10 +1234,6 @@ def find_orfs(self,data,user,logged_in):
 
 	filename = short_code+".csv"
 	if os.path.isfile("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename)):
-		try:
-			self.update_state(state='PROGRESS',meta={'current': 100, 'total': tot_prog,'status': "Loading previous result"})
-		except:
-			pass
 		logging.debug("File exists {}/static/tmp/{}" .format(config.SCRIPT_LOC,filename))
 		tmp_result_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"r")
 		total_rows = 0
@@ -1308,14 +1276,14 @@ def find_orfs(self,data,user,logged_in):
 
 	if accepted_orftypes == []:
 		return_str =  "Error no ORF type selected"
-		return {'current': 100, 'total': 100, 'status': 'return_str','result': returnstr}
+		return returnstr
 	tran_gene_dict = {}
 	# structure of orf dict is transcript[stop][start] = {"length":x,"score":0,"cds_cov":0} each stop can have multiple starts
 	accepted_orf_dict = {}
 
 	if start_codons == []:
 		return_str =  "Error no start codon types selected"
-		return {'current': 100, 'total': 100, 'status': 'return_str','result': returnstr}
+		return returnstr
 
 
 	if owner == 1:
@@ -1323,7 +1291,7 @@ def find_orfs(self,data,user,logged_in):
 			traninfo_connection = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome))
 		else:
 			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
-			return {'current': 100, 'total': 100, 'status': 'return_str','result': returnstr}
+			return returnstr
 	else:
 		traninfo_connection = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 
@@ -1347,11 +1315,6 @@ def find_orfs(self,data,user,logged_in):
 			gene = str(row[4])
 			seq = str(row[5])
 			traninfo_dict[tran] = {"cds_start":cds_start, "cds_stop":cds_stop,"length":length,"gene":gene,"coding_regions":[],"seq":seq}
-	
-	
-	
-	
-	
 	
 
 	principal_transcripts = []
@@ -1411,10 +1374,6 @@ def find_orfs(self,data,user,logged_in):
 			rows += 1
 			if rows%1000 == 0:
 				logging.debug("Rows: {}".format(rows))
-				try:
-					self.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Building ORF dictionary: {}/{}".format(rows,int(total_trans))})
-				except:
-					pass
 				prog_count =100+( 100*(rows/total_trans) )
 			#logging.debug("row", row)
 			transcript = str(row[0])
@@ -1452,10 +1411,6 @@ def find_orfs(self,data,user,logged_in):
 
 	#logging.debug("accepted orf dict", accepted_orf_dict)
 	logging.debug("accepted orf dict built")
-	try:
-		self.update_state(state='PROGRESS',meta={'current': 50, 'total': tot_prog,'status': "accepted orf dict built"})
-	except:
-		pass
 	#Now build a profile for every transcript in accepted_transcripts
 	master_profile_dict = {}
 
@@ -1479,11 +1434,8 @@ def find_orfs(self,data,user,logged_in):
 	
 	if file_paths_dict["riboseq"] == {} and file_paths_dict["proteomics"] == {}:
 		return_str =  "Error no files selected"
-		return {'current': 100, 'total': 100, 'status': 'return_str','result': returnstr}
+		return returnstr
 	
-
-
-
 	total_files = 0
 	selected_seq_types = []
 	if "riboseq" in file_paths_dict:
@@ -1502,31 +1454,22 @@ def find_orfs(self,data,user,logged_in):
 			if transcript not in accepted_transcript_list:
 				accepted_transcript_list.append(transcript)
 	logging.debug("total trans".format(total_trans))
-	try:
-		self.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Building profiles"})
-	except:
-		pass
-	profile_dict,file_string = create_profiles(file_paths_dict,accepted_transcript_list,ambig,total_files,minscore,self,tot_prog, prog_count)
+
+	profile_dict,file_string = create_profiles(file_paths_dict,accepted_transcript_list,ambig,total_files,minscore)
 
 	logging.debug("profile dict built")
-	try:
-		self.update_state(state='PROGRESS',meta={'current': prog_count, 'total': tot_prog,'status': "Profiles Built"})
-	except:
-		pass
+
 	logging.debug("extracting values")
 	if output != "nnet":
-		sorted_all_values = extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,profile_dict,self,tot_prog, prog_count,all_cases)
+		sorted_all_values = extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,profile_dict,all_cases)
 		if sorted_all_values == None:
-			return {'current': 400, 'total': tot_prog, 'status': 'Returning table','result': "No results, try making filters less restrictive"}
+			return ("No results, try making filters less restrictive")
 	else:
 		create_training_set(profile_dict, traninfo_dict,short_code,min_len)
 		create_test_set(profile_dict,accepted_orf_dict,traninfo_dict,short_code,min_len,sequence_dict,region)
 		returnstr = neural_net(short_code,["type","coverage","median_diff","first_diff"],organism, transcriptome, file_string)
-		#sorted_all_values = extract_values(accepted_orf_dict,data,tran_gene_dict,selected_seq_types,profile_dict,self,tot_prog, prog_count)
-	try:
-		self.update_state(state='PROGRESS',meta={'current': 400, 'total': tot_prog,'status': "Features extracted"})
-	except:
-		pass
+
+
 	if output != "nnet":
 		returnstr = write_to_file(sorted_all_values,filename,sequence_dict,organism,transcriptome,file_string)
 
@@ -1544,7 +1487,7 @@ def find_orfs(self,data,user,logged_in):
 	total_time = time.time()-start_time
 	logging.debug("sending email")
 	#If the job was > 5 minutes and the user is using an email address, send an email to say the job is done
-	if user != None:
+	if current_user.is_authenticated:
 		if total_time > 300 and logged_in == True:
 			try:
 				fromaddr = "ribopipe@gmail.com"
@@ -1566,28 +1509,17 @@ def find_orfs(self,data,user,logged_in):
 				pass
 	logging.debug("returning result")
 	#return returnstr
-	return {'current': 400, 'total': tot_prog, 'status': 'Returning table','result': returnstr}
+	return returnstr
 
 # Returns a table with ranked orf scores
 orfquery_blueprint = Blueprint("orfquery", __name__, template_folder="templates")
 @orfquery_blueprint.route('/orfquery', methods=['POST'])
 def orfquery():
-	data = ast.literal_eval(request.data)
-	user, logged_in = fetch_user()
-	
-	if app.debug == True:
-		task = find_orfs(data,user, logged_in)
-		return task["result"], "NO_CELERY", {'Location': None}
-	else:
-		task = find_orfs.delay(data,user, logged_in)
-		return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
-	
-	#if output == "table" or output == "nnet":
-	#	return returnstr
-	#elif output == "plot":
-	#	return create_orf_plot(sorted_all_values,organism, transcriptome, file_string,filename)
-	#else:
-	#	return "Undetermined output {}".format(output)
+	data = json.loads(request.data)
+	user, logged_in = fetch_user()	
+	return find_orfs(data,user, logged_in)
+
+
 
 
 

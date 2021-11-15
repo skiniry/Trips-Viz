@@ -444,52 +444,22 @@ $("#comparequery").click(function() {
 			url: url,
 			data: JSON.stringify(qu),
 			dataType: "html",
-			success: function(data, status, request) {
-					status_url = request.getResponseHeader('Location');
-					console.log("data is ", data);
-					console.log("status is ", status);
-					console.log("request is ", request);
-					if (request.statusText == "NO_CELERY") {
-						if (data.slice(0, 11) == "TRANSCRIPTS"){
-								var splitdata = data.split(":");
-								populate_jquery_dialog(splitdata);
-								$( "#dialog-2" ).dialog( "open" );
-								$("#loading-div-background").hide();
-								$("#container").show();
-
-								}
-						else{
-								var graph = $("#container");
-								graph.html(data);
-								$("#loading-div-background").hide();
-								$("#container").show();
-								$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
-								document.getElementById('container').scrollIntoView();
-
-								}
-					
-					}
-					else {
-						jdata = JSON.parse(data);
-						if (jdata["status"] == "return_str") {
-							var graph = $("#container");
-							graph.html(jdata["result"]);
+			success: function(data) {
+					if (data.slice(0, 11) == "TRANSCRIPTS"){
+							var splitdata = data.split(":");
+							populate_jquery_dialog(splitdata);
+							$( "#dialog-2" ).dialog( "open" );
 							$("#loading-div-background").hide();
 							$("#container").show();
 							}
-						else if (jdata["status"] == "tran_list") {
-							var splitdata = jdata['result'].split(":");
-							populate_jquery_dialog(splitdata);
-							$("#myTable").tablesorter({sortList: [[4,0]]});
-							$( "#dialog-2" ).dialog( "open" );
-							}
-						else {
-							update_progress(status_url, nanobar);
-							//$("#loading-div-background").hide();
-							}
-						}
-					},
-			
+					else{
+							var graph = $("#container");
+							graph.html(data);
+							$("#loading-div-background").hide();
+							$("#container").show();
+							$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+							document.getElementById('container').scrollIntoView();
+							}},
  });
 });
 
@@ -520,7 +490,6 @@ function update_progress(status_url, nanobar) {
 							$("#container").show();
 							$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
 							document.getElementById('container').scrollIntoView();
-
 							}
 			}
 			else {

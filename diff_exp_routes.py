@@ -17,7 +17,7 @@ from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_fil
 import riboflask_diff
 import collections
 from flask_login import current_user
-
+import json
 
 
 
@@ -29,12 +29,12 @@ def diffpage(organism,transcriptome):
 	user_short_passed = True
 	global local
 	try:
-		pass
+		print (local)
 	except:
 		local = False
 
 	organism = str(organism)
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -126,10 +126,8 @@ def diffpage(organism,transcriptome):
 
 
 def prepare_return_str(input_string):
-	if app.debug == True:
-		return input_string, "NO_CELERY", {'Location': None}
-	else:
-		return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': input_string}), 200, {'Location': ""}
+	return input_string
+	
 
 # Creates/serves the z-score plot for differential expression
 diffquery_blueprint = Blueprint("diffquery", __name__, template_folder="templates")
@@ -137,7 +135,7 @@ diffquery_blueprint = Blueprint("diffquery", __name__, template_folder="template
 def diffquery():
 	#global user_short_passed
 	user_short_passed = True
-	data = ast.literal_eval(request.data)
+	data = json.loads(request.data)
 	plottype = data["plottype"]
 
 	genetype = data["genetype"]
@@ -162,7 +160,7 @@ def diffquery():
 	csv_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
 	master_file_dict = data["master_file_dict"]
 	master_transcript_dict = {}
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -460,8 +458,9 @@ def diffquery():
 		subheading_size = config.SUBHEADING_SIZE
 		axis_label_size = config.AXIS_LABEL_SIZE
 		marker_size = config.MARKER_SIZE
-		if user != None:
-			cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+		if current_user.is_authenticated:
+			user_name = current_user.name
+			cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user_name))
 			result = (cursor.fetchone())
 			user_id = result[0]
 			#get a list of organism id's this user can access
@@ -481,8 +480,8 @@ def diffquery():
 		
 		tar_file = filename+".tar.gz"
 		connection.close()
-		if app.debug == True:
-			task = riboflask_diff.deseq2_plot(deseq_dict,
+		
+		return riboflask_diff.deseq2_plot(deseq_dict,
 										organism,
 										transcriptome,
 										master_file_dict["riboseq1"]["file_ids"],
@@ -502,29 +501,6 @@ def diffquery():
 										gene_list,
 										label,
 										minzscore)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = riboflask_diff.deseq2_plot.delay(deseq_dict,
-										organism,
-										transcriptome,
-										master_file_dict["riboseq1"]["file_ids"],
-										master_file_dict["riboseq2"]["file_ids"],
-										master_file_dict["rnaseq1"]["file_ids"],
-										master_file_dict["rnaseq2"]["file_ids"],
-										background_col,
-										short_code,
-										mapped_reads_norm,
-										tar_file,
-										no_groups,
-										str(title_size)+"pt",
-										str(axis_label_size)+"pt",
-										str(subheading_size)+"pt",
-										str(marker_size)+"pt",
-										ambiguous,
-										gene_list,
-										label,
-										minzscore)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	if anota2seq:
 		if label != "TE" or no_groups <= 2:
 			return prepare_return_str("At least 3 replicates are required for all groups when using Anota2seq")
@@ -655,10 +631,8 @@ def diffquery():
 		subheading_size = config.SUBHEADING_SIZE
 		axis_label_size = config.AXIS_LABEL_SIZE
 		marker_size = config.MARKER_SIZE
-		if user != None:
-			cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
-			result = (cursor.fetchone())
-			user_id = result[0]
+		if current_user.is_authenticated:
+			user_id = current_user.id
 			#get a list of organism id's this user can access
 			cursor.execute("SELECT background_col,title_size,subheading_size,axis_label_size,marker_size from user_settings WHERE user_id = '{}';".format(user_id))
 			result = (cursor.fetchone())
@@ -677,8 +651,8 @@ def diffquery():
 		tar_file = filename+".tar.gz"
 		connection.close()
 			
-		if app.debug == True:
-			task = riboflask_diff.anota2seq_plot(deseq_dict,
+		
+		return riboflask_diff.anota2seq_plot(deseq_dict,
 										organism,
 										transcriptome,
 										master_file_dict["riboseq1"]["file_ids"],
@@ -701,32 +675,7 @@ def diffquery():
 										sig_translated,
 										sig_rna,
 										sig_buffered)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = riboflask_diff.anota2seq_plot.delay(deseq_dict,
-										organism,
-										transcriptome,
-										master_file_dict["riboseq1"]["file_ids"],
-										master_file_dict["riboseq2"]["file_ids"],
-										master_file_dict["rnaseq1"]["file_ids"],
-										master_file_dict["rnaseq2"]["file_ids"],
-										background_col,
-										short_code,
-										mapped_reads_norm,
-										tar_file,
-										no_groups,
-										str(title_size)+"pt",
-										str(axis_label_size)+"pt",
-										str(subheading_size)+"pt",
-										str(marker_size)+"pt",
-										ambiguous,
-										gene_list,
-										label,
-										minzscore,
-										sig_translated,
-										sig_rna,
-										sig_buffered)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+
 	
 	
 	
@@ -980,8 +929,6 @@ def diffquery():
 			if "fdr" in master_dict[tran]:
 				csv_file.write(",{}".format(master_dict[tran]["fdr"]))
 		csv_file.write("\n")
-
-
 	connection.commit()
 	sorted_aggregated_values = sorted(aggregated_values, key=lambda x: x[1])
 	bin_list = []
@@ -1010,8 +957,6 @@ def diffquery():
 			for x in range(i,len(sorted_aggregated_values)):
 				sorted_aggregated_values[x].append(bin_list[-1][0])
 				sorted_aggregated_values[x].append(bin_list[-1][1])
-
-	
 	background_col = config.BACKGROUND_COL
 	uga_col = config.UGA_COL
 	uag_col = config.UAG_COL
@@ -1020,10 +965,8 @@ def diffquery():
 	subheading_size = config.SUBHEADING_SIZE
 	axis_label_size = config.AXIS_LABEL_SIZE
 	marker_size = config.MARKER_SIZE
-	if user != None:
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
-		result = (cursor.fetchone())
-		user_id = result[0]
+	if current_user.is_authenticated:
+		user_id = current_user.id
 		#get a list of organism id's this user can access
 		cursor.execute("SELECT background_col,title_size,subheading_size,axis_label_size,marker_size from user_settings WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchone())
@@ -1040,8 +983,7 @@ def diffquery():
 		user_short_passed = True
 	connection.close()
 	if plottype == "z_score":
-		if app.debug == True:
-			task = riboflask_diff.generate_plot(sorted_aggregated_values,
+		return riboflask_diff.generate_plot(sorted_aggregated_values,
 										bin_list,
 										organism,
 										label,
@@ -1061,73 +1003,29 @@ def diffquery():
 										str(marker_size)+"pt",
 										ambiguous,
 										gene_list)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = riboflask_diff.generate_plot.delay(sorted_aggregated_values,
-										bin_list,
-										organism,
-										label,
-										transcriptome,
-										master_file_dict["riboseq1"]["file_ids"],
-										master_file_dict["riboseq2"]["file_ids"],
-										master_file_dict["rnaseq1"]["file_ids"],
-										master_file_dict["rnaseq2"]["file_ids"],
-										background_col,
-										short_code,
-										mapped_reads_norm,
-										filename,
-										no_groups,
-										str(title_size)+"pt",
-										str(axis_label_size)+"pt",
-										str(subheading_size)+"pt",
-										str(marker_size)+"pt",
-										ambiguous,
-										gene_list)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+
 	else:
+		return riboflask_diff.ribo_vs_rna(ribo_vs_rna_dict,
+										organism,
+										transcriptome,
+										master_file_dict["riboseq1"]["file_ids"],
+										master_file_dict["riboseq2"]["file_ids"],
+										master_file_dict["rnaseq1"]["file_ids"],
+										master_file_dict["rnaseq2"]["file_ids"],
+										background_col,
+										short_code,
+										mapped_reads_norm,
+										filename,
+										no_groups,
+										str(title_size)+"pt",
+										str(axis_label_size)+"pt",
+										str(subheading_size)+"pt",
+										str(marker_size)+"pt",
+										ambiguous,
+										gene_list,
+										label)
+			
 		
-		if app.debug == True:
-			task =  riboflask_diff.ribo_vs_rna(ribo_vs_rna_dict,
-										organism,
-										transcriptome,
-										master_file_dict["riboseq1"]["file_ids"],
-										master_file_dict["riboseq2"]["file_ids"],
-										master_file_dict["rnaseq1"]["file_ids"],
-										master_file_dict["rnaseq2"]["file_ids"],
-										background_col,
-										short_code,
-										mapped_reads_norm,
-										filename,
-										no_groups,
-										str(title_size)+"pt",
-										str(axis_label_size)+"pt",
-										str(subheading_size)+"pt",
-										str(marker_size)+"pt",
-										ambiguous,
-										gene_list,
-										label)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  riboflask_diff.ribo_vs_rna.delay(ribo_vs_rna_dict,
-										organism,
-										transcriptome,
-										master_file_dict["riboseq1"]["file_ids"],
-										master_file_dict["riboseq2"]["file_ids"],
-										master_file_dict["rnaseq1"]["file_ids"],
-										master_file_dict["rnaseq2"]["file_ids"],
-										background_col,
-										short_code,
-										mapped_reads_norm,
-										filename,
-										no_groups,
-										str(title_size)+"pt",
-										str(axis_label_size)+"pt",
-										str(subheading_size)+"pt",
-										str(marker_size)+"pt",
-										ambiguous,
-										gene_list,
-										label)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 
 
 # Given either two or four filepaths, calculates a z-score, places the z-scores in a master dict

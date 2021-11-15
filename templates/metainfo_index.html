@@ -4,8 +4,7 @@
 <head>
 <link rel= "stylesheet" href= "{{ url_for('static', filename='css/metainfo.css') }}">
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.css"/>
-<script src="https://cdn.pydata.org/bokeh/release/bokeh-0.12.14.min.js"></script>
-<script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.14.min.js"></script>
+
 <script type="text/javascript" src="https://cdn.datatables.net/v/dt/jszip-2.5.0/dt-1.10.16/b-1.5.1/b-colvis-1.5.1/b-html5-1.5.1/b-print-1.5.1/cr-1.4.1/datatables.min.js">
 </script>
 </head>
@@ -864,17 +863,7 @@ $("#metainfoquery").click(function() {
 			"mismatch_minreadlen":mismatch_minreadlen,"normalise":normalise,"mismatch_maxreadlen":mismatch_maxreadlen,"tran_corr_transcript1":tran_corr_transcript1,
 			"tran_corr_transcript2":tran_corr_transcript2,"apply_offset":apply_offset,"sw_diff_group1":sw_diff_group1,"sw_diff_group2":sw_diff_group2,"sw_diff_window_size":sw_diff_window_size,
 			"sw_diff_step_size":sw_diff_step_size,"sw_diff_min_diff":sw_diff_min_diff};
-	//var file_list = [];
-	//for (var filetype in accepted_files) {
-	//		for (var study_id in accepted_files[filetype]) {
-	//				for (var file_id in accepted_files[filetype][study_id]) {
-	//						var newelement=$('input:checkbox[name='+file_id+']:checked').val();
-	//						if (newelement == 'inputfile'){
-	//								file_list.push(file_id);
-	//														};
-	//																		}
-	//														}
-	//									};
+
 	qu["file_list"] = alt_file_list
 	//console.log("len of File list is "+file_list.length);
 	console.log("len of Alt file list is "+alt_file_list.length);
@@ -888,13 +877,9 @@ $("#metainfoquery").click(function() {
 		contentType: "application/json; charset=utf-8",
 		url: url,
 		data: JSON.stringify(qu),
-		success: function (data, status, request) {
-				console.log("DATa IS ",data);
-				console.log("status IS ",status);
-				console.log("request IS ",request);
-				status_url = request.getResponseHeader('Location');
-				console.log("status text is ", request.statusText);
-				if (request.statusText == "NO_CELERY") {
+		success: function (data) {
+
+
 					if (data.slice(0, 2) == "TE"){
 						//update link to point to temporary csv
 						var splitdata = data.split("?~");
@@ -934,26 +919,6 @@ $("#metainfoquery").click(function() {
 						$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
 						document.getElementById('container').scrollIntoView();
 						}
-					}
-				else {
-					jdata = JSON.parse(data);
-					if (jdata["status"] == "return_str") {
-						var graph = $("#container");
-						graph.html(jdata["result"]);
-						$("#loading-div-background").hide();
-						$("#container").show();
-						}
-					else if (jdata["status"] == "tran_list") {
-						var splitdata = jdata['result'].split(":");
-						populate_jquery_dialog(splitdata);
-						$("#myTable").tablesorter({sortList: [[4,0]]});
-						$( "#dialog-2" ).dialog( "open" );
-						}
-					else {
-						update_progress(status_url, nanobar);
-						//$("#loading-div-background").hide();
-						}
-				}
 	 },
 	 dataType: "html"
  });
@@ -962,72 +927,7 @@ $("#metainfoquery").click(function() {
 
 
 
-function update_progress(status_url, nanobar) {
-	console.log("update progress called");
-	// send GET request to status URL
-	console.log("Status url is", status_url);
-	$.getJSON(status_url, function(data) {
-		console.log("Updating UI")
-		// update UI
-		percent = parseInt(data['current'] * 100 / data['total']);
-		nanobar.go(percent);
-		//$(status_div.childNodes[1]).text(percent + '%');
-		//$(status_div.childNodes[2]).text(data['status']);
-		$("#loading_header").text(data['status'])
-		
 
-		if (data['state'] == 'SUCCESS') {
-			console.log("state is success");
-			if (data["status"] == "Complete") {
-				var graph = $("#container");
-				graph.html(data['result']);
-				$("#loading-div-background").hide();
-				$("#container").show();
-				$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
-				document.getElementById('container').scrollIntoView();
-				}
-			else if (data['status'] == 'Complete_TE') {
-				//update link to point to temporary csv
-				var splitdata = data["result"].split("?~");
-				var base_url = "{{ url_for('static',filename='') }}";
-				var headers = splitdata[2];
-				$('#te_table').empty();
-				$('#te_table').html('<a id="table_link" href= "{{ url_for("static", filename="tmp/robots.tx") }}" download="robots.txt"> Download entire table</a><table  id="myTable" class="prediction_table hover"><tbody> </tbody></table>');
-				var mytable = document.getElementById('myTable')
-				mytable.innerHTML = "";
-				mytable.innerHTML = headers;
-				var table_link = document.getElementById('table_link');
-				table_link.href = base_url+"tmp/"+splitdata[3]
-				table_link.download = splitdata[3]
-				table_link.text = "Download "+splitdata[1]+" rows as csv"
-				$('#myTable').DataTable().clear();
-				$('#myTable').DataTable().destroy();
-				var table = $('#myTable').DataTable();
-				
-				for(var i = 4; i < splitdata.length-1; i++) {
-						splitrow = splitdata[i].split(".;")
-						table.row.add(splitrow).draw(false);
-						}
-						table.draw()
-						te_div.style.visibility = "visible";
-						var graph = $("#container");
-						graph.html("");
-						$("#loading-div-background").hide();
-						$("#container").show();
-				}
-			
-			
-			}
-		
-		else {
-			// rerun in 2 seconds
-			setTimeout(function() {
-			console.log("State is", data["state"]);
-			update_progress(status_url, nanobar);
-			}, 500);
-			}
-		});
-	}
 
 
 

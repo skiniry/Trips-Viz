@@ -9,6 +9,7 @@ from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_fil
 import riboflask_compare
 import collections
 from flask_login import current_user
+import json
 
 
 
@@ -20,17 +21,15 @@ def comparisonpage(organism, transcriptome):
 	user_short_passed = False
 	global local
 	try:
-		pass
+		print (local)
 	except:
 		local = False
-
+	
 	organism = str(organism)
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	user,logged_in = fetch_user()
-	
-	
 	
 	cursor.execute("SELECT gwips_clade,gwips_organism,gwips_database,default_transcript from organisms WHERE organism_name = '{}';".format(organism))
 	result = (cursor.fetchone())
@@ -82,7 +81,7 @@ def comparisonpage(organism, transcriptome):
 
 	accepted_studies = fetch_studies(user, organism, transcriptome)
 	file_id_to_name_dict,accepted_studies,accepted_files,seq_types = fetch_files(accepted_studies)
-
+	print (local)
 	connection.close()
 	return render_template('index_compare.html', studies_dict=accepted_studies, accepted_files=accepted_files, gwips_info=gwips_info,
 						gwips_clade=gwips_clade, gwips_org=gwips_org,gwips_db=gwips_db, organism=organism,transcriptome=transcriptome,
@@ -99,14 +98,14 @@ def comparequery():
 	#global user_short_passed
 	user_short_passed = False
 	tran_dict = {}
-	data = ast.literal_eval(request.data)
+	data = json.loads(request.data)
 	tran = data['transcript'].upper().strip()
 	organism = data['organism']
 	transcriptome = data['transcriptome']
 	
 	user,logged_in = fetch_user()
 	
-	trips_connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	trips_connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	trips_connection.text_factory = str
 	trips_cursor = trips_connection.cursor()
 	
@@ -261,8 +260,9 @@ def comparequery():
 	cds_marker_size = config.CDS_MARKER_SIZE
 	cds_marker_colour = config.CDS_MARKER_COLOUR
 	legend_size = config.LEGEND_SIZE
-	if user != None:
-		trips_cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+	if current_user.is_authenticated:
+		user_name = current_user.name
+		trips_cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user_name))
 		result = (trips_cursor.fetchone())
 		user_id = result[0]
 		#get a list of organism id's this user can access
@@ -282,24 +282,15 @@ def comparequery():
 	trips_connection.close()
 		
 	if tran != "":
-		if app.debug == True:
-			task = riboflask_compare.generate_compare_plot(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
+		return riboflask_compare.generate_compare_plot(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
 											ribocoverage, organism,normalize,short_code,background_col,hili_start,
 											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
 											legend_size,transcriptome)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = riboflask_compare.generate_compare_plot.delay(tran, ambiguous, minread, maxread, master_filepath_dict, "y", {}, 
-											ribocoverage, organism,normalize,short_code,background_col,hili_start,
-											hili_stop,comp_uag_col,comp_uga_col,comp_uaa_col,title_size, subheading_size,axis_label_size, marker_size,cds_marker_size,cds_marker_colour,
-											legend_size,transcriptome)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+
+			
 	else:
 		return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
-		if app.debug == True:
-			return return_str, "NO_CELERY", {'Location': None}
-		else:
-			return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		return return_str
 
 
 

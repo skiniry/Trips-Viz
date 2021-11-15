@@ -12,7 +12,7 @@ from core_functions import fetch_studies, fetch_files,fetch_study_info,fetch_fil
 import traninfo_plots
 import collections
 from flask_login import current_user
-
+import json
 
 
 
@@ -23,12 +23,12 @@ def traninfo_plotpage(organism, transcriptome):
 	user_short_passed = True
 	global local
 	try:
-		pass
+		print (local)
 	except:
 		local = False
 
 	organism = str(organism)
-	connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -212,7 +212,7 @@ def traninfoquery():
 	user_short_passed = True
 	tran_dict = {}
 	gene_dict = {}
-	data = ast.literal_eval(request.data)
+	data = json.loads(request.data)
 	plottype = data["plottype"]
 
 	custom_seq_list = data["custom_seq_list"]
@@ -267,7 +267,7 @@ def traninfoquery():
 	else:
 		exons = False
 	
-	connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -287,9 +287,10 @@ def traninfoquery():
 	marker_size = config.MARKER_SIZE
 
 	#get a list of organism id's this user can access
-	if user != None:
+	if current_user.is_authenticated:
 		#get user_id
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+		user_name = current_user.name
+		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user_name))
 		result = (cursor.fetchone())
 		user_id = result[0]
 		cursor.execute("SELECT background_col,readlength_col,metagene_fiveprime_col,metagene_threeprime_col,nuc_comp_a_col,nuc_comp_t_col,nuc_comp_g_col,nuc_comp_c_col,title_size,subheading_size,axis_label_size,marker_size from user_settings WHERE user_id = '{}';".format(user_id))
@@ -414,7 +415,7 @@ def traninfoquery():
 		splitlist = (gc_tranlist.replace(" ",",")).split(",")
 		strlist = str(splitlist).strip("[]")
 		tmp_fa_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-		connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+		connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 		connection.text_factory = str
 		cursor = connection.cursor()
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -477,7 +478,7 @@ def traninfoquery():
 		splitlist = (nuc_freq_plot_tranlist.replace(" ",",")).split(",")
 		filename = "Sequences_{}.fa".format(time.time())
 		outfile = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-		connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+		connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 		connection.text_factory = str
 		cursor = connection.cursor()
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -548,7 +549,7 @@ def traninfoquery():
 		metagene_tranlist = metagene_tranlist.split(",")
 		if len(metagene_tranlist) == 1 and metagene_tranlist != ['']:
 			tran = metagene_tranlist[0]
-			connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+			connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 			connection.text_factory = str
 			cursor = connection.cursor()
 			cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -568,7 +569,7 @@ def traninfoquery():
 			connection.close()
 			return traninfo_plots.nuc_comp_single(tran,master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,traninfo)
 		else:
-			connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+			connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 			connection.text_factory = str
 			cursor = connection.cursor()
 			cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -594,7 +595,7 @@ def traninfoquery():
 		filename = organism+"_orfstats_"+str(time.time())+".csv"
 		table_str = filename+"?~"
 		tmp_te_file = open("{}/static/tmp/{}".format(config.SCRIPT_LOC,filename),"w")
-		connection = sqlite3.connect('/home/DATA/www/tripsviz/tripsviz/trips.sqlite')
+		connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 		connection.text_factory = str
 		cursor = connection.cursor()
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))

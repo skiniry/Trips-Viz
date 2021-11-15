@@ -14,7 +14,8 @@ import metainfo_plots
 import collections
 from flask_login import current_user
 import subprocess
-from celery_app import celery_application
+import json
+
 
 
 
@@ -30,7 +31,7 @@ def metainfo_plotpage(organism, transcriptome):
 	except:
 		local = False
 	organism = str(organism)
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	user,logged_in = fetch_user()
@@ -308,11 +309,7 @@ def redo_periodicity_plots(connection, file_path):
 	master_read_dict["trip_periodicity"] = master_trip_dict
 	master_read_dict.commit()
 
-def prepare_return_str(input_string):
-	if app.debug == True:
-		return input_string, "NO_CELERY", {'Location': None}
-	else:
-		return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': input_string}), 200, {'Location': ""}
+
 
 metainfoquery_blueprint = Blueprint("metainfoquery", __name__, template_folder="templates")
 @metainfoquery_blueprint.route('/metainfoquery', methods=['POST'])
@@ -320,12 +317,10 @@ def metainfoquery():
 	#global user_short_passed
 	tran_dict = {}
 	gene_dict = {}
-	i = celery_application.control.inspect()
-	celery_availability = i.ping()
-	#logging.warn("Celery availability: {}".format(celery_availability))
+
 	
 	
-	data = ast.literal_eval(request.data)
+	data = json.loads(request.data)
 	plottype = data["plottype"]
 	minreadlen = int(data['minreadlen'])
 	maxreadlen = int(data['maxreadlen'])
@@ -404,7 +399,7 @@ def metainfoquery():
 	count_type = data["count_type"]
 
 
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -427,9 +422,10 @@ def metainfoquery():
 	legend_size = config.LEGEND_SIZE
 
 	#get a list of organism id's this user can access
-	if user != None:
+	if current_user.is_authenticated:
 		#get user_id
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+		user_name = current_user.name
+		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user_name))
 		result = (cursor.fetchone())
 		user_id = result[0]
 		cursor.execute("SELECT background_col,readlength_col,metagene_fiveprime_col,metagene_threeprime_col,nuc_comp_a_col,nuc_comp_t_col,nuc_comp_g_col,nuc_comp_c_col,title_size,subheading_size,axis_label_size,marker_size from user_settings WHERE user_id = '{}';".format(user_id))
@@ -498,7 +494,7 @@ def metainfoquery():
 
 	total_files = len(data["file_list"])
 	if total_files == 0:
-		return prepare_return_str("No files selected")
+		return ("No files selected")
 	# Send file_list (a list of integers intentionally encoded as strings due to javascript), to be converted to a dictionary with riboseq/rnaseq lists of file paths.
 	file_paths_dict = fetch_file_paths(data["file_list"],organism)
 
@@ -755,7 +751,7 @@ def metainfoquery():
 					if readlen_ambig == True:
 						if "read_lengths" not in sqlite_db:
 							connection.close()
-							return prepare_return_str("No readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
+							return ("No readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
 						else:
 							read_lengths = sqlite_db["read_lengths"]
 						sqlite_db.close()
@@ -767,7 +763,7 @@ def metainfoquery():
 					elif readlen_ambig == False:
 						if "unambig_read_lengths" not in sqlite_db:
 							connection.close()
-							return prepare_return_str( "No unambiguous readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
+							return ( "No unambiguous readlength distribution data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
 						else:
 							read_lengths = sqlite_db["unambig_read_lengths"]
 						sqlite_db.close()
@@ -813,12 +809,9 @@ def metainfoquery():
 		title = "Readlength distribution"
 		connection.close()
 		
-		if app.debug == True or celery_availability == None:
-			task =  metainfo_plots.readlen_dist(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,celery_availability)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.readlen_dist.delay(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size,celery_availability)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		
+		return metainfo_plots.readlen_dist(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size)
+
 	if plottype == "mismatch_pos":
 		master_dict = {}
 		for filetype in file_paths_dict:
@@ -828,11 +821,11 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath))
 
 				if "global_mismatches" not in sqlite_db:
 					connection.close()
-					return prepare_return_str( "No mismatch data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
+					return ( "No mismatch data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
 				else:
 					mismatches = sqlite_db["global_mismatches"]
 				sqlite_db.close()
@@ -847,12 +840,9 @@ def metainfoquery():
 		title = "Mismatch positions"
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.mismatch_pos(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.mismatch_pos.delay(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		
+		return  metainfo_plots.mismatch_pos(master_dict,title,short_code, background_col,readlength_col,title_size, axis_label_size, subheading_size,marker_size)
+		
 	elif plottype == "single_tran_de":
 		if single_tran_de_range1.lower() in ["cds","trailer","leader"] or single_tran_de_range2.lower() in ["cds","trailer","leader"]:
 			traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{1}.sqlite".format(organism,transcriptome))
@@ -941,12 +931,10 @@ def metainfoquery():
 		sorted_master_list = sorted(master_list, key=lambda x:x[1])
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.single_tran_de(single_tran_de_transcript, sorted_master_list,study_master_list,organism, transcriptome,single_tran_de_study)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.single_tran_de.delay(single_tran_de_transcript, sorted_master_list,study_master_list,organism, transcriptome,single_tran_de_study)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		
+		return  metainfo_plots.single_tran_de(single_tran_de_transcript, sorted_master_list,study_master_list,organism, transcriptome,single_tran_de_study)
+		
+		
 	elif plottype == "codon_usage":
 		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{1}.sqlite".format(organism,transcriptome))
 		traninfo_cursor = traninfo_connection.cursor()
@@ -960,7 +948,7 @@ def metainfoquery():
 
 		if file_paths_dict["riboseq"] == {} and file_paths_dict["rnaseq"] == {}:
 			flash("Error no files selected")
-			return prepare_return_str( "Error no files selected")
+			return ( "Error no files selected")
 		all_values = []
 		offset_dict = {}
 		for file_id in file_paths_dict["riboseq"]:
@@ -1030,13 +1018,8 @@ def metainfoquery():
 				sqlite_db.commit()
 			sqlite_db.close()
 		connection.close()
-		
-		if app.debug == True:
-			task =  metainfo_plots.codon_usage(codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.codon_usage.delay(codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.codon_usage(codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
+
 	elif plottype == "diff_codon_usage":
 		traninfo_connection = sqlite3.connect("/home/DATA/www/tripsviz/tripsviz/trips_annotations/{0}/{0}.{1}.sqlite".format(organism,transcriptome))
 		traninfo_cursor = traninfo_connection.cursor()
@@ -1053,7 +1036,7 @@ def metainfoquery():
 		if file_paths_dict["riboseq"] == {} and file_paths_dict["rnaseq"] == {}:
 			flash("Error no files selected")
 			connection.close()
-			return prepare_return_str("Error no files selected")
+			return ("Error no files selected")
 
 		condition_dict = {"condition1":[file_paths_dict["riboseq"].keys()[0]], "condition2":[file_paths_dict["riboseq"].keys()[1]]}
 
@@ -1129,13 +1112,8 @@ def metainfoquery():
 			diff = count1-count2
 			diff_codon_dict[codon] = {"ribo_count":diff, "codon_count":codon_dict_cond["condition1"][codon]["codon_count"]}
 		connection.close()
+		return  metainfo_plots.codon_usage(diff_codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
 		
-		if app.debug == True:
-			task =  metainfo_plots.codon_usage(diff_codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.codon_usage.delay(diff_codon_dict,short_code,str(title_size)+"pt", str(axis_label_size)+"pt", str(marker_size)+"pt")
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
 	elif plottype == "tran_corr":
 		master_list = []
 		master_dict = {}
@@ -1194,14 +1172,9 @@ def metainfoquery():
 				master_dict[filename]["tran2_count"] += tran2_count
 				master_list.append((file_id, filename, log(tran1_count,2), log(tran2_count,2), study))
 		sorted_master_list = sorted(master_list, key=lambda x:x[2])
-		connection.close()
-		
-		if app.debug == True:
-			task =  metainfo_plots.tran_corr(tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,organism, transcriptome)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.tran_corr.delay(tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,organism, transcriptome)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		connection.close()		
+		return  metainfo_plots.tran_corr(tran_corr_transcript1, tran_corr_transcript2,sorted_master_list,organism, transcriptome)
+
 	elif plottype == "mismatches":
 		positive_hits = 0
 		result_list = []
@@ -1284,7 +1257,7 @@ def metainfoquery():
 											mismatch_profile[char][fixed_pos] += count
 						else:
 							connection.close()
-							return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath))
+							return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath))
 						sqlite_db.close()
 
 				for pos in profile:
@@ -1366,7 +1339,7 @@ def metainfoquery():
 											mismatch_profile[char][fixed_pos] += count
 						else:
 							connection.close()
-							return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath))
+							return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page. ".format(filepath))
 						sqlite_db.close()
 
 						for pos in profile:
@@ -1403,7 +1376,7 @@ def metainfoquery():
 				transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 			else:
 				connection.close()
-				return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+				return ( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		cursor = transhelve.cursor()
@@ -1425,12 +1398,12 @@ def metainfoquery():
 		if count_type == "tpm":
 			if total_files > 200:
 				connection.close()
-				return prepare_return_str( "Error: A maximum of 200 files can be used when TPM is selected.")
+				return ( "Error: A maximum of 200 files can be used when TPM is selected.")
 				
 		if te_tranlist == None:
 			if total_files >= 31 and count_agg == False:
 				connection.close()
-				return prepare_return_str( "Error: A maximum of 30 files can be selected if not aggregating counts and using all transcripts. Reduce number of selected files or click the 'Aggregate counts' checkbox at the top right of the page. Alternatively input a list of transcripts in the 'Transcript list' box.")
+				return ( "Error: A maximum of 30 files can be selected if not aggregating counts and using all transcripts. Reduce number of selected files or click the 'Aggregate counts' checkbox at the top right of the page. Alternatively input a list of transcripts in the 'Transcript list' box.")
 
 		te_minimum_reads = int(te_minimum_reads)
 		transcript_list =  cursor.fetchall()
@@ -1454,12 +1427,8 @@ def metainfoquery():
 			table_str = sample_counts(file_paths_dict, traninfo_dict, longest_tran_list, region, organism,all_seq_types, te_minimum_reads, html_args,count_type,te_tranlist)
 		connection.close()
 		
-		if app.debug == True:
-			task = metainfo_plots.te_table(table_str)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = metainfo_plots.te_table.delay(table_str)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return metainfo_plots.te_table(table_str)
+
 
 
 	elif plottype == "mrna_dist":
@@ -1472,7 +1441,7 @@ def metainfoquery():
 				transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 			else:
 				connection.close()
-				return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+				return ( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		cursor = transhelve.cursor()
@@ -1496,7 +1465,7 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				if "mrna_dist_dict" in sqlite_db:
 					mrna_dist_dict[filename]["5_leader"] = sqlite_db["mrna_dist_dict"]["5_leader"]
 					mrna_dist_dict[filename]["start_codon"] = sqlite_db["mrna_dist_dict"]["start_codon"]
@@ -1538,12 +1507,9 @@ def metainfoquery():
 				sqlite_db.close()
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.mrna_dist(mrna_dist_dict,short_code, background_col,title_size, axis_label_size, subheading_size,marker_size,mrna_dist_per,md_start,md_stop,legend_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.mrna_dist.delay(mrna_dist_dict,short_code, background_col,title_size, axis_label_size, subheading_size,marker_size,mrna_dist_per,md_start,md_stop,legend_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+
+		return  metainfo_plots.mrna_dist(mrna_dist_dict,short_code, background_col,title_size, axis_label_size, subheading_size,marker_size,mrna_dist_per,md_start,md_stop,legend_size)
+
 	elif plottype == "mrna_dist_readlen":
 		minreadlen = 15
 		maxreadlen = 100
@@ -1562,7 +1528,7 @@ def metainfoquery():
 				transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 			else:
 				connection.close()
-				return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+				return ( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		cursor = transhelve.cursor()
@@ -1587,7 +1553,7 @@ def metainfoquery():
 					#sqlite_db.close()
 				except:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 
 				if "mrna_dist_readlen_dict" in sqlite_db:
 					for readlen in range(minreadlen,maxreadlen+1):
@@ -1680,12 +1646,8 @@ def metainfoquery():
 				mrna_dist_dict["3_trailer"][readlen] = (float(mrna_dist_dict["3_trailer"][readlen])/max_three)*100
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.mrna_dist_readlen(mrna_dist_dict, mrna_readlen_per,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.mrna_dist_readlen.delay(mrna_dist_dict, mrna_readlen_per,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.mrna_dist_readlen(mrna_dist_dict, mrna_readlen_per,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
+
 	elif plottype == "rust_dwell":
 		traninfo_dict = SqliteDict("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome), autocommit=False)
 		longest_tran_db = SqliteDict("/home/DATA/www/tripsviz/tripsviz/trips_annotations/homo_sapiens/principal_isoforms_5ldr3tlr_rnaseq.sqlite",autocommit=True)
@@ -1715,7 +1677,7 @@ def metainfoquery():
 					sqlite_db.close()
 				else:
 					connection.close()
-					return prepare_return_str("File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ("File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				#TODO CHANGE THIS SO THAT THE CODON COUNT DICT IS OUTSIDE THE FILEPATH FOR LOOP
 				offsets = opendict["offsets"]["fiveprime"]["offsets"]
 				position_dict = {}
@@ -1732,21 +1694,10 @@ def metainfoquery():
 									codon = transeq[a_site:a_site+3]
 									codon_count_dict[codon] += opendict[transcript]["unambig"][readlen][pos]
 		connection.close()
-		
-		if app.debug == True:
-			task =  metainfo_plots.rust_dwell(codon_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.rust_dwell.delay(codon_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.rust_dwell(codon_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
+
 	elif plottype == "unmapped":
-		
-		if app.debug == True:
-			task =  metainfo_plots.most_freq_unmapped(file_paths_dict,short_code)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.most_freq_unmapped.delay(file_paths_dict,short_code)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.most_freq_unmapped(file_paths_dict,short_code)
 	elif plottype == "contamination":
 		count_dict = {}
 		master_sequence = ""
@@ -1767,10 +1718,10 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str("File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1]))
+					return ("File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1]))
 				if "frequent_unmapped_reads" not in sqlite_db:
 					connection.close()
-					return prepare_return_str( "No unmapped reads data for {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1]))
+					return ( "No unmapped reads data for {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath.split("/")[-1]))
 				#unmapped reads list is a list of tuples of length 100, first item in tuple is a sequence second is a count
 				unmapped_reads_list = sqlite_db["frequent_unmapped_reads"]
 				sqlite_db.close()
@@ -1814,7 +1765,7 @@ def metainfoquery():
 				transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 			else:
 				connection.close()
-				return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+				return ( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		trancursor = transhelve.cursor()
@@ -1835,7 +1786,7 @@ def metainfoquery():
 					mapped_reads = sqlite_db["coding_counts"]
 					if mapped_reads == None or mapped_reads == 0:
 						connection.close()
-						return prepare_return_str( "Error: Mapped reads info missing for one or more files, cannot normalise")
+						return ( "Error: Mapped reads info missing for one or more files, cannot normalise")
 					mapped_reads_dict[file_id] = float(mapped_reads)
 			minval = min(mapped_reads_dict.values())
 			for file_id in mapped_reads_dict:
@@ -1865,7 +1816,7 @@ def metainfoquery():
 					sqlite_db.close()
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				for transcript in prin_tran_list:
 					if transcript not in transcript_dict:
 						transcript_dict[transcript] = {}
@@ -1887,12 +1838,8 @@ def metainfoquery():
 			del transcript_dict[tran]
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.replicate_comp(labels, transcript_dict, min_log_val,short_code,background_col,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt",corr_type)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.replicate_comp.delay(labels, transcript_dict, min_log_val,short_code,background_col,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt",corr_type)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.replicate_comp(labels, transcript_dict, min_log_val,short_code,background_col,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt",corr_type)
+
 	elif plottype == "nuc_comp":
 		master_count_dict = {"A":collections.OrderedDict(),"T":collections.OrderedDict(),"G":collections.OrderedDict(),"C":collections.OrderedDict()}
 		for filetype in file_paths_dict:
@@ -1902,10 +1849,10 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				if "nuc_counts" not in sqlite_db:
 					connection.close()
-					return prepare_return_str( "No nucleotide counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
+					return ( "No nucleotide counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
 				if nuc_comp_direction == "nuc_comp_five":
 					if "nuc_counts" in sqlite_db:
 						if nuccomp_reads in sqlite_db["nuc_counts"]:
@@ -1979,12 +1926,9 @@ def metainfoquery():
 		connection.close()
 
 		
-		if app.debug == True:
-			task =  metainfo_plots.nuc_comp(master_dict, nuc_maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.nuc_comp.delay(master_dict, nuc_maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+
+		return  metainfo_plots.nuc_comp(master_dict, nuc_maxreadlen,title, nuc_comp_type,nuc_comp_direction,short_code,background_col,a_col,t_col,g_col,c_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
+
 	elif plottype == "dinuc_bias":
 		master_count_dict = collections.OrderedDict([("AA",0), ("AT",0), ("AG",0), ("AC",0),
 													 ("TA",0), ("TT",0), ("TG",0), ("TC",0),
@@ -1997,22 +1941,14 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				dinuc_counts = sqlite_db["dinuc_counts"]
 				for readlen in dinuc_counts:
 					for dinuc in dinuc_counts[readlen]:
 						master_count_dict[dinuc] += dinuc_counts[readlen][dinuc]
 
 		connection.close()
-		
-		if app.debug == True:
-			task =  metainfo_plots.dinuc_bias(master_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.dinuc_bias.delay(master_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
-		
-
+		return metainfo_plots.dinuc_bias(master_count_dict,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
 
 	elif plottype == "fastq_screen":
 		html_filepath = ""
@@ -2023,7 +1959,7 @@ def metainfoquery():
 					html_filepath = filepath.replace(".sqlite","_lessrRNA_screen.html")
 				else:
 					connection.close()
-					return prepare_return_str("Error: Only one dataset at a time can be selected for fastq screen")
+					return ("Error: Only one dataset at a time can be selected for fastq screen")
 		if os.path.isfile(html_filepath):
 			openfile = open(html_filepath,"r")
 			fastq_lines = openfile.readlines()
@@ -2044,7 +1980,7 @@ def metainfoquery():
 			return fixed_html
 		else:
 			connection.close()
-			return prepare_return_str( "No fastq_screen file available for this dataset")
+			return ( "No fastq_screen file available for this dataset")
 	elif plottype == "explore_offsets":
 		readlen_dict = {}
 		traninfo_dict = SqliteDict("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome), autocommit=False)
@@ -2064,7 +2000,7 @@ def metainfoquery():
 					sqlite_db.close()
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page".format(filepath))
 				tranlist = opendict.keys()
 
 				#For each readlength we display on the final graph
@@ -2123,15 +2059,7 @@ def metainfoquery():
 						f1_counts.append(outframe_counts)
 						f2_counts.append(0)
 		connection.close()
-		
-		if app.debug == True:
-			task = metainfo_plots.explore_offsets(f0_counts, f1_counts, f2_counts, labels,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = metainfo_plots.explore_offsets.delay(f0_counts, f1_counts, f2_counts, labels,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
-		
-
+		return metainfo_plots.explore_offsets(f0_counts, f1_counts, f2_counts, labels,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size)
 
 	elif plottype == "metagene_plot":
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -2141,7 +2069,7 @@ def metainfoquery():
 				transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 			else:
 				connection.close()
-				return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+				return ( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.v2.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		minpos = -300
@@ -2161,7 +2089,7 @@ def metainfoquery():
 		else:
 			if total_files >= 7:
 				connection.close()
-				return prepare_return_str( "Can only choose a maximum of 6 files if not using aggregate option")
+				return ( "Can only choose a maximum of 6 files if not using aggregate option")
 			fiveprime_counts = {}
 			threeprime_counts = {}
 
@@ -2177,11 +2105,11 @@ def metainfoquery():
 						mapped_reads_dict[file_desc] = float(mapped_reads)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				if metagene_type != "metagene_custom":
 					if "metagene_counts" not in sqlite_db:
 						connection.close()
-						return prepare_return_str("No metagene counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
+						return ("No metagene counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
 				if metagene_type == "metagene_start":
 					if metagene_tranlist == "":
 						mgc = sqlite_db["metagene_counts"]
@@ -2268,7 +2196,7 @@ def metainfoquery():
 					factor = float(min_mapped_reads/mapped_reads_dict[file_desc])
 				except:
 					connection.close()
-					return prepare_return_str( "Error, missing mapped reads value for one of the files so cannot normalize")
+					return ( "Error, missing mapped reads value for one of the files so cannot normalize")
 				mapped_reads_dict[file_desc] = factor
 			for file_desc in fiveprime_counts:
 				norm_counts = []
@@ -2290,12 +2218,7 @@ def metainfoquery():
 		title = "Metagene profile"
 		connection.close()
 
-		if app.debug == True:
-			task =  metainfo_plots.metagene_plot(pos_list,fiveprime_counts,threeprime_counts,metagene_type,title,minpos, maxpos,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end,metagene_aggregate)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.metagene_plot.delay(pos_list,fiveprime_counts,threeprime_counts,metagene_type,title,minpos, maxpos,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end,metagene_aggregate)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.metagene_plot(pos_list,fiveprime_counts,threeprime_counts,metagene_type,title,minpos, maxpos,short_code,background_col,metagene_fiveprime_col,metagene_threeprime_col,title_size, axis_label_size, subheading_size,marker_size,metagene_end,metagene_aggregate)
 
 	elif plottype == "trip_periodicity":
 		read_dict = {"readlengths":[],
@@ -2304,7 +2227,7 @@ def metainfoquery():
 					 "frame3":[]}
 		if trip_maxreadlen < trip_minreadlen:
 			connection.close()
-			return prepare_return_str("Error: max read length less than min read length, increase max read length using the input at the top of the page.")
+			return ("Error: max read length less than min read length, increase max read length using the input at the top of the page.")
 		for i in range(trip_minreadlen, trip_maxreadlen+1):
 			read_dict["readlengths"].append(i)
 			read_dict["frame1"].append(0)
@@ -2317,7 +2240,7 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				if "trip_periodicity" not in sqlite_db or redo_periodicity == True:
 					cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
 					owner = (cursor.fetchone())[0]
@@ -2326,7 +2249,7 @@ def metainfoquery():
 							transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 						else:
 							connection.close()
-							return prepare_return_str("Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+							return ("Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 					else:
 						transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 					redo_periodicity_plots(transhelve,filepath)
@@ -2343,12 +2266,8 @@ def metainfoquery():
 		title = "Triplet periodicity"
 		connection.close()
 		#logging.warn("Location is {}".format(url_for('taskstatus',task_id=task.id)) )
-		if app.debug == True:
-			task =  metainfo_plots.trip_periodicity_plot(read_dict,title,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.trip_periodicity_plot.delay(read_dict,title,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.trip_periodicity_plot(read_dict,title,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,legend_size)
+
 		
 
 	elif plottype == "mapped_reads_plot":
@@ -2374,7 +2293,7 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 
 				if "unmapped_reads" in sqlite_db:
 					unmapped.append(sqlite_db["unmapped_reads"])
@@ -2423,12 +2342,8 @@ def metainfoquery():
 			listname.append(0)
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels,ambiguous,cutadapt_removed,rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,breakdown_per,pcr_duplicates,legend_size)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.mapped_reads_plot.delay(unmapped, mapped_coding, mapped_noncoding, labels,ambiguous,cutadapt_removed,rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,breakdown_per,pcr_duplicates,legend_size)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		return  metainfo_plots.mapped_reads_plot(unmapped, mapped_coding, mapped_noncoding, labels,ambiguous,cutadapt_removed,rrna_removed,short_code,background_col,title_size, axis_label_size, subheading_size,marker_size,breakdown_per,pcr_duplicates,legend_size)
+
 
 	elif plottype == "heatmap":
 		cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -2438,7 +2353,7 @@ def metainfoquery():
 				transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC,config.ANNOTATION_DIR,organism,transcriptome))
 			else:
 				connection.close()
-				return prepare_return_str( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
+				return ( "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome))
 		else:
 			transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(config.UPLOADS_DIR,owner,organism,transcriptome))
 		min_readlen = heatmap_minreadlen
@@ -2458,10 +2373,10 @@ def metainfoquery():
 					sqlite_db = SqliteDict(filepath, autocommit=False)
 				else:
 					connection.close()
-					return prepare_return_str( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
+					return ( "File not found: {}, please report this to tripsvizsite@gmail.com or via the contact page.".format(filepath))
 				if "metagene_counts" not in sqlite_db:
 					connection.close()
-					return prepare_return_str( "No metagene counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
+					return ( "No metagene counts data for this file, please report this to tripsvizsite@gmail.com or via the contact page.")
 				if heatmap_metagene_type == "metagene_start":
 					if metagene_tranlist == "":
 						mgc = sqlite_db["metagene_counts"]
@@ -2517,12 +2432,9 @@ def metainfoquery():
 					fixed_master_count_list.append(master_count_list[i])
 		connection.close()
 		
-		if app.debug == True:
-			task =  metainfo_plots.heatplot(min_readlen, max_readlen, min_pos, max_pos, positions, readlengths,fixed_master_count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt")
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task =  metainfo_plots.heatplot.delay(min_readlen, max_readlen, min_pos, max_pos, positions, readlengths,fixed_master_count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt")
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+		
+		return metainfo_plots.heatplot(min_readlen, max_readlen, min_pos, max_pos, positions, readlengths,fixed_master_count_list,heatmap_metagene_type,title,reverse_scale,color_palette,short_code,background_col,maxscaleval,str(title_size)+"pt", str(axis_label_size)+"pt", str(subheading_size)+"pt",str(marker_size)+"pt")
+
 
 	else:
 		if plottype not in ["replicate_comp"]:
@@ -2530,7 +2442,7 @@ def metainfoquery():
 		if (plottype.strip(" ").replace("\n","")) not in ["replicate_comp"]:
 			print ("unknown plot type",plottype)
 	connection.close()
-	return prepare_return_str( "Error, unknown plot type selected: {}".format(plottype))
+	return ( "Error, unknown plot type selected: {}".format(plottype))
 
 
 def get_nuc_comp_reads(sqlite_db, nuccomp_reads, organism, transcriptome):

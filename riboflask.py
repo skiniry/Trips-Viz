@@ -14,7 +14,6 @@ import sqlite3
 import os
 import config
 from new_plugins import InteractiveLegendPlugin,PointHTMLTooltip,TopToolbar,DownloadProfile,DownloadPNG
-from celery_app import celery_application
 import time
 
 # CSS for popup tables that appear when hovering over aug codons
@@ -65,13 +64,14 @@ def get_user_defined_seqs(seq,seqhili):
 				near_cog_starts[(i)%3].append(i+1)
 				datadict = {'sequence': [subseq]}
 				df = pd.DataFrame(datadict, columns=(["sequence"]))
-				label = df.ix[[0], :].T
+				label = df.iloc[[0], :].T
 				label.columns = ["Position: {}".format(i)]
 				signalhtml[(i)%3].append(str(label.to_html()))
 	return near_cog_starts,signalhtml
 
 
 def merge_dicts(dict1,dict2):
+	print ("dict1, dict2,", dict1, dict2)
 	for nuc in dict2:
 		if nuc not in dict1:
 			dict1[nuc] = dict2[nuc]
@@ -83,15 +83,15 @@ def merge_dicts(dict1,dict2):
 					dict1[nuc][pos] += dict2[nuc][pos]
 	return dict1
 
-@celery_application.task(bind=True)
-def generate_plot(self, tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
+
+def generate_plot(tran, ambig, min_read, max_read,lite,ribocoverage,organism,readscore, noisered, primetype, minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict, short_code, color_readlen_dist, background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
 subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_location,cds_marker_size,cds_marker_colour,legend_size,ribo_linewidth, secondary_readscore,pcr,mismatches, hili_start, hili_stop):
-	#self.update_state(state='PROGRESS',meta={'current': 0, 'total': 100,'status': "Generate plot called"})
+	
 	if lite == "n" and ribocoverage == True:
 		return_str =  "Error: Cannot display Ribo-Seq Coverage when 'Line Graph' is turned off"
-		return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
+		return return_str
 	labels = ["Frame 1 profiles","Frame 2 profiles","Frame 3 profiles","RNA", "Exon Junctions"]
-	start_visible=[True, True, True, True, False]
+	start_visible=[True, True, True, True, True]
 	if mismatches == True:
 		labels.append("Mismatches A")
 		labels.append("Mismatches T")
@@ -116,7 +116,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			transhelve = sqlite3.connect("{0}/{1}/{2}/{2}.{3}.sqlite".format(config.SCRIPT_LOC, config.ANNOTATION_DIR,organism,transcriptome))
 		else:
 			return_str =  "Cannot find annotation file {}.{}.sqlite".format(organism,transcriptome)
-			return {'current': 100, 'total': 100, 'status': 'Complete','result': return_str}
+			return return_str
 	else:
 		transhelve = sqlite3.connect("{0}transcriptomes/{1}/{2}/{3}/{2}_{3}.sqlite".format(trips_uploads_location,owner,organism,transcriptome))
 	connection.close()
@@ -187,9 +187,10 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 			if best_stop_pos != 10000000:
 				frame_orfs[frame].append((start, best_stop_pos))
 	#self.update_state(state='PROGRESS',meta={'current': 100, 'total': 100,'status': "Fetching RNA-Seq Reads"})
-	all_rna_reads, rna_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, False,noisered, primetype,"rnaseq",readscore,pcr,get_mismatches=mismatches,self_obj=self)
+	all_rna_reads, rna_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, False,noisered, primetype,"rnaseq",readscore,pcr,get_mismatches=mismatches)
 	#self.update_state(state='PROGRESS',meta={'current': 100, 'total': 100,'status': "Fetching Ribo-Seq Reads"})
-	all_subcodon_reads,ribo_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,ribocoverage, organism, True,noisered, primetype,"riboseq",readscore,secondary_readscore,pcr,get_mismatches=mismatches,self_obj=self)
+	all_subcodon_reads,ribo_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,ribocoverage, organism, True,noisered, primetype,"riboseq",readscore,secondary_readscore,pcr,get_mismatches=mismatches)
+	print ("ribo_seqvar_dict", ribo_seqvar_dict)
 	seq_var_dict = merge_dicts(ribo_seqvar_dict, rna_seqvar_dict)
 	try:
 		rnamax = max(all_rna_reads.values())
@@ -200,7 +201,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	except:
 		subcodonmax = 0
 	y_max = max(1,rnamax, subcodonmax)*1.1
-	fig = plt.figure(figsize=(22,13))
+	fig = plt.figure(figsize=(13,8))
 	ax_main = plt.subplot2grid((30,1), (0,0),rowspan=22)
 	ax_main.spines['bottom'].set_visible(False)
 	for s in ['bottom', 'left','top','right']:
@@ -208,7 +209,6 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		ax_main.spines[s].set_color("red")
 	alt_seq_type_vars = []
 	# Plot any alternative sequence types if there are any
-	#self.update_state(state='PROGRESS',meta={'current': 100, 'total': 100,'status': "Fetching alternative Seq Types"})
 	for seq_type in file_paths_dict:
 		
 		if seq_type != "riboseq" and seq_type != "rnaseq":
@@ -218,7 +218,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 				frame_breakdown = True
 			else:
 				frame_breakdown = False
-			alt_sequence_reads,empty_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, frame_breakdown,noisered, primetype,seq_type,readscore,self_obj=self)
+			alt_sequence_reads,empty_seqvar_dict = get_reads(ambig, min_read, max_read, tran, file_paths_dict,tranlen,True, organism, frame_breakdown,noisered, primetype,seq_type,readscore)
 
 			if frame_breakdown == False:
 				alt_seq_plot = ax_main.plot(alt_sequence_reads.keys(), alt_sequence_reads.values(), alpha=1, label = seq_type, zorder=2, color='#5c5c5c', linewidth=2)
@@ -254,7 +254,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	label = 'Reads'
 	ax_main.set_ylabel(label,  fontsize=axis_label_size, labelpad=30)
 	label = 'Position (nucleotides)'
-	ax_main.set_xlabel(label, fontsize=axis_label_size,labelpad=5)
+	ax_main.set_xlabel(label, fontsize=axis_label_size,labelpad=-10)
 	ax_main.set_ylim(0, y_max)
 
 	if lite == "n":
@@ -273,14 +273,14 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	cds_markers += ax_main.plot((cds_stop+1,cds_stop+1), (0, y_max*0.97), color=cds_marker_colour,linestyle = 'solid', linewidth=cds_marker_size)
 	ax_main.text(cds_stop,y_max*0.97,"CDS stop",fontsize=18,color="black",ha="center")
 	ax_cds = plt.subplot2grid((31,1), (26,0),rowspan=1,sharex=ax_main)
-	ax_cds.set_axis_bgcolor("white")
+	ax_cds.set_facecolor("white")
 	ax_cds.set_ylabel('Merged CDS', labelpad=4, verticalalignment='center',horizontalalignment="right",rotation="horizontal",color="black",fontsize=(axis_label_size/1.5))
 	ax_f1 = plt.subplot2grid((31,1), (27,0),rowspan=1,sharex=ax_main)
-	ax_f1.set_axis_bgcolor(color_dict['frames'][0])
+	ax_f1.set_facecolor(color_dict['frames'][0])
 	ax_f2 = plt.subplot2grid((31,1), (28,0),rowspan=1,sharex=ax_main)
-	ax_f2.set_axis_bgcolor(color_dict['frames'][1])
+	ax_f2.set_facecolor(color_dict['frames'][1])
 	ax_f3 = plt.subplot2grid((31,1), (29,0),rowspan=1,sharex=ax_main)
-	ax_f3.set_axis_bgcolor(color_dict['frames'][2])
+	ax_f3.set_facecolor(color_dict['frames'][2])
 	ax_nucseq = plt.subplot2grid((31,1), (30,0),rowspan=1,sharex=ax_main)
 	ax_nucseq.set_xlabel('Transcript: {} Length: {} nt'.format(tran, tranlen), fontsize=subheading_size)
 
@@ -290,8 +290,9 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 
 	#plot a dummy exon junction at postion -1, needed in cases there are no exon junctions, this wont be seen
 	allexons = ax_main.plot((-1,-1), (0, 1), alpha=0.01,color='black',linestyle = '-.', linewidth=2)
+	print ("Exon junctions", exon_junctions)
 	for exon in exon_junctions:
-		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.01,color='black',linestyle = '-.', linewidth=3)
+		allexons += ax_main.plot((exon,exon), (0, y_max), alpha=0.95,color='black',linestyle = ':', linewidth=3)
 
 	#dictionary for each frame in which the keys are the posistions and the values are the counts
 	frame_counts = {0: collections.OrderedDict(), 1: collections.OrderedDict(), 2: collections.OrderedDict()}
@@ -324,7 +325,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 
 	xy = 0
 	if nucseq == True:
-		ax_nucseq.set_axis_bgcolor(background_col)
+		ax_nucseq.set_facecolor(background_col)
 		mrnaseq = seq.replace("T","U")
 		color_list = ["#FF4A45","#64FC44","#5687F9"]
 		char_frame = 0
@@ -380,7 +381,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		axis.set_ylim(0, 1)
 		axis.set_ylabel('Frame {}'.format(frame), labelpad=4, verticalalignment='center',horizontalalignment="right",rotation="horizontal",color="black",fontsize=(axis_label_size/1.5))
 	title_str = '{} ({})'.format(gene,short_code)
-	plt.title(title_str, fontsize=title_size,y=38)
+	plt.title(title_str, fontsize=50,y=38)
 	line_collections = [frame0subpro, frame1subpro, frame2subpro, rna_bars, allexons]
 	if mismatches == True:
 		line_collections.append(a_mismatches)
@@ -418,8 +419,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	leg_offset = (legend_size-17)*5
 	if leg_offset <0:
 		leg_offset = 0
-
-	ilp = InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0,alpha_sel=0.85,start_visible=start_visible,fontsize=legend_size,xoffset=leg_offset)
+	ilp = InteractiveLegendPlugin(line_collections, labels, alpha_unsel=0.01,alpha_sel=1,start_visible=start_visible,xoffset=50)
 	htmllabels = {1:[],2:[],3:[]}
 	all_start_points = {1:[],2:[],3:[]}
 	try:
@@ -483,7 +483,7 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 						'len':  [orf_len],
 						'context_score':[str(con_score)+"/150"]}
 			df = pd.DataFrame(datadict, columns=(["inframe ribo", "outframe ribo", "in/out ratio","rna","te","len","context_score"]))
-			label = df.ix[[0], :].T
+			label = df.iloc[[0], :].T
 			label.columns = ["Start pos: {}".format(start-1)]
 			htmllabels[frame].append(str(label.to_html()))
 	points1 =ax_f1.plot(all_start_points[1], [0.75]*len(all_start_points[1]), 'o', color='b',mec='k', ms=13, mew=1, alpha=0, zorder=3)
@@ -494,9 +494,19 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 	tooltip2 = PointHTMLTooltip(points2[0], htmllabels[2],voffset=10, hoffset=10, css=point_tooltip_css)
 	tooltip3 = PointHTMLTooltip(points3[0], htmllabels[3],voffset=10, hoffset=10, css=point_tooltip_css)
 
-	ax_f3.axes.get_yaxis().set_ticks([])
-	ax_f2.axes.get_yaxis().set_ticks([])
-	ax_f1.axes.get_yaxis().set_ticks([])
+	#This works but hides axis labels for all axes
+	#ax_f1.axes.xaxis.set_ticklabels([])
+	#ax_f1.axes.yaxis.set_ticklabels([])
+	#ax_f2.axes.yaxis.set_ticklabels([])
+	#ax_f3.axes.yaxis.set_ticklabels([])
+	#ax_cds.axes.yaxis.set_ticklabels([])
+	#ax_nucseq.axes.yaxis.set_ticklabels([])
+	#ax_f1.get_xaxis().set_visible(False)
+	#ax_f1.get_yaxis().set_visible(False)
+	for key, spine in ax_f1.spines.items():
+		spine.set_visible(False)
+	#ax_f1.tick_params(which="both", bottom=False, color="lightgray")
+
 
 	returnstr = "Position,Sequence,Frame 1,Frame 2,Frame 3,RNA-Seq\n"
 	for i in range(0,len(seq)):
@@ -515,20 +525,18 @@ subheading_size,axis_label_size,marker_size, transcriptome, trips_uploads_locati
 		returnstr += "{},{},{},{},{},{}\n".format(i+1,seq[i],f1_count, f2_count, f3_count,rna_count)
 
 	if seqhili == ['']:
-		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, TopToolbar(yoffset=180,xoffset=-70),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
+		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, TopToolbar(yoffset=-50,xoffset=-300),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
 	else:
-		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, signaltooltip1,signaltooltip2,signaltooltip3, TopToolbar(yoffset=100),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
+		plugins.connect(fig, ilp, tooltip1, tooltip2, tooltip3, signaltooltip1,signaltooltip2,signaltooltip3, TopToolbar(yoffset=-50,xoffset=-300),DownloadProfile(returnstr=returnstr),DownloadPNG(returnstr=title_str))
 
-	ax_main.set_axis_bgcolor(background_col)
+	ax_main.set_facecolor("white")
 	# This changes the size of the tick markers, works on both firefox and chrome.
 	ax_main.tick_params('both', labelsize=marker_size)
 	ax_main.xaxis.set_major_locator(plt.MaxNLocator(3))
 	ax_main.yaxis.set_major_locator(plt.MaxNLocator(3))
-	ax_main.grid(True, color="white", linewidth=30,linestyle="solid")
+	#ax_main.grid(False, color="white", linewidth=30,linestyle="solid")
 	#Without this style tag the markers sizes will appear correct on browser but be original size when downloaded via png
 	graph = "<style>.mpld3-xaxis {{font-size: {0}px;}} .mpld3-yaxis {{font-size: {0}px;}}</style>".format(marker_size)
 	graph += "<div style='padding-left: 55px;padding-top: 22px;'> <a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a> </div>".format(short_code)
 	graph +=  mpld3.fig_to_html(fig)
-	tot_prog = 100
-	return {'current': 400, 'total': tot_prog, 'status': 'Complete','result': graph}
-	#return graph
+	return graph

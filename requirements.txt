@@ -1,14 +1,14 @@
-
-flask==0.12.2
-flask_recaptcha==0.4.2
-flask_login==0.4.1
-flask_security==3.0.0
-email_validator==1.1.0
-bokeh==0.12.14
-celery==4.4.7
+#flask==2.0.2
+flask-recaptcha==0.4.2
+flask-login==0.5.0
+flask-security-too==4.1.2
+flask-mail==0.9.1
+email-validator==1.1.3
+bokeh==2.3.3
 matplotlib==2.2.5
-pandas==0.22.0
-Werkzeug==0.14.1
-sqlitedict==1.5.0
-scipy==1.2.3
-pip install -e git+git://github.com/skiniry/mpld3.git@master#egg=mpld3
+pandas==1.1.5
+werkzeug==2.0.1
+sqlitedict==1.7.0
+scipy==1.5.3
+sqlalchemy==1.4.27
+#pip install -e git+git://github.com/skiniry/mpld3.git@master#egg=mpld3

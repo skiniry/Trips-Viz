@@ -11,6 +11,9 @@ import uuid
 import config
 import logging
 
+
+
+
 # User model
 class User(UserMixin):
 	def __init__(self, id):
@@ -68,17 +71,14 @@ def fetch_user():
 	
 # Given a username and an organism returns a list of relevant studies.
 def fetch_studies(username, organism, transcriptome):
-	logging.debug("fetch_studies Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	accepted_studies = {}
 	study_access_list = []
 	#get a list of organism id's this user can access
-	if username != None:
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(username))
-		result = (cursor.fetchone())
-		user_id = result[0]
+	if current_user.is_authenticated:
+		user_id = current_user.id
 		cursor.execute("SELECT study_id from study_access WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchall())
 		for row in result:
@@ -98,8 +98,7 @@ def fetch_studies(username, organism, transcriptome):
 					accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
 				elif row[2] == 1:
 					if row[0] in study_access_list:
-						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}
-	logging.debug("Closing trips.sqlite connection")				
+						accepted_studies[str(row[0])] = {"filetypes":[],"study_name":row[1]}			
 	connection.close()
 	return accepted_studies
 
@@ -111,8 +110,7 @@ def fetch_studies(username, organism, transcriptome):
 
 # Create a dictionary of files seperated by type, this allows for file type grouping on the front end.
 def fetch_files(accepted_studies):
-	logging.debug("fetch_files Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	accepted_files = {}
@@ -140,8 +138,6 @@ def fetch_files(accepted_studies):
 															"file_type":row[4]}
 		accepted_studies[str(row[1])]["filetypes"].append(row[4])
 		file_id_to_name_dict[str(row[0])] = row[2].replace(".shelf","")
-
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return file_id_to_name_dict,accepted_studies,accepted_files,seq_types
 
@@ -153,8 +149,7 @@ def fetch_files(accepted_studies):
 # Gets a list of all studies associated with an organism
 def fetch_study_info(organism):
 	studyinfo_dict = {}
-	logging.debug("fetch_study_info Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("SELECT study_id,paper_authors,srp_nos,paper_year,paper_pmid,paper_link,gse_nos,adapters,paper_title,description,study_name from studies;".format(organism))
@@ -174,7 +169,6 @@ def fetch_study_info(organism):
 									"paper_title":row[8],
 									"description":row[9],
 									"study_name":row[10]}
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return studyinfo_dict
 
@@ -189,8 +183,7 @@ def fetch_file_paths(file_list,organism):
 		int_file_list = [int(x) for x in file_list]
 	except:
 		return {}
-	logging.debug("fetch_file_paths Connecting to trips.sqlite")
-	connection_ffp = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection_ffp = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection_ffp.text_factory = str
 	cursor = connection_ffp.cursor()
 
@@ -219,8 +212,7 @@ def fetch_file_paths(file_list,organism):
 
 # Builds a url and inserts it into sqlite database
 def generate_short_code(data,organism,transcriptome,plot_type):
-	logging.debug("generate_short_code Connecting to trips.sqlite")
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	# build a url so that this plot can be recreated later on
@@ -606,7 +598,6 @@ def generate_short_code(data,organism,transcriptome,plot_type):
 	cursor.execute("INSERT INTO urls VALUES({},'{}')".format(url_id, url))
 	connection.commit()
 	short_code = integer_to_base62(url_id)
-	logging.debug("Closing trips.sqlite connection")
 	connection.close()
 	return short_code
 

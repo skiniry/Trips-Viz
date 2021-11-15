@@ -698,13 +698,7 @@ $("#query").click(function() {
 		var min_coverage = $('input:text[name=min_coverage]').val();
 		var max_coverage = $('input:text[name=max_coverage]').val();
 
-		//var min_te = $('input:text[name=min_te]').val();
-		//var max_te = $('input:text[name=max_te]').val();
 
-		//var min_cds_ratio = $('input:text[name=min_cds_ratio]').val();
-		//var max_cds_ratio = $('input:text[name=max_cds_ratio]').val();
-
-		//var entropy_check = $('input:checkbox[name=entropy_check]:checked').val();
 		var saved_check = $('input:checkbox[name=saved_check]:checked').val();
 		var nnet_check = $('input:checkbox[name=nnet_check]:checked').val();
 		var ambig_check = $('input:checkbox[name=ambig_check]:checked').val();
@@ -799,135 +793,92 @@ $("#query").click(function() {
 							"max_cons_score":max_cons_score,
 							"user_short":user_short,
 							"html_args":html_args};
-		//console.log("USER SHROT IS "+qu[user_short])
-		//var file_list = [];
-		
-		//for (var filetype in accepted_files) {
-		//		for (var study_id in accepted_files[filetype]) {
-		//				for (var file_id in accepted_files[filetype][study_id]) {
-		//						var newelement=$('input:checkbox[name='+file_id+']:checked').val();
-		//						if (newelement == 'inputfile'){
-		//								file_list.push(file_id);
-		//		};
-		//}
-		//}
-		//};
+
 
 		qu["file_list"] = alt_file_list
-		//console.log("len of File list is "+file_list.length);
 		console.log("len of Alt file list is "+alt_file_list.length);
 		$.ajax({
 				type: "POST",
-				//async:true,
 				contentType: "application/json; charset=utf-8",
 				url: url,
 				data: JSON.stringify(qu),
 				dataType: "html",
-				success: function(data, status, request) {
-					status_url = request.getResponseHeader('Location');
-					// If running in local mode or celery not running do not call update_progress function
-					if (request.statusText == "NO_CELERY") {
-						var result = data.toString();
-						if ((result.split("|")[0]) == "Table") {
-							console.log("Table in result loading table");
-							var div = document.getElementById('container2');
-							var rawdata = result.split("|");
-							komondor_file_list = rawdata[4]
-							short_code = rawdata[5]
-							tabletitle.innerText = "Results Table ("+short_code+")";
-							var table_link = document.getElementById('table_link');
-							var base_url = "{{ url_for('static',filename='') }}";
-							table_link.href = base_url+"tmp/"+rawdata[3]
-							table_link.download = rawdata[3]
-							//console.log("raw data is "+rawdata);
-							var summary_data = rawdata[2].split(".,/");
-							var summary_table = $('#summary_table').DataTable();
-							summary_table.clear()
-							//console.log("calling function");
-							for(var i = 0; i < summary_data.length-1; i++) {
-								summary_table.row.add( [
-									"<b>"+(summary_data[i]).split(",")[0]+"</b>",
-									(summary_data[i]).split(",")[1],
-									(summary_data[i]).split(",")[2],
-									(summary_data[i]).split(",")[3],
-									(summary_data[i]).split(",")[4],
-									(summary_data[i]).split(",")[5],
-									(summary_data[i]).split(",")[6],
-									"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",min') >Use as min limits</button>",
-									"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",max') >Use as max limits</button>"
-									] ).draw( false );
-								}
-								
-								splitdata = rawdata[1].split(".,/");
-								var table = $('#myTable').DataTable();
-								table.clear()
-								//var file_list = ((splitdata[0]).split(",")[9]).replace(/;/g,",")
-								// there is a space in front of the file_list for some reason, this line removes it
-								//file_list = file_list.slice(1)
-								//console.log("file_list"+file_list+file_list[0]);
-								
-								for(var i = 0; i < splitdata.length-1; i++) {
-									splitline = splitdata[i].split(",")
-									//console.log("Trips link before"+splitline[11])
-									table.row.add( [
-										splitline[0],
-										splitline[1],
-										splitline[2],
-										splitline[3],
-										splitline[4],
-										splitline[5],
-										splitline[6],
-										//(splitline[10]).replace(/;/g,","),
-										(splitline[11]).replace(/;/g,","),
-										"<button class='orf_save_button' type='button'  id='annotate_query'  onclick='open_dialog("+i+")'><b>Save</b></button>"
-										]).draw( false );
-									
-									};
-									table.columns.adjust()
-									table.draw()
-									$("#loading-div-background").hide();
-									$("#container").hide();
-									$("#container2").show();
-									}
-							else{
-								var graph = $("#container");
-								graph.html(data);
-								$("#loading-div-background").hide();
-								$("#container").show();
-								$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+				success: function(data) {
+					var result = data.toString();
+					if ((result.split("|")[0]) == "Table") {
+						console.log("Table in result loading table");
+						var div = document.getElementById('container2');
+						var rawdata = result.split("|");
+						komondor_file_list = rawdata[4]
+						short_code = rawdata[5]
+						tabletitle.innerText = "Results Table ("+short_code+")";
+						var table_link = document.getElementById('table_link');
+						var base_url = "{{ url_for('static',filename='') }}";
+						table_link.href = base_url+"tmp/"+rawdata[3]
+						table_link.download = rawdata[3]
+						//console.log("raw data is "+rawdata);
+						var summary_data = rawdata[2].split(".,/");
+						var summary_table = $('#summary_table').DataTable();
+						summary_table.clear()
+						//console.log("calling function");
+						for(var i = 0; i < summary_data.length-1; i++) {
+							summary_table.row.add( [
+								"<b>"+(summary_data[i]).split(",")[0]+"</b>",
+								(summary_data[i]).split(",")[1],
+								(summary_data[i]).split(",")[2],
+								(summary_data[i]).split(",")[3],
+								(summary_data[i]).split(",")[4],
+								(summary_data[i]).split(",")[5],
+								(summary_data[i]).split(",")[6],
+								"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",min') >Use as min limits</button>",
+								"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",max') >Use as max limits</button>"
+								] ).draw( false );
 							}
+							splitdata = rawdata[1].split(".,/");
+							var table = $('#myTable').DataTable();
+							table.clear()
+							//var file_list = ((splitdata[0]).split(",")[9]).replace(/;/g,",")
+							// there is a space in front of the file_list for some reason, this line removes it
+							//file_list = file_list.slice(1)
+							//console.log("file_list"+file_list+file_list[0]);
+							
+							for(var i = 0; i < splitdata.length-1; i++) {
+								splitline = splitdata[i].split(",")
+								//console.log("Trips link before"+splitline[11])
+								table.row.add( [
+									splitline[0],
+									splitline[1],
+									splitline[2],
+									splitline[3],
+									splitline[4],
+									splitline[5],
+									splitline[6],
+									//(splitline[10]).replace(/;/g,","),
+									(splitline[11]).replace(/;/g,","),
+									"<button class='orf_save_button' type='button'  id='annotate_query'  onclick='open_dialog("+i+")'><b>Save</b></button>"
+									]).draw( false );
+								};
+								table.columns.adjust()
+								table.draw()
+								$("#loading-div-background").hide();
+								$("#container").hide();
+								$("#container2").show();
+								}
+						else{
+							var graph = $("#container");
+							graph.html(data);
+							$("#loading-div-background").hide();
+							$("#container").show();
+							$('html, body').animate({scrollTop: $("#container").offset().bottom}, 200);
+						}
 			
 						
 
 						
 						document.getElementById('container').scrollIntoView();
-					}
 					
-					else {
-						// if data is an error message or just populating the transcript table, do not send to update_progress
-						jdata = JSON.parse(data);
-						if (jdata["status"] == "return_str") {
-							var graph = $("#container");
-							graph.html(jdata["result"]);
-							$("#loading-div-background").hide();
-							$("#container").show();
-							}
-						else if (jdata["status"] == "tran_list") {
-							var splitdata = jdata['result'].split(":");
-							populate_jquery_dialog(splitdata);
-							$("#myTable").tablesorter({sortList: [[4,0]]});
-							$( "#dialog-2" ).dialog( "open" );
-						}
-						else if (jdata["status"] == "quant_tran_list"){
-							var splitdata = jdata['result'].split(":");
-							populate_jquery_dialog_quant(splitdata);
-							$("#myTable").tablesorter({sortList: [[6,0]]});
-							$( "#dialog-2" ).dialog( "open" );
-							}
-						else {
-							update_progress(status_url, nanobar);
-							}
-						}
+					
+					
 		},
 				error: function() {
 					alert('Unexpected error');
@@ -937,110 +888,7 @@ $("#query").click(function() {
 						});
 
 
-function update_progress(status_url, nanobar) {
-	console.log("update progress called");
-	// send GET request to status URL
-	$.getJSON(status_url, function(data) {
-		// update UI
-		percent = parseInt(data['current'] * 100 / data['total']);
-		nanobar.go(percent);
-		//$(status_div.childNodes[1]).text(percent + '%');
-		//$(status_div.childNodes[2]).text(data['status']);
-		$("#loading_header").text(data['status'])
-		
-			
 
-		if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
-			if ('result' in data) {
-				// show result
-				//$(status_div.childNodes[3]).text('Result: ' + data['result']);
-				
-				var result = data['result'].toString();
-				
-				
-				if ((result.split("|")[0]) == "Table") {
-					console.log("Table in result loading table");
-					var div = document.getElementById('container2');
-					var rawdata = result.split("|");
-					komondor_file_list = rawdata[4]
-					short_code = rawdata[5]
-					tabletitle.innerText = "Results Table ("+short_code+")";
-					var table_link = document.getElementById('table_link');
-					var base_url = "{{ url_for('static',filename='') }}";
-					table_link.href = base_url+"tmp/"+rawdata[3]
-					table_link.download = rawdata[3]
-					//console.log("raw data is "+rawdata);
-					var summary_data = rawdata[2].split(".,/");
-					var summary_table = $('#summary_table').DataTable();
-					summary_table.clear()
-					//console.log("calling function");
-					for(var i = 0; i < summary_data.length-1; i++) {
-						summary_table.row.add( [
-							"<b>"+(summary_data[i]).split(",")[0]+"</b>",
-							(summary_data[i]).split(",")[1],
-							(summary_data[i]).split(",")[2],
-							(summary_data[i]).split(",")[3],
-							(summary_data[i]).split(",")[4],
-							(summary_data[i]).split(",")[5],
-							(summary_data[i]).split(",")[6],
-							"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",min') >Use as min limits</button>",
-							"<button  onclick=populate_min_max('"+(summary_data[i]).toString()+",max') >Use as max limits</button>"
-							] ).draw( false );
-						}
-						
-						splitdata = rawdata[1].split(".,/");
-						var table = $('#myTable').DataTable();
-						table.clear()
-						//var file_list = ((splitdata[0]).split(",")[9]).replace(/;/g,",")
-						// there is a space in front of the file_list for some reason, this line removes it
-						//file_list = file_list.slice(1)
-						//console.log("file_list"+file_list+file_list[0]);
-						
-						for(var i = 0; i < splitdata.length-1; i++) {
-							splitline = splitdata[i].split(",")
-							//console.log("Trips link before"+splitline[11])
-							table.row.add( [
-								splitline[0],
-								splitline[1],
-								splitline[2],
-								splitline[3],
-								splitline[4],
-								splitline[5],
-								splitline[6],
-								//(splitline[10]).replace(/;/g,","),
-								(splitline[11]).replace(/;/g,","),
-								"<button class='orf_save_button' type='button'  id='annotate_query'  onclick='open_dialog("+i+")'><b>Save</b></button>"
-								]).draw( false );
-							
-							};
-							table.columns.adjust()
-							table.draw()
-							$("#loading-div-background").hide();
-							$("#container").hide();
-							$("#container2").show();
-							}
-				
-				
-				
-				
-				
-				
-				$("#loading-div-background").hide();
-				}
-				else {
-					// something unexpected happened
-					$("#loading_header").text('Result: ' + data['state']);
-					}
-			}
-			else {
-				// rerun in 2 seconds
-				setTimeout(function() {
-					update_progress(status_url, nanobar);
-					}, 2000);
-				}
-				});
-				}
-				
 //$(function() {
 //	$('#start-bg-job').click(start_long_task);
 //});

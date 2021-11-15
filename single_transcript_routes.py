@@ -10,6 +10,7 @@ import riboflask
 import collections
 from flask_login import current_user
 import logging
+import json
 try:
 	from orfQuant import incl_OPM_run_orfQuant
 	from tripsTPM import TPM
@@ -31,7 +32,7 @@ def interactiveplotpage(organism,transcriptome):
 	organism = str(organism)
 
 	
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	
@@ -145,7 +146,10 @@ def query():
 	tran_dict = {}
 	gene_dict = {}
 	ribo_user_files = {}
-	data = ast.literal_eval(request.data)
+	print ("raw data", request.data)
+	data = json.loads(request.data)
+	print ("PROCESSED DATA",data)
+	print (data.keys())
 
 	tran = data['transcript'].upper().strip()
 	readscore = data['readscore']
@@ -171,7 +175,7 @@ def query():
 	user_hili_stops = data["user_hili_stops"]
 	user_short = data["user_short"]
 
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	cursor.execute("SELECT owner FROM organisms WHERE organism_name = '{}' and transcriptome_list = '{}';".format(organism, transcriptome))
@@ -341,7 +345,7 @@ def query():
 		short_code = data["user_short"]
 		user_short_passed = True
 
-	connection = sqlite3.connect('{}/trips.sqlite'.format(config.SCRIPT_LOC))
+	connection = sqlite3.connect('{}/{}'.format(config.SCRIPT_LOC,config.DATABASE_NAME))
 	connection.text_factory = str
 	cursor = connection.cursor()
 	background_col = config.BACKGROUND_COL
@@ -360,10 +364,12 @@ def query():
 	seq_rules = {"proteomics":{"frame_breakdown":1},"conservation":{"frame_breakdown":1},"tcpseq":{"frame_breakdown":0}}
 
 	#get user_id
-	if user != None:
-		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user))
+	if current_user.is_authenticated:
+		user_name = current_user.name
+		cursor.execute("SELECT user_id from users WHERE username = '{}';".format(user_name))
 		result = (cursor.fetchone())
 		user_id = result[0]
+		print ("current user id is", user_id)
 		#get a list of organism id's this user can access
 		cursor.execute("SELECT background_col,uga_col,uag_col,uaa_col,title_size,subheading_size,axis_label_size,marker_size,cds_marker_width,cds_marker_colour,legend_size,ribo_linewidth from user_settings WHERE user_id = '{}';".format(user_id))
 		result = (cursor.fetchone())
@@ -388,24 +394,13 @@ def query():
 			seq_rules[seq_name] = {"frame_breakdown":frame_breakdown}
 		connection.close()
 	if tran != "":
-		if app.debug == True:
-			task = riboflask.generate_plot(tran, ambiguous, minread, maxread, lite , ribocoverage, organism, readscore, noisered,primetype,
+		return riboflask.generate_plot(tran, ambiguous, minread, maxread, lite , ribocoverage, organism, readscore, noisered,primetype,
 								minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict,short_code, color_readlen_dist,
 								background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
 								subheading_size,axis_label_size,marker_size,transcriptome,config.UPLOADS_DIR,cds_marker_size,cds_marker_colour,
 								legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches,hili_start, hili_stop)
-			return task["result"], "NO_CELERY", {'Location': None}
-		else:
-			task = riboflask.generate_plot.delay(tran, ambiguous, minread, maxread, lite , ribocoverage, organism, readscore, noisered,primetype,
-								minfiles,nucseq, user_hili_starts, user_hili_stops,uga_diff,file_paths_dict,short_code, color_readlen_dist,
-								background_col,uga_col, uag_col, uaa_col,advanced,seqhili,seq_rules,title_size,
-								subheading_size,axis_label_size,marker_size,transcriptome,config.UPLOADS_DIR,cds_marker_size,cds_marker_colour,
-								legend_size,ribo_linewidth,secondary_readscore,pcr,mismatches,hili_start, hili_stop)
-			return jsonify({}), 202, {'Location': url_for('taskstatus',task_id=task.id)}
+
 
 	else:
-		return_str =  "ERROR! Could not find any transcript or gene corresponding to {}".format(tran)
-		if app.debug == True:
-			return return_str, "NO_CELERY", {'Location': None}
-		else:
-			return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+		return "ERROR! Could not find any transcript or gene corresponding to {}".format(tran)
+

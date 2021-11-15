@@ -33,7 +33,7 @@ from bokeh.models import (
 	PrintfTickFormatter,
 	ColorBar
 )
-from celery_app import celery_application
+
 import logging
 
 #import seaborn
@@ -153,8 +153,7 @@ def get_near_cog_starts(seq):
 			near_cog_starts[(i+1)%3].append(i+1)
 	return near_cog_starts
 
-@celery_application.task(bind=True)
-def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_color, short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list):
+def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_color, short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list):
 	#Convert gene_list from string to list
 	logging.debug("generate plot called")
 	#logging.debug("sorted_min_exp_list: {}".format(sorted_min_exp_list))
@@ -273,8 +272,8 @@ def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcripto
 	else:
 		x_lab = 'Average Geometric mean (log2)'
 		y_lab = 'Average Fold change (log2)'
-	p = figure(plot_width=1800, plot_height=750,x_axis_label=x_lab,  y_axis_label=y_lab,title= full_title,toolbar_location="below",
-			   tools = "reset,pan,box_zoom,hover,tap",logo=None)
+	p = figure(plot_width=1300, plot_height=750,x_axis_label=x_lab,  y_axis_label=y_lab,title= full_title,toolbar_location="below",
+			   tools = "reset,pan,box_zoom,hover,tap")
 	p.title.align="center"
 	p.title.text_font_size = title_size
 	p.xaxis.axis_label_text_font_size = axis_label_size
@@ -365,12 +364,12 @@ def generate_plot(self, sorted_min_exp_list,bin_list,organism, label,transcripto
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
 	logging.debug("Returning plot")
-	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
-	#return graph
+	return graph
 
 
-@celery_application.task(bind=True)
-def ribo_vs_rna(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label):
+
+
+def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label):
 	#Convert gene_list from string to list
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
@@ -447,13 +446,13 @@ def ribo_vs_rna(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 				hili_trans.append(ribo_rna_dict[gene]["tran"])
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes})
 	if label == "TE":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	elif label == "Riboseq":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="Ribo-Seq Cond2 count (log2)",  y_axis_label='Ribo-Seq Cond1 count (log2)',title="Ribo-Seq correlation ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="Ribo-Seq Cond2 count (log2)",  y_axis_label='Ribo-Seq Cond1 count (log2)',title="Ribo-Seq correlation ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	elif label == "Rnaseq":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq Cond2 count (log2)",  y_axis_label='RNA-Seq Cond1 count (log2)',title="RNA-Seq correlation ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="RNA-Seq Cond2 count (log2)",  y_axis_label='RNA-Seq Cond1 count (log2)',title="RNA-Seq correlation ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	p.title.align="center"
 	p.title.text_font_size = title_size
@@ -528,14 +527,14 @@ def ribo_vs_rna(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
-	#return graph
+	return graph
 
 
 
 
-@celery_application.task(bind=True)
-def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore):
+
+
+def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore):
 	#Convert gene_list from string to list
 	if gene_list != "":
 		gene_list = gene_list.replace(","," ").replace("\t"," ")
@@ -756,13 +755,13 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 				
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes,'basemeans':basemeans,'lfcses':lfcses})
 	if label == "TE":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	elif label == "Riboseq":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="Ribo-Seq Cond2 count (log2)",  y_axis_label='Ribo-Seq Cond1 count (log2)',title="Ribo-Seq correlation ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="Ribo-Seq Cond2 count (log2)",  y_axis_label='Ribo-Seq Cond1 count (log2)',title="Ribo-Seq correlation ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	elif label == "Rnaseq":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq Cond2 count (log2)",  y_axis_label='RNA-Seq Cond1 count (log2)',title="RNA-Seq correlation ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="RNA-Seq Cond2 count (log2)",  y_axis_label='RNA-Seq Cond1 count (log2)',title="RNA-Seq correlation ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	p.title.align="center"
 	p.title.text_font_size = title_size
@@ -868,8 +867,7 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
-	#return graph
+	return graph
 
 
 
@@ -877,8 +875,9 @@ def deseq2_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rna
 
 
 
-@celery_application.task(bind=True)
-def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore,sig_translated,sig_rna,sig_buffering):
+
+
+def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,rnaseq2,background_col,short_code,normalized,filename,no_groups,title_size, axis_label_size, subheading_size,marker_size,ambiguous,gene_list,label,minzscore,sig_translated,sig_rna,sig_buffering):
 	#Convert gene_list from string to list
 	# ("gene list passed to deseq2_plot", gene_list)
 	if gene_list != "":
@@ -1021,7 +1020,6 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 							buffereddown_lfcses.append(lfcSE)
 							buffereddown_genes.append(gene)
 							buffereddown_trans.append(ribo_rna_dict[gene]["tran"])
-
 				else:
 					highlight_y_values.append(y)
 					highlight_x_values.append(x)
@@ -1031,13 +1029,13 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 					highlight_trans.append(ribo_rna_dict[gene]["tran"])
 	source = ColumnDataSource({'x': x_values,'y':y_values,'trans':trans, 'genes':genes,'basemeans':basemeans,'lfcses':lfcses})
 	if label == "TE":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="RNA-Seq FC (log2)",  y_axis_label='Ribo-Seq FC (log2)',title="Ribo-Seq FC vs RNA-Seq FC ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	elif label == "Riboseq":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="Ribo-Seq Cond2 count (log2)",  y_axis_label='Ribo-Seq Cond1 count (log2)',title="Ribo-Seq correlation ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="Ribo-Seq Cond2 count (log2)",  y_axis_label='Ribo-Seq Cond1 count (log2)',title="Ribo-Seq correlation ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	elif label == "Rnaseq":
-		p = figure(plot_width=1800, plot_height=1800,x_axis_label="RNA-Seq Cond2 count (log2)",  y_axis_label='RNA-Seq Cond1 count (log2)',title="RNA-Seq correlation ({})".format(short_code),toolbar_location="below",
+		p = figure(plot_width=1300, plot_height=1300,x_axis_label="RNA-Seq Cond2 count (log2)",  y_axis_label='RNA-Seq Cond1 count (log2)',title="RNA-Seq correlation ({})".format(short_code),toolbar_location="below",
 			tools = "reset,pan,box_zoom,save,hover,tap")
 	p.title.align="center"
 	p.title.text_font_size = title_size
@@ -1066,7 +1064,7 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#ffcc66',legend="Buffered down")
 	
 	source = ColumnDataSource({'x':rnaup_x_values, 'y':rnaup_y_values, 'trans':rnaup_trans,'genes':rnaup_genes,'basemeans':rnaup_basemeans,'lfcses':rnaup_lfcses})
-	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#cc0099',legend="mRNA abundacne up")
+	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#cc0099',legend="mRNA abundance up")
 	source = ColumnDataSource({'x':rnadown_x_values, 'y':rnadown_y_values, 'trans':rnadown_trans,'genes':rnadown_genes,'basemeans':rnadown_basemeans,'lfcses':rnadown_lfcses})
 	p.scatter('x','y', alpha=0.2,color="black",fill_alpha=1,size=12,source=source,fill_color='#ffff00',legend="mRNA abundance down")
 	
@@ -1138,8 +1136,8 @@ def anota2seq_plot(self, ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,
 	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
-	return {'current': 400, 'total': 100, 'status': 'Complete','result': graph}
-	#return graph
+	return graph
+
 
 
 
