@@ -92,13 +92,8 @@ app.register_blueprint(traninfoquery_blueprint)
 app.config.from_pyfile('config.py')
 recaptcha = ReCaptcha(app=app)
 app.config['UPLOAD_FOLDER'] = '/static/tmp'
-app.config['SECURITY_PASSWORD_SALT'] = config.PASSWORD_SALT
-app.config['SECRET_KEY'] = config.FLASK_SECRET_KEY
+app.config['SECRET_KEY'] = config.SECRET_KEY
 
-#Modify security messages so people can't tell which users have already signed up. 
-app.config['SECURITY_MSG_EMAIL_ALREADY_ASSOCIATED'] = (("Thank you. Confirmation instructions have been sent to %(email)s."),"error")
-app.config['USER_DOES_NOT_EXIST'] = (("Invalid credentials"), "error")
-app.config['INVALID_PASSWORD'] = (("Invalid credentials"), "error")
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
