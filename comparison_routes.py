@@ -151,17 +151,10 @@ def comparequery():
 						cdslen = cds_stop-cds_start
 						threeutrlen = tranlen - cds_stop
 					return_str += (":{},{},{},{},{},{}".format(transcript[0], tranlen, cds_start, cdslen, threeutrlen,principal))
-				tot_prog = 100
-				if app.debug == True:
-					return return_str, "NO_CELERY", {'Location': None}
-				else:
-					return jsonify({'current': 100, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""}  
+				return return_str
 		else:
 			return_str =  "ERROR! Could not find any transcript corresponding to {}".format(tran)
-			if app.debug == True:
-				return return_str, "NO_CELERY", {'Location': None}
-			else:
-				return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return return_str
 	transhelve.close()
 	minread = int(data['minread'])
 	maxread = int(data['maxread'])
@@ -172,11 +165,8 @@ def comparequery():
 	
 	if master_file_dict == {}:
 		return_str =  "Error: No files in the File list box. To add files to the file list box click on a study in the studies section above. This will populate the Ribo-seq and RNA-Seq sections with a list of files. Click on one of the files and then press the  Add button in the studies section. This will add the file to the File list box. Selecting another file and clicking Add again will add the new file to the same group in the File list. Alternatively to add a new group simply change the selected colour (by clicking on the coloured box in the studies section) and then click the Add file button."
-		if app.debug == True:
-			return return_str, "NO_CELERY", {'Location': None}
-		else:
-			return jsonify({'current': 100, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""}  
-
+		return return_str
+		
 
 	# This section is purely to sort by label alphabetically
 	for color in master_file_dict:
