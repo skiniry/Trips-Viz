@@ -277,21 +277,13 @@ def query():
 						return_str += (":{},{},{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen, OPM_coverage, ribo_coverage, RNA_coverage))
 					else:
 						return_str += (":{},{},{},{},{},{},{}".format(transcript[0],version, tranlen, cds_start, cdslen, threeutrlen,principal))
-				if app.debug == True:
-					return return_str, "NO_CELERY", {'Location': None}
-				else:
-					if user == "test":
-						return jsonify({'current': 400, 'total': 100, 'status': 'quant_tran_list','result': return_str}), 200, {'Location': ""} 
-					else:
-						return jsonify({'current': 400, 'total': 100, 'status': 'tran_list','result': return_str}), 200, {'Location': ""} 
+				return return_str
 				
 		else:
 			return_str =  "ERROR! Could not find any gene or transcript corresponding to {}".format(tran)
 			logging.debug(return_str)
-			if app.debug == True:
-				return return_str, "NO_CELERY", {'Location': None}
-			else:
-				return jsonify({'current': 400, 'total': 100, 'status': 'return_str','result': return_str}), 200, {'Location': ""} 
+			return return_str
+			
 	transhelve.close()
 	if 'varlite' in data:
 		lite = "y"
