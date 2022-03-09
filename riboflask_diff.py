@@ -305,7 +305,7 @@ def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,rib
 
 	#/saccharomyces_cerevisiae/Gencode_v24/comparison/?files=227,%23ff1f00_228,%233BFF00_231,%23ffffff_232,%23000000_&transcript=YLR162W&normalize=F&cov=T&ambig=F&minread=25&maxread=100
 	#/saccharomyces_cerevisiae/Gencode_v24/comparison/?files=227,228,229,%23ff1f00_230,%233BFF00&transcript=YDR003W&normalize=T&cov=T&ambig=T&minread=18&maxread=45
-	#url = "http://143.239.109.139/tripsviz/{}/{}/interactive_plot/?transcript=@labels".format(organism, transcriptome)
+	
 	file_string = ""
 	label_string="&labels=RIBO-Seq Cond 1,%23007a02_RIBO-Seq Cond 2,%23960000_mRNA-Seq Cond 1,%2374ed76_mRNA-seq Cond 2,%23ff6d6d"
 	if riboseq1:
@@ -339,7 +339,7 @@ def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,rib
 	else:
 		ambig = "F"
 
-	url = "http://trips.ucc.ie/{}/{}/comparison/?files={}{}&transcript=@labels&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
+	url = "http://0.0.0.0:5000/{}/{}/comparison/?files={}{}&transcript=@labels&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
 
 
 	'''
@@ -359,8 +359,8 @@ def generate_plot(sorted_min_exp_list,bin_list,organism, label,transcriptome,rib
 
 
 	#TODO FIX HARDCODED TMP FILE LINK
-	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://trips.ucc.ie/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download results as csv file</b></button></a> </div>".format(short_code,filename)
-	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
+	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://0.0.0.0:5000/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download results as csv file</b></button></a> </div>".format(short_code,filename)
+	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
 	logging.debug("Returning plot")
@@ -520,11 +520,11 @@ def ribo_vs_rna(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 		ambig = "T"
 	else:
 		ambig = "F"
-	url = "http://trips.ucc.ie/{}/{}/comparison/?files={}{}&transcript=@trans&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
+	url = "http://0.0.0.0:5000/{}/{}/comparison/?files={}{}&transcript=@trans&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
 	taptool = p.select(type=TapTool)
 	taptool.callback = OpenURL(url=url)
-	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://trips.ucc.ie/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download results as csv file</b></button></a> </div>".format(short_code,filename)
-	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
+	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://0.0.0.0:5000/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download results as csv file</b></button></a> </div>".format(short_code,filename)
+	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
 	return graph
@@ -859,12 +859,12 @@ def deseq2_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq1,r
 	else:
 		ambig = "F"
 	
-	url = "http://trips.ucc.ie/{}/{}/comparison/?files={}{}&transcript=@trans&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
+	url = "http://0.0.0.0:5000/{}/{}/comparison/?files={}{}&transcript=@trans&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
 	taptool = p.select(type=TapTool)
 	taptool.callback = OpenURL(url=url)
 
-	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://trips.ucc.ie/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download DESeq2 output files</b></button></a> </div>".format(short_code,filename)
-	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
+	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://0.0.0.0:5000/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download DESeq2 output files</b></button></a> </div>".format(short_code,filename)
+	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
 	return graph
@@ -1128,12 +1128,12 @@ def anota2seq_plot(ribo_rna_dict,organism,transcriptome,riboseq1,riboseq2,rnaseq
 	else:
 		ambig = "F"
 	
-	url = "http://trips.ucc.ie/{}/{}/comparison/?files={}{}&transcript=@trans&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
+	url = "http://0.0.0.0:5000/{}/{}/comparison/?files={}{}&transcript=@trans&normalize={}&cov=T&ambig={}&minread=25&maxread=150".format(organism, transcriptome,file_string,label_string,str(normalized)[0],ambig)
 	taptool = p.select(type=TapTool)
 	taptool.callback = OpenURL(url=url)
 
-	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://trips.ucc.ie/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download DESeq2 output files</b></button></a> </div>".format(short_code,filename)
-	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://trips.ucc.ie/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
+	graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br><a href='https://0.0.0.0:5000/static/tmp/{1}' target='_blank' ><button class='button centerbutton' type='submit'><b>Download DESeq2 output files</b></button></a> </div>".format(short_code,filename)
+	#graph = "<div style='padding-left: 55px;padding-top: 22px;'><a href='https://0.0.0.0:5000/short/{0}' target='_blank' ><button class='button centerbutton' type='submit'><b>Direct link to this plot</b></button></a><br> </div>".format(short_code)
 	#layout = column(text_input, p)
 	graph += file_html(p,CDN)
 	return graph
